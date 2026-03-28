@@ -8,7 +8,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { email, password, fullName } = body;
 
-    // 1. Validate
     if (!email || !password) {
       return NextResponse.json(
         { message: "Missing fields" },
@@ -16,7 +15,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. Check existing user
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -28,10 +26,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Create user
     const user = await prisma.user.create({
       data: {
         email,
@@ -40,10 +36,13 @@ export async function POST(req: Request) {
       },
     });
 
-    // 5. Generate JWT
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is missing");
+    }
+
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
@@ -55,9 +54,15 @@ export async function POST(req: Request) {
       },
       token,
     });
-  } catch (error) {
+
+  } catch (error: any) {
+    console.error("ERROR:", error);
+
     return NextResponse.json(
-      { message: "Server error", error },
+      {
+        message: "Server error",
+        error: error.message,
+      },
       { status: 500 }
     );
   }
