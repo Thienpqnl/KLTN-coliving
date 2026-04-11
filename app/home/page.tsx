@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function HomePage() {
   const [location, setLocation] = useState('');
@@ -37,12 +38,12 @@ export default function HomePage() {
             </a>
           </div>
           <div className="flex items-center space-x-6">
-            <button className="text-slate-600 dark:text-slate-400 font-medium hover:text-orange-600 transition-colors scale-95 duration-200 ease-in-out">
+            <Link href="/login" className="text-slate-600 dark:text-slate-400 font-medium hover:text-orange-600 transition-colors scale-95 duration-200 ease-in-out">
               Login
-            </button>
-            <button className="bg-gradient-to-r from-orange-600 to-orange-400 text-white px-6 py-2.5 rounded-full font-label text-xs uppercase tracking-widest font-bold shadow-lg shadow-orange-500/20 scale-95 hover:scale-100 transition-all duration-200">
+            </Link>
+            <Link href="/register" className="bg-gradient-to-r from-orange-600 to-orange-400 text-white px-6 py-2.5 rounded-full font-label text-xs uppercase tracking-widest font-bold shadow-lg shadow-orange-500/20 scale-95 hover:scale-100 transition-all duration-200">
               Sign Up
-            </button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -278,7 +279,6 @@ export default function HomePage() {
                     className="flex-1 bg-white/10 border border-white/20 rounded-full px-6 py-4 text-white placeholder:text-white/40 focus:ring-2 focus:ring-orange-500 outline-none"
                     placeholder="Your email address"
                     type="email"
-                    required
                   />
                   <button
                     type="submit"
