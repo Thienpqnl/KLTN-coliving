@@ -20,7 +20,7 @@ export async function POST(req: Request) {
         const user = await prisma.user.findUnique({
             where: { email },
         });
-
+        
         if (!user) {
             return NextResponse.json(
                 { message: "Email không tồn tại" },
