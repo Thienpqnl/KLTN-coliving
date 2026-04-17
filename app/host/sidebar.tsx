@@ -1,5 +1,7 @@
 "use client"
 
+import { usePathname } from "next/navigation"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
@@ -19,25 +21,24 @@ import { Button } from "@/components/ui/button"
 interface NavItem {
   label: string
   icon: React.ReactNode
-  active?: boolean
-  href?: string
+href: string
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, active: true },
-  { label: "Room Management", icon: <BedDouble className="h-4 w-4" /> },
-  { label: "Bookings", icon: <CalendarCheck className="h-4 w-4" /> },
-  { label: "Transactions", icon: <Receipt className="h-4 w-4" /> },
-  { label: "Chat", icon: <MessageSquare className="h-4 w-4" /> },
-  { label: "Analytics", icon: <BarChart3 className="h-4 w-4" /> },
+  { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/" },
+  { label: "Room Management", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
+  { label: "Bookings", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
+  { label: "Transactions", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
+  { label: "Chat", icon: <MessageSquare className="h-4 w-4" />, href: "/chat" },
+  { label: "Analytics", icon: <BarChart3 className="h-4 w-4" />, href: "/analytics" },
 ]
-
 export function Sidebar() {
+   const pathname = usePathname()
   return (
     <aside className="hidden lg:flex w-56 flex-shrink-0 bg-card border-r border-border flex-col h-screen sticky top-0">
       {/* Logo Section */}
       <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-lg">M</span>
           </div>
@@ -45,27 +46,32 @@ export function Sidebar() {
             <h1 className="font-semibold text-sm text-foreground">Management Portal</h1>
             <p className="text-xs text-muted-foreground">Port Workspace</p>
           </div>
-        </div>
+      
+        </Link>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-3">
         <ul className="space-y-1">
-          {navItems.map((item) => (
-            <li key={item.label}>
-              <button
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
-                  item.active
-                    ? "bg-sidebar-accent text-accent font-medium"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                )}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            </li>
-          ))}
+               {navItems.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <li key={item.label}>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
+                    isActive
+                      ? "bg-sidebar-accent text-accent font-medium"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}
+                >
+                  {item.icon}
+                  {item.label}
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       </nav>
 
