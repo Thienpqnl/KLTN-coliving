@@ -14,3 +14,17 @@ model User {
   fullName  String?
   createdAt DateTime @default(now())
 }
+
+model Room {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  price       Int
+  image       String
+  address     String
+  city        String
+  roomType    String
+  capacity    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
