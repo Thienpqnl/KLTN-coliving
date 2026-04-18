@@ -10,15 +10,22 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@radix-ui/react-avatar": "^1.1.11",
     "bcrypt": "^6.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.8.0",
     "next": "^16.2.3",
+    "oklch": "^0.0.2",
     "pg": "^8.20.0",
     "prisma": "^5.22.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
