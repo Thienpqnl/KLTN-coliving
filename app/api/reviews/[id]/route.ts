@@ -5,10 +5,11 @@ import { handleApiError, successResponse } from "@/lib/api-error";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const review = await reviewService.getById(params.id);
+    const { id } = await params;
+    const review = await reviewService.getById(id);
     return successResponse(review);
   } catch (error) {
     return handleApiError(error);
@@ -17,15 +18,16 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
 
+    const { id } = await params;
     const body = await request.json();
     const { rating, comment } = body;
 
-    const review = await reviewService.update(params.id, user.userId, rating, comment);
+    const review = await reviewService.update(id, user.userId, rating, comment);
     return successResponse(review);
   } catch (error) {
     return handleApiError(error);
@@ -34,12 +36,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
 
-    await reviewService.delete(params.id, user.userId);
+    const { id } = await params;
+    await reviewService.delete(id, user.userId);
     return successResponse({ message: "Review deleted successfully" });
   } catch (error) {
     return handleApiError(error);

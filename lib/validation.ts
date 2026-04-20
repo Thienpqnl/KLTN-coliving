@@ -68,6 +68,7 @@ export type RoomFilter = z.infer<typeof roomFilterSchema>;
 export type BookingCreate = z.infer<typeof bookingCreateSchema>;
 export type BookingUpdate = z.infer<typeof bookingUpdateSchema>;
 export type AmenityCreate = z.infer<typeof amenityCreateSchema>;
+export type AmenityUpdate = z.infer<typeof amenityUpdateSchema>;
 export type ReviewCreate = z.infer<typeof reviewCreateSchema>;
 export type UserCreate = z.infer<typeof userCreateSchema>;
 export type UserProfileUpdate = z.infer<typeof userProfileUpdateSchema>;

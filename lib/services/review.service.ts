@@ -1,11 +1,11 @@
-import { prisma } from "./prisma";
-import { ReviewCreate } from "./validation";
-import { ApiError } from "./api-error";
+import { prisma } from "../prisma";
+import { ReviewCreate } from "../validation";
+import { ApiError } from "../api-error";
 
 export const reviewService = {
   // Create review
   create: async (userId: string, data: ReviewCreate) => {
-    // Check if user has booked this room
+    // Check if user has booked reviewService room
     const booking = await prisma.booking.findFirst({
       where: {
         userId,
@@ -21,7 +21,7 @@ export const reviewService = {
       );
     }
 
-    // Check if user already reviewed this room
+    // Check if user already reviewed reviewService room
     const existingReview = await prisma.review.findFirst({
       where: {
         userId,
@@ -30,7 +30,7 @@ export const reviewService = {
     });
 
     if (existingReview) {
-      throw new ApiError(400, "You have already reviewed this room");
+      throw new ApiError(400, "You have already reviewed reviewService room");
     }
 
     const review = await prisma.review.create({
@@ -119,7 +119,7 @@ export const reviewService = {
 
   // Update review
   update: async (id: string, userId: string, rating?: number, comment?: string) => {
-    const review = await this.getById(id);
+    const review = await reviewService.getById(id);
 
     if (review.userId !== userId) {
       throw new ApiError(403, "Access denied");
@@ -147,7 +147,7 @@ export const reviewService = {
 
   // Delete review
   delete: async (id: string, userId: string) => {
-    const review = await this.getById(id);
+    const review = await reviewService.getById(id);
 
     if (review.userId !== userId) {
       throw new ApiError(403, "Access denied");

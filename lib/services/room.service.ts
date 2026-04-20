@@ -1,6 +1,6 @@
-import { prisma } from "./prisma";
-import { RoomCreate, RoomUpdate, RoomFilter } from "./validation";
-import { ApiError } from "./api-error";
+import { prisma } from "../prisma";
+import { RoomCreate, RoomUpdate, RoomFilter } from "../validation";
+import { ApiError } from "../api-error";
 
 export const roomService = {
   // Create a new room
@@ -108,7 +108,7 @@ export const roomService = {
   // Update room
   update: async (id: string, data: RoomUpdate) => {
     // Verify room exists
-    await this.getById(id);
+    await roomService.getById(id);
 
     const room = await prisma.room.update({
       where: { id },
@@ -158,7 +158,7 @@ export const roomService = {
   // Delete room
   delete: async (id: string) => {
     // Verify room exists
-    await this.getById(id);
+    await roomService.getById(id);
 
     // Delete room amenities first
     await prisma.roomAmenity.deleteMany({
@@ -216,7 +216,7 @@ export const roomService = {
   // Update room status
   updateStatus: async (id: string, status: "AVAILABLE" | "OCCUPIED" | "MAINTENANCE") => {
     // Verify room exists
-    await this.getById(id);
+    await roomService.getById(id);
 
     const room = await prisma.room.update({
       where: { id },

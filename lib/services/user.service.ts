@@ -1,6 +1,6 @@
-import { prisma } from "./prisma";
-import { UserProfileUpdate } from "./validation";
-import { ApiError } from "./api-error";
+import { prisma } from "../prisma";
+import { UserProfileUpdate } from "../validation";
+import { ApiError } from "../api-error";
 
 export const userService = {
   // Get user by ID
@@ -84,7 +84,7 @@ export const userService = {
   // Update user profile
   updateProfile: async (id: string, data: UserProfileUpdate) => {
     // Verify user exists
-    await this.getById(id);
+    await userService.getById(id);
 
     const user = await prisma.user.update({
       where: { id },
@@ -137,7 +137,7 @@ export const userService = {
   // Delete user account
   delete: async (id: string) => {
     // Verify user exists
-    await this.getById(id);
+    await userService.getById(id);
 
     // Delete related data first
     await Promise.all([

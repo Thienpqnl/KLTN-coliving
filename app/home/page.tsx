@@ -135,8 +135,8 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
               <div>
-                <h2 className="font-headline text-3xl font-bold tracking-tight text-slate-900 mb-2">Editor's Choice</h2>
-                <p className="text-slate-600 font-body">Hand-picked residences in the world's most vibrant neighborhoods.</p>
+                <h2 className="font-headline text-3xl font-bold tracking-tight text-slate-900 mb-2">Editor&apos;s Choice</h2>
+                <p className="text-slate-600 font-body">Hand-picked residences in the world&apos;s most vibrant neighborhoods.</p>
               </div>
               <a className="group flex items-center space-x-2 text-orange-600 font-bold" href="#">
                 <span>View all destinations</span>
@@ -214,7 +214,7 @@ export default function HomePage() {
                 />
                 <div className="absolute -bottom-10 -right-10 bg-white p-8 rounded-xl shadow-xl z-20 max-w-xs hidden md:block">
                   <span className="material-symbols-outlined text-orange-600 text-4xl mb-4">format_quote</span>
-                  <p className="italic text-slate-600 mb-4">"It's more than just a room; it's where I found my business partners and my best friends."</p>
+                  <p className="italic text-slate-600 mb-4">&quot;It&apos;s more than just a room; it&apos;s where I found my business partners and my best friends.&quot;</p>
                   <p className="font-bold text-sm">— Elena M., Founder</p>
                 </div>
               </div>
@@ -238,7 +238,7 @@ export default function HomePage() {
                       <span className="material-symbols-outlined text-orange-600">bolt</span>
                     </div>
                     <h4 className="font-bold text-lg mb-2">Total Flexibility</h4>
-                    <p className="text-sm text-slate-600 leading-relaxed">Stay for a month, or a year. Transfer between cities with 30 days' notice.</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">Stay for a month, or a year. Transfer between cities with 30 days&apos; notice.</p>
                   </div>
                   <div>
                     <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-4 editorial-shadow">

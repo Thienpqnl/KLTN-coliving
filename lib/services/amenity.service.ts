@@ -1,6 +1,6 @@
-import { prisma } from "./prisma";
-import { AmenityCreate, AmenityUpdate } from "./validation";
-import { ApiError } from "./api-error";
+import { prisma } from "../prisma";
+import { AmenityCreate, AmenityUpdate } from "../validation";
+import { ApiError } from "../api-error";
 
 export const amenityService = {
   // Create new amenity
@@ -54,7 +54,7 @@ export const amenityService = {
   // Update amenity
   update: async (id: string, data: AmenityUpdate) => {
     // Verify amenity exists
-    await this.getById(id);
+    await amenityService.getById(id);
 
     const amenity = await prisma.amenity.update({
       where: { id },
@@ -72,7 +72,7 @@ export const amenityService = {
   // Delete amenity
   delete: async (id: string) => {
     // Verify amenity exists
-    await this.getById(id);
+    await amenityService.getById(id);
 
     // Delete room amenity relationships
     await prisma.roomAmenity.deleteMany({
@@ -102,7 +102,7 @@ export const amenityService = {
   // Bulk create amenities (useful for seed data)
   bulkCreate: async (names: string[]) => {
     const amenities = await Promise.all(
-      names.map((name) => this.create({ name }))
+      names.map((name) => amenityService.create({ name }))
     );
 
     return amenities;

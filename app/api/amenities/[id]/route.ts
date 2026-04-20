@@ -6,10 +6,11 @@ import { handleApiError, successResponse } from "@/lib/api-error";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const amenity = await amenityService.getById(params.id);
+    const { id } = await params;
+    const amenity = await amenityService.getById(id);
     return successResponse(amenity);
   } catch (error) {
     return handleApiError(error);
@@ -18,16 +19,17 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
     await getAuthUser(request);
 
+    const { id } = await params;
     const body = await request.json();
     const data = amenityUpdateSchema.parse(body);
 
-    const amenity = await amenityService.update(params.id, data);
+    const amenity = await amenityService.update(id, data);
     return successResponse(amenity);
   } catch (error) {
     return handleApiError(error);
@@ -36,13 +38,14 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
     await getAuthUser(request);
 
-    await amenityService.delete(params.id);
+    const { id } = await params;
+    await amenityService.delete(id);
     return successResponse({ message: "Amenity deleted successfully" });
   } catch (error) {
     return handleApiError(error);
