@@ -3,14 +3,167 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql" // hoặc postgresql nếu bạn dùng
   url      = env("DATABASE_URL")
 }
 
+//////////////////////
+// ENUMS
+//////////////////////
+
+enum Role {
+  CUSTOMER
+  SERVER
+  DELIVER
+  ADMIN
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum InvoiceStatus {
+  UNSIGNED
+  SIGNED
+}
+
+//////////////////////
+// MODELS
+//////////////////////
+
 model User {
   id        String   @id @default(uuid())
+  name      String
   email     String   @unique
   password  String
-  fullName  String?
+  phone     String?
+  role      Role     @default(CUSTOMER)
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // RELATION
+  bookings  Booking[]
+  invoices  Invoice[]
+  reviews   Review[]
+}
+
+model Room {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  price       Float
+  address     String
+  image       String?
+
+  status      RoomStatus  @default(AVAILABLE)
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // RELATION
+  bookings    Booking[]
+  amenities   RoomAmenity[]
+  reviews     Review[]
+}
+
+model Amenity {
+  id    String @id @default(uuid())
+  name  String
+
+  rooms RoomAmenity[]
+}
+
+model RoomAmenity {
+  id        String @id @default(uuid())
+  roomId    String
+  amenityId String
+
+  room      Room    @relation(fields: [roomId], references: [id])
+  amenity   Amenity @relation(fields: [amenityId], references: [id])
+
+  @@unique([roomId, amenityId])
+}
+
+model Booking {
+  id        String        @id @default(uuid())
+  userId    String
+  roomId    String
+
+  startDate DateTime
+  endDate   DateTime
+
+  status    BookingStatus @default(PENDING)
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // RELATION
+  user      User          @relation(fields: [userId], references: [id])
+  room      Room          @relation(fields: [roomId], references: [id])
+  invoice   Invoice?
+}
+
+model Invoice {
+  id          String         @id @default(uuid())
+  userId      String
+  bookingId   String         @unique
+
+  totalAmount Float
+  status      InvoiceStatus  @default(UNSIGNED)
+
+  signature   String?        // chữ ký số
+  hash        String?        // hash để verify
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // RELATION
+  user        User           @relation(fields: [userId], references: [id])
+  booking     Booking        @relation(fields: [bookingId], references: [id])
+  payment     Payment?
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  invoiceId   String        @unique
+
+  amount      Float
+  method      String        // momo, vnpay, cash...
+  status      PaymentStatus @default(PENDING)
+
+  createdAt   DateTime      @default(now())
+
+  // RELATION
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  roomId    String
+
+  rating    Int      // 1-5
+  comment   String?
+
+  createdAt DateTime @default(now())
+
+  // RELATION
+  user      User     @relation(fields: [userId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id])
 }
