@@ -4,11 +4,12 @@ import { handleApiError, successResponse } from "@/lib/api-error";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const room = await prisma.room.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         bookings: true,
         reviews: true,

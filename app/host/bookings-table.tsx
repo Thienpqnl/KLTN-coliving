@@ -42,7 +42,7 @@ const bookings: Booking[] = [
     userName: "Simona Miller",
     userInitial: "SM",
     userImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=Simona",
-    roomName: "The Architect's Nook",
+    roomName: "The Architect&apos;s Nook",
     bookingDate: "Oct 20 - Jan 08, 2025",
     status: "pending",
     email: "simona@example.com",

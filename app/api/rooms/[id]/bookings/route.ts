@@ -4,10 +4,11 @@ import { handleApiError, successResponse } from "@/lib/api-error";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const bookings = await bookingService.getRoomBookings(params.id);
+    const { id } = await params;
+    const bookings = await bookingService.getRoomBookings(id);
 
     return successResponse(bookings);
   } catch (error) {

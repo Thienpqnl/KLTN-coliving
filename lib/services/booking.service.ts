@@ -1,7 +1,7 @@
-import { prisma } from "./prisma";
-import { BookingCreate } from "./validation";
-import { ApiError } from "./api-error";
-import { roomService } from "./services/room.service";
+import { prisma } from "../prisma";
+import { BookingCreate } from "../validation";
+import { ApiError } from "../api-error";
+import { roomService } from "../services/room.service";
 
 export const bookingService = {
   // Create a new booking
@@ -27,7 +27,7 @@ export const bookingService = {
     });
 
     if (existingBooking) {
-      throw new ApiError(400, "Room is already booked for this period");
+      throw new ApiError(400, "Room is already booked for bookingService period");
     }
 
     const booking = await prisma.booking.create({
@@ -154,7 +154,7 @@ export const bookingService = {
     id: string,
     status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED"
   ) => {
-    const booking = await this.getById(id);
+    const booking = await bookingService.getById(id);
 
     const updatedBooking = await prisma.booking.update({
       where: { id },
@@ -177,13 +177,13 @@ export const bookingService = {
 
   // Cancel booking
   cancel: async (id: string, userId?: string) => {
-    const booking = await this.getById(id, userId);
+    const booking = await bookingService.getById(id, userId);
 
     if (booking.status === "COMPLETED" || booking.status === "CANCELLED") {
-      throw new ApiError(400, "Cannot cancel this booking");
+      throw new ApiError(400, "Cannot cancel bookingService booking");
     }
 
-    return this.updateStatus(id, "CANCELLED");
+    return bookingService.updateStatus(id, "CANCELLED");
   },
 
   // Get bookings for a room

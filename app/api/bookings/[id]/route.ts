@@ -6,12 +6,13 @@ import { handleApiError, successResponse } from "@/lib/api-error";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
 
-    const booking = await bookingService.getById(params.id, user.userId);
+    const { id } = await params;
+    const booking = await bookingService.getById(id, user.userId);
     return successResponse(booking);
   } catch (error) {
     return handleApiError(error);
@@ -20,19 +21,20 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
 
+    const { id } = await params;
     const body = await request.json();
     const data = bookingUpdateSchema.parse(body);
 
     let booking;
     if (data.status) {
-      booking = await bookingService.updateStatus(params.id, data.status);
+      booking = await bookingService.updateStatus(id, data.status);
     } else {
-      booking = await bookingService.getById(params.id, user.userId);
+      booking = await bookingService.getById(id, user.userId);
     }
 
     return successResponse(booking);
@@ -43,12 +45,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
 
-    await bookingService.cancel(params.id, user.userId);
+    const { id } = await params;
+    await bookingService.cancel(id, user.userId);
     return successResponse({ message: "Booking cancelled successfully" });
   } catch (error) {
     return handleApiError(error);

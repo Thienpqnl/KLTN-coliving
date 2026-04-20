@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       data: {
         email,
         password: hashedPassword,
+        name: fullName,
         fullName,
       },
     });
@@ -55,13 +56,15 @@ export async function POST(req: Request) {
       token,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("ERROR:", error);
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
     return NextResponse.json(
       {
         message: "Server error",
-        error: error.message,
+        error: errorMessage,
       },
       { status: 500 }
     );
