@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-
+import { useAuth } from "@/lib/context/AuthContext";
+import { useRouter } from 'next/navigation';
 export default function RegisterPage() {
+  const { register } = useAuth();
+const router = useRouter();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -54,42 +57,27 @@ export default function RegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
 
-    setIsLoading(true);
+  if (!validateForm()) return;
 
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+  setIsLoading(true);
 
-      if (response.ok) {
-        // Success - redirect to login or dashboard
-        window.location.href = '/login';
-      } else {
-        const data = await response.json();
-        setErrors({ submit: data.message || 'Registration failed' });
-      }
-    } catch (error) {
-      setErrors({ submit: 'An error occurred. Please try again.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  try {
+    await register(
+      formData.email,
+      formData.password,
+      formData.fullName
+    );
+    router.push('/host');
+  } catch (err: any) {
+    setErrors({ submit: err.message || 'Registration failed' });
+  } finally {
+    setIsLoading(false);
+  }
+};
   return (
     <main className="min-h-screen flex flex-col md:flex-row overflow-hidden bg-white">
       {/* Left Side - Hero Section */}
