@@ -33,7 +33,8 @@ export const userService = {
         id: true,
         name: true,
         email: true,
-        phone: true,
+        phone: true, 
+        
         role: true,
         createdAt: true,
         updatedAt: true,
