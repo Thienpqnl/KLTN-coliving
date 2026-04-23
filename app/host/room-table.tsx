@@ -1,90 +1,59 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { Edit2, Trash2, Plus, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { apiClient } from '@/lib/api/client'
-import Link from 'next/link'
+import { Edit2, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 interface Room {
   id: string
-  title: string
-  description: string
-  price: number
-  address: string
-  image: string[]
-  status: 'available' | 'occupied'
-  amenityIds: string[]
-  createdAt: string
+  name: string
+  image: string
+  price: string
+  status: "confirmed" | "ongoing" | "pending"
+  occupant?: string
 }
+
+const rooms: Room[] = [
+  {
+    id: "1",
+    name: "The Island nook",
+    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=200&h=200&fit=crop",
+    price: "$1,650",
+    status: "confirmed",
+    occupant: "Sarah Mitchell",
+  },
+  {
+    id: "2",
+    name: "Upright Alcove",
+    image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=200&h=200&fit=crop",
+    price: "$2,400",
+    status: "ongoing",
+    occupant: "Alex Turner",
+  },
+  {
+    id: "3",
+    name: "The Transparent Lounge",
+    image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=200&fit=crop",
+    price: "$1,650",
+    status: "confirmed",
+    occupant: "Emma Davis",
+  },
+]
 
 const getStatusColor = (status: string) => {
-  return status === 'available'
-    ? 'bg-green-100 text-green-700'
-    : 'bg-red-100 text-red-700'
+  switch (status) {
+    case "confirmed":
+      return "bg-emerald-100 text-emerald-700"
+    case "ongoing":
+      return "bg-amber-100 text-amber-700"
+    case "pending":
+      return "bg-slate-100 text-slate-700"
+    default:
+      return "bg-slate-100 text-slate-700"
+  }
 }
 
-
 export function RoomsTable() {
-  const [rooms, setRooms] = useState<Room[]>([])
-  const [loading, setLoading] = useState(true)
-  const [deleting, setDeleting] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchRooms()
-  }, [])
-
-  const fetchRooms = async () => {
-    try {
-      setLoading(true)
-      const res = await apiClient.get<Room[]>('/rooms')
-      setRooms(res)
-    } catch (err) {
-      console.error('Failed to fetch rooms:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDelete = async (roomId: string) => {
-    if (!confirm('Are you sure you want to delete this room?')) {
-      return
-    }
-
-    try {
-      setDeleting(roomId)
-      await apiClient.delete(`/rooms/${roomId}`)
-      setRooms(prev => prev.filter(room => room.id !== roomId))
-    } catch (err) {
-      console.error('Failed to delete room:', err)
-      alert('Failed to delete room')
-    } finally {
-      setDeleting(null)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
-  if (rooms.length === 0) {
-    return (
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-12 text-center">
-        <p className="text-muted-foreground mb-6">No rooms created yet</p>
-        <Link href="/room-management/add-room">
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Your First Room
-          </Button>
-        </Link>
-      </div>
-    )
-  }
-
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
       {/* Table Header */}
@@ -93,8 +62,8 @@ export function RoomsTable() {
           <div className="col-span-4">Room Name</div>
           <div className="col-span-2">Price</div>
           <div className="col-span-2">Status</div>
-          <div className="col-span-2">Address</div>
-          <div className="col-span-2">Actions</div>
+          <div className="col-span-3">Occupant</div>
+          <div className="col-span-1">Actions</div>
         </div>
       </div>
 
@@ -108,22 +77,17 @@ export function RoomsTable() {
             <div className="grid grid-cols-12 gap-4 items-center">
               {/* Room Name with Image */}
               <div className="col-span-4 flex items-center gap-3">
-                {room.image?.length > 0 && (
-                 <img
-  src={room.image?.[0] || "https://via.placeholder.com/150"}
-  alt={room.title}
-  className="h-12 w-12 rounded-xl object-cover"
-/>
-                )}
-                <div className="min-w-0">
-                  <p className="font-medium text-foreground text-sm">{room.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{room.description}</p>
-                </div>
+                <img
+                  src={room.image}
+                  alt={room.name}
+                  className="h-12 w-12 rounded-xl object-cover"
+                />
+                <span className="font-medium text-foreground text-sm">{room.name}</span>
               </div>
 
               {/* Price */}
               <div className="col-span-2 text-sm font-semibold text-foreground">
-                ${room.price.toFixed(2)}
+                {room.price}
               </div>
 
               {/* Status */}
@@ -133,32 +97,24 @@ export function RoomsTable() {
                     room.status
                   )}`}
                 >
-                  {room.status === 'available' ? 'Available' : 'Occupied'}
+                  {room.status}
                 </span>
               </div>
 
-              {/* Address */}
-              <div className="col-span-2 text-sm text-muted-foreground truncate">
-                {room.address}
+              {/* Occupant */}
+              <div className="col-span-3 text-sm text-muted-foreground">
+                {room.occupant}
               </div>
 
               {/* Actions */}
-              <div className="col-span-2 flex items-center gap-2">
-                <Link href={`/room-management/edit-room?id=${room.id}`}>
+              <div className="col-span-1 flex items-center gap-2">
+                  <Link href="/room-management/edit-room">
                   <button className="p-1.5 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground">
                     <Edit2 className="h-4 w-4" />
                   </button>
                 </Link>
-                <button
-                  onClick={() => handleDelete(room.id)}
-                  disabled={deleting === room.id}
-                  className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-muted-foreground hover:text-red-600 disabled:opacity-50"
-                >
-                  {deleting === room.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
+                <button className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-muted-foreground hover:text-red-600">
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -168,7 +124,15 @@ export function RoomsTable() {
 
       {/* Table Footer */}
       <div className="px-6 py-3 border-t border-border bg-muted/30 text-xs text-muted-foreground flex justify-between items-center">
-        <span>Showing {rooms.length} room{rooms.length !== 1 ? 's' : ''}</span>
+        <span>Showing 1 - 3 of 24 results</span>
+        <div className="flex gap-2">
+          <button className="px-3 py-1 hover:bg-secondary rounded transition-colors">
+            ← Previous
+          </button>
+          <button className="px-3 py-1 hover:bg-secondary rounded transition-colors">
+            Next →
+          </button>
+        </div>
       </div>
     </div>
   )

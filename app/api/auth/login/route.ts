@@ -50,29 +50,22 @@ export async function POST(req: Request) {
             { expiresIn: "1d" }
         );
 
-        const res = NextResponse.json({ 
+        return NextResponse.json({
+            user: {
+                id: user.id,
+                email: user.email,
+                fullName: user.fullName,
+            },
             token,
-            user: { id: user.id, email: user.email, role: user.role },
         });
 
-        res.cookies.set("token", token, {
-            httpOnly: true,
-            path: "/",
-            sameSite: "lax",
-            secure: process.env.NODE_ENV === "production",
-        });
-
-        return res;
-
-    } catch (error: unknown) {
+    } catch (error: any) {
         console.error(error);
-
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
         return NextResponse.json(
             {
                 message: "Server error",
-                error: errorMessage,
+                error: error.message,
             },
             { status: 500 }
         );

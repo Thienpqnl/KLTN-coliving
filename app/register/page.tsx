@@ -2,25 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from "@/lib/context/AuthContext";
-import { useRouter } from 'next/navigation';
+
 export default function RegisterPage() {
-  const { register } = useAuth();
-const router = useRouter();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'CUSTOMER',
     terms: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { id, type, value, checked } = e.target as HTMLInputElement;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, type, value, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [id]: type === 'checkbox' ? checked : value,
@@ -50,10 +46,6 @@ const router = useRouter();
       newErrors.confirmPassword = 'Mật khẩu không trùng khớp';
     }
 
-    if (!formData.role) {
-      newErrors.role = 'Please select a role';
-    }
-
     if (!formData.terms) {
       newErrors.terms = 'Vui lòng đồng ý với điều khoản';
     }
@@ -62,27 +54,11 @@ const router = useRouter();
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-
-  if (!validateForm()) return;
-
-  setIsLoading(true);
-
-  try {
-    await register(
-      formData.email,
-      formData.password,
-      formData.fullName,
-      formData.role
-    );
-    
-    // Redirect based on role
-    if (formData.role === 'HOST') {
-      router.push('/host');
-    } else {
-      router.push('/home');
+    if (!validateForm()) {
+      return;
     }
 
     setIsLoading(true);
@@ -213,29 +189,6 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               />
               {errors.email && (
                 <p className="text-xs text-red-600 ml-1">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Role Selection */}
-            <div className="space-y-1.5">
-              <label
-                className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
-                htmlFor="role"
-              >
-                I want to
-              </label>
-              <select
-                className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all"
-                id="role"
-                value={formData.role}
-                onChange={handleInputChange}
-                disabled={isLoading}
-              >
-                <option value="CUSTOMER">Rent a room (Tenant)</option>
-                <option value="HOST">Host a room (Landlord)</option>
-              </select>
-              {errors.role && (
-                <p className="text-xs text-red-600 ml-1">{errors.role}</p>
               )}
             </div>
 

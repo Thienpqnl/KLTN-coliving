@@ -8,132 +8,23 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
+  id        String   @id @default(uuid())
+  email     String   @unique
   password  String
-  createdAt DateTime  @default(now())
-  name      String
-  phone     String?
-  role      Role      @default(CUSTOMER)
-  updatedAt DateTime  @updatedAt
-  fullName  String
-  bookings  Booking[]
-  invoices  Invoice[]
-  reviews   Review[]
-  rooms     Room[]
+  fullName  String?
+  createdAt DateTime @default(now())
 }
 
 model Room {
-  id          String        @id @default(uuid())
+  id          String   @id @default(uuid())
   title       String
   description String
-  price       Float
+  price       Int
+  image       String
   address     String
-  image       String[]
-  status      RoomStatus    @default(AVAILABLE)
-  ownerId     String
-  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  bookings    Booking[]
-  reviews     Review[]
-  amenities   RoomAmenity[]
-}
-
-model Amenity {
-  id    String        @id @default(uuid())
-  name  String
-  rooms RoomAmenity[]
-}
-
-model RoomAmenity {
-  id        String  @id @default(uuid())
-  roomId    String
-  amenityId String
-  amenity   Amenity @relation(fields: [amenityId], references: [id])
-  room      Room    @relation(fields: [roomId], references: [id])
-
-  @@unique([roomId, amenityId])
-}
-
-model Booking {
-  id        String        @id @default(uuid())
-  userId    String
-  roomId    String
-  startDate DateTime
-  endDate   DateTime
-  status    BookingStatus @default(PENDING)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  room      Room          @relation(fields: [roomId], references: [id])
-  user      User          @relation(fields: [userId], references: [id])
-  invoice   Invoice?
-}
-
-model Invoice {
-  id          String        @id @default(uuid())
-  userId      String
-  bookingId   String        @unique
-  totalAmount Float
-  status      InvoiceStatus @default(UNSIGNED)
-  signature   String?
-  hash        String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  booking     Booking       @relation(fields: [bookingId], references: [id])
-  user        User          @relation(fields: [userId], references: [id])
-  payment     Payment?
-}
-
-model Payment {
-  id        String        @id @default(uuid())
-  invoiceId String        @unique
-  amount    Float
-  method    String
-  status    PaymentStatus @default(PENDING)
-  createdAt DateTime      @default(now())
-  invoice   Invoice       @relation(fields: [invoiceId], references: [id])
-}
-
-model Review {
-  id        String   @id @default(uuid())
-  userId    String
-  roomId    String
-  rating    Int
-  comment   String?
-  createdAt DateTime @default(now())
-  room      Room     @relation(fields: [roomId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-enum Role {
-  CUSTOMER
-  SERVER
-  DELIVER
-  ADMIN
-  HOST
-}
-
-enum RoomStatus {
-  AVAILABLE
-  OCCUPIED
-  MAINTENANCE
-}
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-}
-
-enum InvoiceStatus {
-  UNSIGNED
-  SIGNED
+  city        String
+  roomType    String
+  capacity    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
