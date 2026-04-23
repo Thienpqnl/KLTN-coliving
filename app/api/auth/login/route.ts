@@ -50,14 +50,19 @@ export async function POST(req: Request) {
             { expiresIn: "1d" }
         );
 
-        return NextResponse.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-            },
+        const res = NextResponse.json({ 
             token,
+            user: { id: user.id, email: user.email, role: user.role },
         });
+
+        res.cookies.set("token", token, {
+            httpOnly: true,
+            path: "/",
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+        });
+
+        return res;
 
     } catch (error: unknown) {
         console.error(error);

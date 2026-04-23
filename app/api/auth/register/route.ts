@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password, fullName } = body;
+    const { email, password, fullName, role } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
         password: hashedPassword,
         name: fullName,
         fullName,
+        role: role && (role === "HOST" || role === "CUSTOMER") ? role : "CUSTOMER",
       },
     });
 
@@ -47,14 +48,24 @@ export async function POST(req: Request) {
       { expiresIn: "1d" }
     );
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
+        role: user.role,
       },
       token,
     });
+
+    res.cookies.set("token", token, {
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    return res;
 
   } catch (error: unknown) {
     console.error("ERROR:", error);

@@ -6,8 +6,9 @@ import { RecentBookings } from "@/app/host/recent-bookings"
 import { CommunityPulse } from "@/app/host/community-pulse"
 import { FeaturedProperty } from "@/app/host/featured-property"
 import { Footer } from "@/app/host/footer"
+import { HostProtectedRoute } from "@/components/HostProtectedRoute"
 
-export default function DashboardPage() {
+function HostDashboardContent() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
@@ -61,5 +62,13 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <HostProtectedRoute>
+      <HostDashboardContent />
+    </HostProtectedRoute>
   )
 }

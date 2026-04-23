@@ -5,6 +5,7 @@ const registerUser = async () => {
   const response = await fetch("/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include", // 🔥 QUAN TRỌNG
     body: JSON.stringify({
       email: "user@example.com",
       password: "password123",
@@ -12,8 +13,11 @@ const registerUser = async () => {
       phone: "0123456789"
     })
   });
+
   const data = await response.json();
-  localStorage.setItem("token", data.data.token);
+
+  // ❌ KHÔNG lưu token nữa
+  // cookie đã được server set
 };
 
 // Example 2: Login
@@ -21,27 +25,29 @@ const login = async () => {
   const response = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include", // 🔥 bắt buộc
     body: JSON.stringify({
       email: "user@example.com",
       password: "password123"
     })
   });
+
   const data = await response.json();
-  localStorage.setItem("token", data.data.token);
+
+  // ❌ bỏ localStorage
 };
 
 // Helper function for authenticated requests
 const authFetch = (url: string, options: RequestInit = {}) => {
-  const token = localStorage.getItem("token");
   return fetch(url, {
     ...options,
+    credentials: "include", // 🔥 tự gửi cookie
     headers: {
       ...options.headers,
-      "Authorization": `Bearer ${token}`
+      "Content-Type": "application/json",
     }
   });
 };
-
 // Example 3: Get all rooms
 const getRooms = async (filters?: { status?: string; minPrice?: number; maxPrice?: number }) => {
   const params = new URLSearchParams();

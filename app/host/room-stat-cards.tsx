@@ -1,42 +1,82 @@
-"use client"
+'use client'
 
-import { TrendingUp } from "lucide-react"
-
-interface RoomStatCard {
-  label: string
-  value: string | number
-  unit?: string
-  change?: string
-  icon?: React.ReactNode
-}
-
-const stats: RoomStatCard[] = [
-  {
-    label: "Active Inventory",
-    value: 24,
-    change: "+2 rooms",
-  },
-  {
-    label: "Pending",
-    value: "08",
-    change: "in review",
-  },
-  {
-    label: "Occupancy Rate",
-    value: "86%",
-    change: "+5% from last month",
-  },
-  {
-    label: "Total Revenue",
-    value: "$14.2k",
-    change: "this month",
-  },
-]
+import { useEffect, useState } from 'react'
+import { TrendingUp, Loader2 } from 'lucide-react'
+import { roomClientService } from '@/lib/services/room-client.service'
 
 export function RoomStatCards() {
+  const [stats, setStats] = useState({
+    totalRooms: 0,
+    availableRooms: 0,
+    occupiedRooms: 0,
+    occupancyRate: 0,
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const rooms = await roomClientService.getAll()
+        const availableRooms = rooms.filter(r => r.status === 'AVAILABLE').length
+        const occupiedRooms = rooms.filter(r => r.status === 'OCCUPIED').length
+        const total = rooms.length
+
+        setStats({
+          totalRooms: total,
+          availableRooms : availableRooms,
+          occupiedRooms : occupiedRooms,
+          occupancyRate: total > 0 ? Math.round((occupiedRooms / total) * 100) : 0,
+        })
+      } catch (error) {
+        console.error('Failed to fetch room stats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchStats()
+  }, [])
+
+  const statCards = [
+    {
+      label: 'Active Inventory',
+      value: stats.totalRooms,
+      change: 'Total rooms',
+    },
+    {
+      label: 'Available',
+      value: stats.availableRooms,
+      change: 'Ready to book',
+    },
+    {
+      label: 'Occupied',
+      value: stats.occupiedRooms,
+      change: 'Currently rented',
+    },
+    {
+      label: 'Occupancy Rate',
+      value: `${stats.occupancyRate}%`,
+      change: 'of total capacity',
+    },
+  ]
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map(i => (
+          <div
+            key={i}
+            className="bg-card border border-border rounded-2xl p-6 flex items-center justify-center"
+          >
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat, idx) => (
+      {statCards.map((stat, idx) => (
         <div
           key={idx}
           className="bg-card border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"

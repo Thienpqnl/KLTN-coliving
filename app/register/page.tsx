@@ -12,14 +12,15 @@ const router = useRouter();
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'CUSTOMER',
     terms: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, type, value, checked } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { id, type, value, checked } = e.target as HTMLInputElement;
     setFormData(prev => ({
       ...prev,
       [id]: type === 'checkbox' ? checked : value,
@@ -49,6 +50,10 @@ const router = useRouter();
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
+    if (!formData.role) {
+      newErrors.role = 'Please select a role';
+    }
+
     if (!formData.terms) {
       newErrors.terms = 'You must agree to terms';
     }
@@ -69,9 +74,16 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     await register(
       formData.email,
       formData.password,
-      formData.fullName
+      formData.fullName,
+      formData.role
     );
-    router.push('/host');
+    
+    // Redirect based on role
+    if (formData.role === 'HOST') {
+      router.push('/host');
+    } else {
+      router.push('/home');
+    }
   } catch (err: any) {
     setErrors({ submit: err.message || 'Registration failed' });
   } finally {
@@ -184,6 +196,29 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               </div>
               {errors.email && (
                 <p className="text-xs text-red-600 ml-1">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Role Selection */}
+            <div className="space-y-1.5">
+              <label
+                className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
+                htmlFor="role"
+              >
+                I want to
+              </label>
+              <select
+                className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all"
+                id="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                disabled={isLoading}
+              >
+                <option value="CUSTOMER">Rent a room (Tenant)</option>
+                <option value="HOST">Host a room (Landlord)</option>
+              </select>
+              {errors.role && (
+                <p className="text-xs text-red-600 ml-1">{errors.role}</p>
               )}
             </div>
 
