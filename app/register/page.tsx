@@ -84,12 +84,33 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     } else {
       router.push('/home');
     }
-  } catch (err: any) {
-    setErrors({ submit: err.message || 'Registration failed' });
-  } finally {
-    setIsLoading(false);
-  }
-};
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      if (response.ok) {
+        window.location.href = '/login';
+      } else {
+        const data = await response.json();
+        setErrors({ submit: data.message || 'Đăng ký thất bại' });
+      }
+    } catch (error) {
+      setErrors({ submit: 'Đã xảy ra lỗi. Vui lòng thử lại.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen flex flex-col md:flex-row overflow-hidden bg-white">
       {/* Left Side - Hero Section */}
