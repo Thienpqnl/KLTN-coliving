@@ -25,7 +25,7 @@ href: string
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/" },
+  { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/host" },
   { label: "Room Management", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
   { label: "Bookings", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
   { label: "Transactions", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
