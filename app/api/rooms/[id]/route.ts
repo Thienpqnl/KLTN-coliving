@@ -23,14 +23,21 @@ export async function PUT(
 ) {
   try {
     // Check authentication
-    await getAuthUser(request);
+    const authUser = await getAuthUser(request);
 
     const { id } = await params;
+    
+    // Verify room exists and belongs to the user
+    const room = await roomService.getById(id);
+    if (room.ownerId !== authUser.userId) {
+      return handleApiError(new Error("Unauthorized: You can only edit your own rooms"));
+    }
+
     const body = await request.json();
     const data = roomUpdateSchema.parse(body);
 
-    const room = await roomService.update(id, data);
-    return successResponse(room);
+    const updatedRoom = await roomService.update(id, data);
+    return successResponse(updatedRoom);
   } catch (error) {
     return handleApiError(error);
   }
@@ -42,9 +49,15 @@ export async function DELETE(
 ) {
   try {
     // Check authentication
-    await getAuthUser(request);
+    const authUser = await getAuthUser(request);
 
     const { id } = await params;
+    
+    // Verify room exists and belongs to the user
+    const room = await roomService.getById(id);
+    if (room.ownerId !== authUser.userId) {
+      return handleApiError(new Error("Unauthorized: You can only delete your own rooms"));
+    }
 
     await roomService.delete(id);
     return successResponse({ message: "Room deleted successfully" });

@@ -7,6 +7,7 @@ interface User {
   id: string;
   email: string;
   role: string;
+  fullName?: string;
 }
 
 interface AuthContextType {
@@ -14,7 +15,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string, role: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -27,17 +28,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // 1. Restore session
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+    const fetchMe = async () => {
+      try {
+        // Try to restore token from localStorage first
+        const storedToken = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+        if (storedToken) {
+          apiClient.setToken(storedToken);
+          setToken(storedToken);
+        }
+        
+        const res = await apiClient.get<User>("/auth/me");
+        setUser(res);
+      } catch (error) {
+        // Clear invalid token
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem("token");
+        }
+        apiClient.setToken(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      apiClient.setToken(storedToken);
-    }
-
-    setLoading(false);
+    fetchMe();
   }, []);
+
 
   // 2. Login
   const login = async (email: string, password: string) => {
@@ -48,39 +64,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     setToken(res.token);
     setUser(res.user);
-
-    localStorage.setItem("token", res.token);
-    localStorage.setItem("user", JSON.stringify(res.user));
-
     apiClient.setToken(res.token);
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("token", res.token);
+    }
   };
 
   // 3. Register
-  const register = async (email: string, password: string, fullName: string) => {
+  const register = async (email: string, password: string, fullName: string, role: string) => {
     const res = await apiClient.post<any>("/auth/register", {
       email,
       password,
       fullName,
+      role,
     });
 
     setToken(res.token);
     setUser(res.user);
-
-    localStorage.setItem("token", res.token);
-    localStorage.setItem("user", JSON.stringify(res.user));
-
     apiClient.setToken(res.token);
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("token", res.token);
+    }
   };
 
   // 4. Logout
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    apiClient.setToken(null);
+  const logout = async () => {
+    try {
+      await apiClient.post('/auth/logout', {})
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      setToken(null)
+      setUser(null)
+      apiClient.setToken(null)
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("token");
+      }
+    }
   };
 
   return (

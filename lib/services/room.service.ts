@@ -4,14 +4,18 @@ import { ApiError } from "../api-error";
 
 export const roomService = {
   // Create a new room
-  create: async (data: RoomCreate) => {
+  create: async (data: RoomCreate & { ownerId: string }) => {
+    // Get first image from array, or empty string
+    const firstImage = (data.image && data.image.length > 0) ? data.image[0] : '';
+    
     const room = await prisma.room.create({
       data: {
         title: data.title,
         description: data.description,
         price: data.price,
         address: data.address,
-        image: data.image,
+        image: firstImage,
+        ownerId: data.ownerId,
       },
       include: {
         amenities: {
@@ -80,6 +84,7 @@ export const roomService = {
         ...(filters?.status && { status: filters.status }),
         ...(filters?.minPrice && { price: { gte: filters.minPrice } }),
         ...(filters?.maxPrice && { price: { lte: filters.maxPrice } }),
+        ...(filters?.ownerId && { ownerId: filters.ownerId }),
         ...(filters?.search && {
           OR: [
             { title: { contains: filters.search, mode: "insensitive" } },
@@ -110,15 +115,18 @@ export const roomService = {
     // Verify room exists
     await roomService.getById(id);
 
+    const updateData: any = {};
+    if (data.title) updateData.title = data.title;
+    if (data.description) updateData.description = data.description;
+    if (data.price !== undefined) updateData.price = data.price;
+    if (data.address) updateData.address = data.address;
+    if (data.image !== undefined && data.image.length > 0) {
+      updateData.image = data.image[0]; // Store only first image
+    }
+
     const room = await prisma.room.update({
       where: { id },
-      data: {
-        ...(data.title && { title: data.title }),
-        ...(data.description && { description: data.description }),
-        ...(data.price !== undefined && { price: data.price }),
-        ...(data.address && { address: data.address }),
-        ...(data.image !== undefined && { image: data.image }),
-      },
+      data: updateData,
       include: {
         amenities: {
           include: {

@@ -4,8 +4,21 @@ import { ApiError } from "./api-error";
 
 export const getAuthUser = async (request: NextRequest): Promise<JWTPayload> => {
   try {
+    let token: string | null = null;
+    
+    // Try to get token from Authorization header
     const authHeader = request.headers.get("authorization");
-    const token = extractToken(authHeader);
+    if (authHeader) {
+      token = extractToken(authHeader);
+    } else {
+      // Try to get token from cookies
+      token = request.cookies.get("token")?.value || null;
+    }
+    
+    if (!token) {
+      throw new ApiError(401, "Unauthorized");
+    }
+    
     const payload = verifyToken(token);
     return payload;
   } catch (error) {

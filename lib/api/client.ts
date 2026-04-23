@@ -37,20 +37,32 @@ class ApiClient {
   }
 
   // 3. Đính kèm token
-  if (this.token) {
-    headers.set("Authorization", `Bearer ${this.token}`);
-  }
+const token = this.token || localStorage.getItem("token");
 
+if (token) {
+  headers.set("Authorization", `Bearer ${token}`);
+}
   const response = await fetch(`${this.baseUrl}${endpoint}`, {
     ...options,
     headers, // Fetch API chấp nhận đối tượng Headers này
+    credentials: "include", // 🔥 Gửi & nhận cookies
   });
 
   // Xử lý response như cũ...
   const data = await response.json();
   if (!response.ok) {
+    console.error('API Error Response:', {
+      status: response.status,
+      data,
+    });
     throw new ApiError(data.message || "API Error", response.status);
   }
+  
+  // Nếu response có cấu trúc ApiResponse, trả về data
+  if (data && typeof data === 'object' && 'data' in data && 'success' in data) {
+    return data.data;
+  }
+  
   return data;
 }
 

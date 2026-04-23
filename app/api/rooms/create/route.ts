@@ -7,10 +7,13 @@ import { handleApiError, successResponse } from "@/lib/api-error";
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    await getAuthUser(request);
+    const authUser = await getAuthUser(request);
 
     const body = await request.json();
     const data = roomCreateSchema.parse(body);
+
+    // Get first image from array, or empty string
+    const firstImage = (data.image && data.image.length > 0) ? data.image[0] : '';
 
     const room = await prisma.room.create({
       data: {
@@ -18,7 +21,8 @@ export async function POST(request: NextRequest) {
         description: data.description,
         price: data.price,
         address: data.address,
-        image: data.image,
+        image: data.image || [],
+        ownerId: authUser.userId,
       },
       include: {
         amenities: {

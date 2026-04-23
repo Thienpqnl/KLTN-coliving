@@ -6,7 +6,7 @@ export const roomCreateSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.number().positive("Price must be positive"),
   address: z.string().min(5, "Address must be at least 5 characters"),
-  image: z.string().url("Image must be a valid URL").optional(),
+  images: z.array(z.string().url()).optional(),
   amenityIds: z.array(z.string()).optional(),
 });
 
@@ -17,6 +17,7 @@ export const roomFilterSchema = z.object({
   minPrice: z.number().optional(),
   maxPrice: z.number().optional(),
   search: z.string().optional(),
+  ownerId: z.string().optional(),
 });
 
 // Booking Schemas
