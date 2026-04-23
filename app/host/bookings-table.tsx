@@ -1,90 +1,114 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { ChevronLeft, ChevronRight, MoreHorizontal, Search } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-
-interface Booking {
-  id: string
-  userName: string
-  userInitial: string
-  userImage?: string
-  roomName: string
-  bookingDate: string
-  status: "pending" | "confirmed" | "cancelled"
-  email: string
-}
-
-const bookings: Booking[] = [
-  {
-    id: "1",
-    userName: "Elena Valdez",
-    userInitial: "EV",
-    userImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=Elena",
-    roomName: "The San-Drenched Studio",
-    bookingDate: "Oct 12 - Oct 28, 2024",
-    status: "pending",
-    email: "elena@example.com",
-  },
-  {
-    id: "2",
-    userName: "Marcus Thomas",
-    userInitial: "MT",
-    userImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
-    roomName: "Cult & Iron Suite",
-    bookingDate: "Nov 02 - Nov 15, 2024",
-    status: "confirmed",
-    email: "marcus@example.com",
-  },
-  {
-    id: "3",
-    userName: "Simona Miller",
-    userInitial: "SM",
-    userImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=Simona",
-    roomName: "The Architect's Nook",
-    bookingDate: "Oct 20 - Jan 08, 2025",
-    status: "pending",
-    email: "simona@example.com",
-  },
-]
+import { useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight, Loader2, Search, AlertCircle } from 'lucide-react'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { bookingClientService, Booking } from '@/lib/services/booking-client.service'
 
 export function BookingsTable() {
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
-  const [searchTerm, setSearchTerm] = useState("")
-  const itemsPerPage = 3
+  const [searchTerm, setSearchTerm] = useState('')
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const itemsPerPage = 5
 
-  const filteredBookings = bookings.filter((booking) =>
-    booking.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    booking.roomName.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    fetchBookings()
+  }, [])
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true)
+      const res = await bookingClientService.getAll()
+      setBookings(res)
+    } catch (error) {
+      console.error('Failed to fetch bookings:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleApprove = async (bookingId: string) => {
+    try {
+      setActionLoading(bookingId)
+      await bookingClientService.approve(bookingId)
+      setBookings(prev =>
+        prev.map(b => b.id === bookingId ? { ...b, status: 'approved' } : b)
+      )
+    } catch (error) {
+      console.error('Failed to approve booking:', error)
+      alert('Failed to approve booking')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleReject = async (bookingId: string) => {
+    try {
+      setActionLoading(bookingId)
+      await bookingClientService.reject(bookingId)
+      setBookings(prev =>
+        prev.map(b => b.id === bookingId ? { ...b, status: 'rejected' } : b)
+      )
+    } catch (error) {
+      console.error('Failed to reject booking:', error)
+      alert('Failed to reject booking')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-orange-100 text-orange-700'
+      case 'approved':
+        return 'bg-emerald-100 text-emerald-700'
+      case 'rejected':
+        return 'bg-red-100 text-red-700'
+      case 'completed':
+        return 'bg-blue-100 text-blue-700'
+      default:
+        return 'bg-gray-100 text-gray-700'
+    }
+  }
+
+  const filteredBookings = bookings.filter(booking =>
+    booking.id.includes(searchTerm.toLowerCase())
   )
 
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage)
   const startIdx = (currentPage - 1) * itemsPerPage
   const displayedBookings = filteredBookings.slice(startIdx, startIdx + itemsPerPage)
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-orange-100 text-orange-700"
-      case "confirmed":
-        return "bg-emerald-100 text-emerald-700"
-      case "cancelled":
-        return "bg-red-100 text-red-700"
-      default:
-        return "bg-gray-100 text-gray-700"
-    }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (bookings.length === 0) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+        <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">No bookings yet</p>
+      </div>
+    )
   }
 
   return (
     <div>
-      {/* Search and Filter */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+      {/* Search */}
+      <div className="mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search by name or room..."
+            placeholder="Search bookings..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value)
@@ -93,51 +117,49 @@ export function BookingsTable() {
             className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
-        <div className="flex gap-2">
-          <button className="px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors">
-            Filter
-          </button>
-          <button className="px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors">
-            Export
-          </button>
-        </div>
       </div>
 
       {/* Table */}
       <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
         {/* Table Header */}
-        <div className="grid grid-cols-5 gap-4 px-6 py-3 border-b border-border bg-muted/30">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">USER NAME</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ROOM NAME</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">BOOKING DATE</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">STATUS</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ACTIONS</div>
+        <div className="grid grid-cols-6 gap-4 px-6 py-3 border-b border-border bg-muted/30">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Room</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Check-in</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Check-out</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Price</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</div>
         </div>
 
         {/* Table Rows */}
         <div className="divide-y divide-border">
           {displayedBookings.map((booking) => (
-            <div key={booking.id} className="grid grid-cols-5 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors">
-              {/* User */}
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={booking.userImage} alt={booking.userName} />
-                  <AvatarFallback>{booking.userInitial}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{booking.userName}</p>
-                  <p className="text-xs text-muted-foreground truncate">{booking.email}</p>
-                </div>
+            <div key={booking.id} className="grid grid-cols-6 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors">
+              {/* Room ID */}
+              <div>
+                <p className="text-sm font-medium text-foreground">Room</p>
+                <p className="text-xs text-muted-foreground">{booking.roomId}</p>
               </div>
 
-              {/* Room */}
+              {/* Check-in */}
               <div>
-                <p className="text-sm font-medium text-foreground">{booking.roomName}</p>
+                <p className="text-sm text-foreground">
+                  {new Date(booking.startDate).toLocaleDateString()}
+                </p>
               </div>
 
-              {/* Date */}
+              {/* Check-out */}
               <div>
-                <p className="text-sm text-foreground">{booking.bookingDate}</p>
+                <p className="text-sm text-foreground">
+                  {new Date(booking.endDate).toLocaleDateString()}
+                </p>
+              </div>
+
+              {/* Price */}
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  ${booking.totalPrice.toFixed(2)}
+                </p>
               </div>
 
               {/* Status */}
@@ -149,20 +171,26 @@ export function BookingsTable() {
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                {booking.status === "pending" && (
+                {booking.status === 'pending' && (
                   <>
-                    <button className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded hover:bg-primary/90 transition-colors">
-                      APPROVE
+                    <button
+                      onClick={() => handleApprove(booking.id)}
+                      disabled={actionLoading === booking.id}
+                      className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading === booking.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
+                      ) : null}
+                      Approve
                     </button>
-                    <button className="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-semibold rounded hover:bg-accent/90 transition-colors">
-                      REJECT
+                    <button
+                      onClick={() => handleReject(booking.id)}
+                      disabled={actionLoading === booking.id}
+                      className="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded hover:bg-red-600 transition-colors disabled:opacity-50"
+                    >
+                      Reject
                     </button>
                   </>
-                )}
-                {booking.status === "confirmed" && (
-                  <button className="p-1.5 hover:bg-secondary rounded transition-colors text-muted-foreground hover:text-foreground">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
                 )}
               </div>
             </div>
@@ -171,40 +199,44 @@ export function BookingsTable() {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Showing {startIdx + 1}-{Math.min(startIdx + itemsPerPage, filteredBookings.length)} of {filteredBookings.length} Pending Bookings
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="p-1.5 hover:bg-secondary rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-          </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Showing {startIdx + 1}-{Math.min(startIdx + itemsPerPage, filteredBookings.length)} of {filteredBookings.length} bookings
+          </p>
+          <div className="flex items-center gap-2">
             <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`h-8 w-8 rounded text-xs font-medium transition-colors ${
-                currentPage === page
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-secondary text-foreground"
-              }`}
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 hover:bg-secondary rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {page}
+              <ChevronLeft className="h-4 w-4 text-muted-foreground" />
             </button>
-          ))}
-          <button
-            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-            className="p-1.5 hover:bg-secondary rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </button>
+            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => currentPage - 1 + i).map((page) => (
+              page > 0 && page <= totalPages && (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`h-8 w-8 rounded text-xs font-medium transition-colors ${
+                    currentPage === page
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-secondary text-foreground'
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            ))}
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1.5 hover:bg-secondary rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
