@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Navigation } from '@/components/Navigation';
+import { Footer } from '@/components/Footer';
 
 export default function HomePage() {
   const [location, setLocation] = useState('');
@@ -20,33 +22,7 @@ export default function HomePage() {
 
   return (
     <>
-      {/* TopNavBar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-sm dark:shadow-none">
-        <div className="flex justify-between items-center px-8 h-20 max-w-screen-2xl mx-auto font-['Manrope'] tracking-tight">
-          <div className="text-2xl font-bold tracking-tighter text-orange-900 dark:text-orange-100">
-            The Curated Hearth
-          </div>
-          <div className="hidden md:flex items-center space-x-10">
-            <Link href="/" className="text-orange-700 dark:text-orange-400 font-semibold border-b-2 border-orange-500 transition-colors">
-              Trang chủ
-            </Link>
-            <Link href="/rooms" className="text-slate-600 dark:text-slate-400 font-medium hover:text-orange-600 dark:hover:text-orange-300 transition-colors">
-              Danh sách phòng
-            </Link>
-            <Link href="#" className="text-slate-600 dark:text-slate-400 font-medium hover:text-orange-600 dark:hover:text-orange-300 transition-colors">
-              Cộng đồng
-            </Link>
-          </div>
-          <div className="flex items-center space-x-6">
-            <Link href="/login" className="text-slate-600 dark:text-slate-400 font-medium hover:text-orange-600 transition-colors scale-95 duration-200 ease-in-out">
-              Đăng nhập
-            </Link>
-            <Link href="/register" className="bg-gradient-to-r from-orange-600 to-orange-400 text-white px-6 py-2.5 rounded-full font-label text-xs uppercase tracking-widest font-bold shadow-lg shadow-orange-500/20 scale-95 hover:scale-100 transition-all duration-200">
-              Đăng ký
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       <main className="pt-20">
         {/* Hero Section */}
@@ -293,86 +269,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-slate-50 dark:bg-slate-950 w-full pt-16 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-12 max-w-7xl mx-auto font-['Inter'] leading-relaxed text-sm">
-          <div className="col-span-1 md:col-span-1">
-            <div className="text-lg font-black text-slate-900 dark:text-white mb-6">The Curated Hearth</div>
-            <p className="text-slate-500 dark:text-slate-400 mb-6">Trải nghiệm sống chung cao cấp cho cộng đồng chuyên nghiệp và sáng tạo tại các thành phố lớn.</p>
-            <div className="flex space-x-4">
-              <a className="text-orange-800 dark:text-orange-300 opacity-80 hover:opacity-100 transition-opacity" href="#">
-                Instagram
-              </a>
-              <a className="text-orange-800 dark:text-orange-300 opacity-80 hover:opacity-100 transition-opacity" href="#">
-                Facebook
-              </a>
-            </div>
-          </div>
-          <div>
-            <h5 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-[10px]">Về Chúng Tôi</h5>
-            <ul className="space-y-4">
-              <li>
-                <a className="text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors" href="#">
-                  Giới thiệu
-                </a>
-              </li>
-              <li>
-                <a className="text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors" href="#">
-                  Liên hệ
-                </a>
-              </li>
-              <li>
-                <a className="text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors" href="#">
-                  Tuyển dụng
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-[10px]">Chính Sách</h5>
-            <ul className="space-y-4">
-              <li>
-                <a className="text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors" href="#">
-                  Chính sách bảo mật
-                </a>
-              </li>
-              <li>
-                <a className="text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors" href="#">
-                  Điều khoản dịch vụ
-                </a>
-              </li>
-              <li>
-                <a className="text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors" href="#">
-                  Hỏi đáp
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-[10px]">Địa Điểm</h5>
-            <ul className="space-y-4">
-              <li>
-                <a className="text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors" href="#">
-                  Hà Nội
-                </a>
-              </li>
-              <li>
-                <a className="text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors" href="#">
-                  Đà Nẵng
-                </a>
-              </li>
-              <li>
-                <a className="text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors" href="#">
-                  Thành phố Hồ Chí Minh
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-12 mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 text-center md:text-left">
-          <p className="text-slate-400 text-xs">© 2024 The Curated Hearth. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </>
   );
 }
