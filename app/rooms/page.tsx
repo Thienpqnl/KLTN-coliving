@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 
@@ -242,27 +242,71 @@ export default function RoomsPage() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState([0, 10000000000]);
+  const [priceRange, setPriceRange] = useState([0, 10000000]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('newest');
-  const [allRooms, setAllRooms] = useState<Room[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const limit = 10;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPage(1); // Reset to page 1 when filters change
+  }, [searchTerm, priceRange, selectedNeighborhoods, selectedAmenities, selectedRoomTypes, sortBy]);
 
   useEffect(() => {
     const fetchRooms = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('/api/rooms');
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
         
+        // Add search
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        
+        // Add price range
+        if (priceRange[0] > 0) {
+          params.append('minPrice', priceRange[0].toString());
+        }
+        if (priceRange[1] < 10000000) {
+          params.append('maxPrice', priceRange[1].toString());
+        }
+        
+        // Add neighborhoods
+        selectedNeighborhoods.forEach(neighborhood => {
+          params.append('neighborhoods', neighborhood);
+        });
+        
+        // Add amenities
+        selectedAmenities.forEach(amenity => {
+          params.append('amenities', amenity);
+        });
+        
+        // Add room types
+        selectedRoomTypes.forEach(roomType => {
+          params.append('roomTypes', roomType);
+        });
+        
+        // Add sort
+        if (sortBy) {
+          params.append('sortBy', sortBy);
+        }
+        
+        const response = await fetch(`/api/rooms?${params.toString()}`);
         if (!response.ok) {
           throw new Error('Failed to fetch rooms');
         }
-        
         const data = await response.json();
-        setAllRooms(data.data || data || []);
+        setRooms(data.data.rooms || []);
+        setTotal(data.data.total || 0);
       } catch (err) {
         console.error('Error fetching rooms:', err);
         setError('Không thể tải danh sách phòng');
@@ -270,36 +314,12 @@ export default function RoomsPage() {
         setLoading(false);
       }
     };
-
     fetchRooms();
-  }, []);
+  }, [page, searchTerm, priceRange, selectedNeighborhoods, selectedAmenities, selectedRoomTypes, sortBy]);
 
-  // Filter and sort logic
-  const filteredRooms = useMemo(() => {
-    let result = allRooms;
 
-    // Search filter
-    if (searchTerm) {
-      result = result.filter(room =>
-        room.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        room.address.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Price filter
-    result = result.filter(room => room.price >= priceRange[0] && room.price <= priceRange[1]);
-
-    // Sort
-    if (sortBy === 'price-low') {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'price-high') {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === 'area-large') {
-      result.sort((a, b) => parseFloat(b.area) - parseFloat(a.area));
-    }
-
-    return result;
-  }, [searchTerm, priceRange, sortBy, allRooms]);
+  // Tổng số trang
+  const totalPages = Math.ceil(total / limit);
 
   const handleToggleFavorite = (roomId: string) => {
     setFavorites(prev => 
@@ -378,13 +398,32 @@ export default function RoomsPage() {
               <>
                 <div className="mb-6 flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">
-                    {filteredRooms.length} phòng tìm thấy
+                    {total} phòng tìm thấy
                   </h2>
+                  {totalPages > 1 && (
+                    <div className="flex gap-2">
+                      <button
+                        className="px-3 py-1 rounded border text-sm font-semibold disabled:opacity-50"
+                        onClick={() => setPage(page - 1)}
+                        disabled={page === 1}
+                      >
+                        Trang trước
+                      </button>
+                      <span className="px-2 py-1 text-sm">{page} / {totalPages}</span>
+                      <button
+                        className="px-3 py-1 rounded border text-sm font-semibold disabled:opacity-50"
+                        onClick={() => setPage(page + 1)}
+                        disabled={page === totalPages}
+                      >
+                        Trang sau
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {filteredRooms.length > 0 ? (
+                {rooms.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredRooms.map((room) => (
+                    {rooms.map((room) => (
                       <RoomCard
                         key={room.id}
                         room={room}
