@@ -5,19 +5,28 @@ import { ApiError } from "../api-error";
 export const roomService = {
   // Create a new room
   create: async (data: RoomCreate & { ownerId: string }) => {
-    // Get first image from array, or empty string
-    const firstImage = (data.image && data.image.length > 0) ? data.image[0] : '';
+    // Handle images as array
+    const imageArray = Array.isArray(data.images) ? data.images : [];
     
     const room = await prisma.room.create({
       data: {
         title: data.title,
         description: data.description,
         price: data.price,
+        area: data.area,
         address: data.address,
-        image: firstImage,
+        image: imageArray,
         ownerId: data.ownerId,
       },
       include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+          },
+        },
         amenities: {
           include: {
             amenity: true,
@@ -50,6 +59,14 @@ export const roomService = {
     const room = await prisma.room.findUnique({
       where: { id },
       include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+          },
+        },
         amenities: {
           include: {
             amenity: true,
@@ -94,6 +111,14 @@ export const roomService = {
         }),
       },
       include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+          },
+        },
         amenities: {
           include: {
             amenity: true,
@@ -119,15 +144,24 @@ export const roomService = {
     if (data.title) updateData.title = data.title;
     if (data.description) updateData.description = data.description;
     if (data.price !== undefined) updateData.price = data.price;
+    if (data.area) updateData.area = data.area;
     if (data.address) updateData.address = data.address;
-    if (data.image !== undefined && data.image.length > 0) {
-      updateData.image = data.image[0]; // Store only first image
+    if (data.images !== undefined) {
+      updateData.image = Array.isArray(data.images) ? data.images : [];
     }
 
     const room = await prisma.room.update({
       where: { id },
       data: updateData,
       include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+          },
+        },
         amenities: {
           include: {
             amenity: true,
@@ -209,6 +243,14 @@ export const roomService = {
         },
       },
       include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+          },
+        },
         amenities: {
           include: {
             amenity: true,
@@ -230,6 +272,14 @@ export const roomService = {
       where: { id },
       data: { status },
       include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+          },
+        },
         amenities: {
           include: {
             amenity: true,
