@@ -1,25 +1,51 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 
+interface Room {
+  id: string;
+  title: string;
+  description: string;
+  address: string;
+  price: number;
+  area: string;
+  image: string | string[];
+  status: string;
+  ownerId: string;
+  owner?: {
+    name: string;
+    fullName: string;
+  };
+  createdAt: string;
+  amenities?: any[];
+}
+
 // Room card component with heart/favorite
-function RoomCard({ room, isFavorite, onToggleFavorite }: { room: any; isFavorite: boolean; onToggleFavorite: () => void }) {
+function RoomCard({ room, isFavorite, onToggleFavorite }: { room: Room; isFavorite: boolean; onToggleFavorite: () => void }) {
+  const imageUrl = Array.isArray(room.image) ? room.image[0] : room.image;
+  const ownerInitial = room.owner?.name?.charAt(0).toUpperCase() || 'U';
+  const ownerName = room.owner?.fullName || room.owner?.name || 'Owner';
+  
   return (
     <div className="group cursor-pointer h-full flex flex-col">
       <div className="relative overflow-hidden rounded-xl mb-4 aspect-[4/5] bg-gray-200">
         <img 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-          src={room.image} 
+          src={imageUrl || 'https://via.placeholder.com/400x500?text=Room'}
           alt={room.title}
         />
-        {room.badge && (
-          <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-bold tracking-wider backdrop-blur-md ${room.badgeClass}`}>
-            {room.badge}
-          </div>
-        )}
+        <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-bold tracking-wider backdrop-blur-md ${
+          room.status === 'AVAILABLE' 
+            ? 'bg-white/90 text-orange-600' 
+            : room.status === 'OCCUPIED'
+            ? 'bg-red-500/90 text-white'
+            : 'bg-yellow-500/90 text-white'
+        }`}>
+          {room.status === 'AVAILABLE' ? 'CÒN TRỐNG' : room.status === 'OCCUPIED' ? 'ĐÃ CHO THUÊ' : 'BẢO TRÌ'}
+        </div>
         
         {/* Favorite Button */}
         <button
@@ -40,26 +66,26 @@ function RoomCard({ room, isFavorite, onToggleFavorite }: { room: any; isFavorit
             {room.title}
           </h3>
           <p className="text-gray-600 font-medium text-sm mt-1 flex items-center gap-1">
-            📍 {room.location}
+            📍 {room.address}
           </p>
         </div>
 
         <div className="pt-3 border-t border-gray-200 space-y-3">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-2xl font-black text-orange-600">${room.price.toLocaleString()}</p>
+              <p className="text-2xl font-black text-orange-600">₫ {room.price.toLocaleString()}</p>
               <p className="text-[10px] font-bold text-gray-500 uppercase">/ tháng</p>
             </div>
             <div className="text-right text-xs text-gray-600">
-              <div>📐 {room.area}m²</div>
+              <div>📐 {room.area}</div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 pt-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${room.avatarClass}`}>
-              {room.ownerInitial}
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white bg-orange-500">
+              {ownerInitial}
             </div>
-            <span className="text-xs text-gray-600">{room.owner}</span>
+            <span className="text-xs text-gray-600">{ownerName}</span>
           </div>
         </div>
       </div>
@@ -127,14 +153,14 @@ function FilterSidebar({
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-700">Giá thuê</h3>
             <span className="text-sm font-bold text-orange-600">
-              ${priceRange[0].toLocaleString()} - ${priceRange[1].toLocaleString()}
+              ₫ {priceRange[0].toLocaleString()} - ₫ {priceRange[1].toLocaleString()}
             </span>
           </div>
           <div className="space-y-2">
             <input
               type="range"
               min="0"
-              max="5000"
+              max="10000000"
               step="100"
               value={priceRange[0]}
               onChange={(e) => onPriceChange([parseInt(e.target.value), priceRange[1]])}
@@ -143,7 +169,7 @@ function FilterSidebar({
             <input
               type="range"
               min="0"
-              max="5000"
+              max="10000000"
               step="100"
               value={priceRange[1]}
               onChange={(e) => onPriceChange([priceRange[0], parseInt(e.target.value)])}
@@ -216,73 +242,37 @@ export default function RoomsPage() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState([0, 5000]);
+  const [priceRange, setPriceRange] = useState([0, 10000000000]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('newest');
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const allRooms = [
-    {
-      id: 1,
-      title: 'The Nordic Loft',
-      location: 'Williamsburg, Brooklyn',
-      price: 1850,
-      area: 23,
-      owner: 'Erik L.',
-      ownerInitial: 'EL',
-      type: 'Phòng riêng',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBhfd3vY2F4d3mZpS6-vamH-U7pEz4wLjKoemerALTYWz25cYCrAERSf1p02GdWa7MazFVmqGpjBxzpJNaisu2ngBYrFGT-rnCUQmpBNiEqBMn-OQc-wFFCzNPDXWTy9z7XhgSx51Ngp16vEXxSGnU8h0v-ElYNL4QWNBxm9K4O5J5OgH1dTUCd39HvSAwgiNJm40pbB56No41OWNCA4EwWxF00QKoQl4_MEjew7MExHjsks0W2AxSkCd30HbK6LWPZW2eFkSX-xYqT',
-      badge: 'CÒN 1 PHÒNG TRỐNG',
-      badgeClass: 'bg-white/90 text-orange-600',
-      avatarClass: 'bg-orange-200 text-orange-700',
-      amenities: ['Wi-Fi', 'Máy lạnh', 'Ban công']
-    },
-    {
-      id: 2,
-      title: 'Artisan Quarter',
-      location: 'Greenpoint, Brooklyn',
-      price: 1400,
-      area: 18,
-      owner: 'Sarah M.',
-      ownerInitial: 'SM',
-      type: 'Phòng chia sẻ',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB71MMEUgF6zeIiLtJQxArFyQ6tGoymXRzsWHGP5mXq9m4N-tyjg6nX7rpAkTfBDdAh0medgT1PiGrmxjItlnENGQ68xEB2BRVC9z6iP3JLEDVwz5TWx3y2aPFgL4RelZyW1ZwfRwJNcrjq2alTWHZG0KOJ7-Rcd3J4uyE4OUn1uaqNyrLMjKYdF9MUbv0dzd-FpAkjFstQ_StwL3xa4HQjmVDPEmrZyuy4ySmGL17iVyBJuHwDzhGmg60ANIXQ68xit-EMH79IiNLx',
-      badge: 'YÊU THÍCH',
-      badgeClass: 'bg-red-500/90 text-white',
-      avatarClass: 'bg-blue-200 text-blue-700',
-      amenities: ['Wi-Fi', 'Giặt ủi', 'Bếp']
-    },
-    {
-      id: 3,
-      title: 'The Heritage Suite',
-      location: 'Brooklyn Heights',
-      price: 2200,
-      area: 29,
-      owner: 'Julian H.',
-      ownerInitial: 'JH',
-      type: 'Phòng riêng',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9FVGTKrhN4htwxZ_JiD7yzGSegZlEtJGYfBpzgpNOjDOy9I2j4aTHfwTyB1mVPLNNcw99w0VNR5wC0Pbswb53gtP4-hkXQvCmfXMHTEFXTGcBp0WrggVDt5RWgBRG7Io858RNHXqn-scPwBZq1f4DuAMHHbgt03Pn8agvQtoeyLhEeGh39AKOslOhqtbgvhMOwEH49c5u1DiHl7beeR9AVWQQyvJaPOYtOdhjlgppr64gVXgIOkq-cqJ9vHqZoZ2Bnyvf_4i5sgjg',
-      badge: 'MỚI CẬP NHẬT',
-      badgeClass: 'bg-orange-600 text-white',
-      avatarClass: 'bg-green-200 text-green-700',
-      amenities: ['Máy lạnh', 'Phòng gym', 'Ban công']
-    },
-    {
-      id: 4,
-      title: 'The Digital Den',
-      location: 'Dumbo, Brooklyn',
-      price: 1650,
-      area: 20,
-      owner: 'Marcus C.',
-      ownerInitial: 'MC',
-      type: 'Studio',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuChLlW9lWqYj38YPPeBAsA99-GyA-w7-lcMW8nrKyDNoh2r02n7oljjGq90D426SzpG0ASN48m1CtJVOm-DNhVEOWf4Qk8IFNPYphtjZ_hiSpbeRstupWfI7ZLz_8scjbgHriHy-A7whCKCmUxCEKvpQ-5xDuvrY7MqBqFU5kLdtbY-6QMTWDHECS2exmWMUmuFOu2t3QuSs3NYmxiKsvb-AO4APkFzB1Qouu0Jxshw3eZcmVqfXBXe3MWS9Fps8nL8r0oKd2cFOq3l',
-      badge: '',
-      badgeClass: '',
-      avatarClass: 'bg-purple-200 text-purple-700',
-      amenities: ['Wi-Fi', 'Máy lạnh', 'Giặt ủi']
-    }
-  ];
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('/api/rooms');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch rooms');
+        }
+        
+        const data = await response.json();
+        setAllRooms(data.data || data || []);
+      } catch (err) {
+        console.error('Error fetching rooms:', err);
+        setError('Không thể tải danh sách phòng');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRooms();
+  }, []);
 
   // Filter and sort logic
   const filteredRooms = useMemo(() => {
@@ -292,17 +282,12 @@ export default function RoomsPage() {
     if (searchTerm) {
       result = result.filter(room =>
         room.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        room.location.toLowerCase().includes(searchTerm.toLowerCase())
+        room.address.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Price filter
     result = result.filter(room => room.price >= priceRange[0] && room.price <= priceRange[1]);
-
-    // Room type filter
-    if (selectedRoomTypes.length > 0) {
-      result = result.filter(room => selectedRoomTypes.includes(room.type));
-    }
 
     // Sort
     if (sortBy === 'price-low') {
@@ -310,11 +295,11 @@ export default function RoomsPage() {
     } else if (sortBy === 'price-high') {
       result.sort((a, b) => b.price - a.price);
     } else if (sortBy === 'area-large') {
-      result.sort((a, b) => b.area - a.area);
+      result.sort((a, b) => parseFloat(b.area) - parseFloat(a.area));
     }
 
     return result;
-  }, [searchTerm, priceRange, selectedRoomTypes, sortBy]);
+  }, [searchTerm, priceRange, sortBy, allRooms]);
 
   const handleToggleFavorite = (roomId: string) => {
     setFavorites(prev => 
@@ -379,29 +364,43 @@ export default function RoomsPage() {
 
           {/* Rooms Grid */}
           <div className="flex-1">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">
-                {filteredRooms.length} phòng tìm thấy
-              </h2>
-            </div>
-
-            {filteredRooms.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredRooms.map((room) => (
-                  <RoomCard
-                    key={room.id}
-                    room={room}
-                    isFavorite={favorites.includes(room.id.toString())}
-                    onToggleFavorite={() => handleToggleFavorite(room.id.toString())}
-                  />
-                ))}
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="text-5xl mb-4">⏳</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Đang tải danh sách phòng...</h3>
+              </div>
+            ) : error ? (
+              <div className="text-center py-20">
+                <div className="text-5xl mb-4">❌</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{error}</h3>
               </div>
             ) : (
-              <div className="text-center py-20">
-                <div className="text-5xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Không tìm thấy phòng</h3>
-                <p className="text-gray-600">Thử điều chỉnh các bộ lọc của bạn để xem thêm kết quả.</p>
-              </div>
+              <>
+                <div className="mb-6 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {filteredRooms.length} phòng tìm thấy
+                  </h2>
+                </div>
+
+                {filteredRooms.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredRooms.map((room) => (
+                      <RoomCard
+                        key={room.id}
+                        room={room}
+                        isFavorite={favorites.includes(room.id)}
+                        onToggleFavorite={() => handleToggleFavorite(room.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20">
+                    <div className="text-5xl mb-4">🔍</div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Không tìm thấy phòng</h3>
+                    <p className="text-gray-600">Thử điều chỉnh các bộ lọc của bạn để xem thêm kết quả.</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
