@@ -12,6 +12,7 @@ interface Room {
   title: string
   description: string
   price: number
+  area: string
   address: string
   image: string
   status: 'AVAILABLE' | 'OCCUPIED'
@@ -32,6 +33,7 @@ export function RoomForm() {
     title: '',
     description: '',
     price: '1.00',
+    area: '',
     address: '',
     image: '',
     status: 'AVAILABLE' as 'AVAILABLE' | 'OCCUPIED',
@@ -76,6 +78,7 @@ useEffect(() => {
             title: res.title,
             description: res.description,
             price: res.price.toString(),
+            area: res.area,
             address: res.address,
             image: res.image,
             status: res.status,
@@ -147,9 +150,9 @@ if (images.length > 0) {
         title: formData.title,
         description: formData.description,
         price: parseFloat(formData.price),
+        area: formData.area,
         address: formData.address,
-        images: imageUrls,
-        status: formData.status,
+        image: imageUrls,
         amenityIds: selectedAmenities,
       }
 
@@ -241,6 +244,22 @@ if (images.length > 0) {
                 <p className="text-xs text-muted-foreground mt-2">
                   Annual: ${(parseFloat(formData.price) * 12).toFixed(2)} 
                 </p>
+              </div>
+
+              {/* Area */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  AREA (m²) *
+                </label>
+                <input
+                  type="text"
+                  name="area"
+                  value={formData.area}
+                  onChange={handleInputChange}
+                  placeholder="Enter room area"
+                  required
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
               </div>
 
               {/* Address */}
