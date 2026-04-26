@@ -13,13 +13,13 @@ interface Room {
   price: number
   address: string
   image: string[]
-  status: 'available' | 'occupied'
+  status: 'AVAILABLE' | 'OCCUPIED'
   amenityIds: string[]
   createdAt: string
 }
 
 const getStatusColor = (status: string) => {
-  return status === 'available'
+  return status === 'AVAILABLE'
     ? 'bg-green-100 text-green-700'
     : 'bg-red-100 text-red-700'
 }
@@ -100,7 +100,7 @@ export function RoomsTable() {
 
       {/* Table Body */}
       <div className="divide-y divide-border">
-        {rooms.map((room) => (
+        {rooms.rooms.map((room) => (
           <div
             key={room.id}
             className="px-6 py-4 hover:bg-muted/20 transition-colors"
@@ -133,7 +133,7 @@ export function RoomsTable() {
                     room.status
                   )}`}
                 >
-                  {room.status === 'available' ? 'Available' : 'Occupied'}
+                  {room.status}
                 </span>
               </div>
 

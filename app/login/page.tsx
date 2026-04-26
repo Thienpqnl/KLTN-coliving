@@ -33,7 +33,7 @@ const handleLogin = async (e: React.FormEvent) => {
       }
 
       localStorage.setItem('token', data.token);
-      router.push('/dashboard');
+      router.push('/home');
     } catch (err) {
       setError('Không thể kết nối đến máy chủ');
     } finally {
