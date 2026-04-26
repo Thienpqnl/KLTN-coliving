@@ -39,17 +39,17 @@ export const roomClientService = {
 
   // Create room
   create: async (payload: CreateRoomPayload): Promise<Room> => {
-    return apiClient.post<Room>('/rooms/create', payload)
+    return apiClient.post<Room>('/rooms-upload/create', payload)
   },
 
   // Update room
   update: async (id: string, payload: UpdateRoomPayload): Promise<Room> => {
-    return apiClient.put<Room>(`/rooms/${id}`, payload)
+    return apiClient.put<Room>(`/rooms-upload/${id}`, payload)
   },
 
   // Delete room
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/rooms/${id}`)
+    await apiClient.delete(`/rooms-upload/${id}`)
   },
 
   // Get available rooms

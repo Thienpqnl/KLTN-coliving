@@ -16,10 +16,12 @@ export function RoomStatCards() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const rooms = await roomClientService.getAll()
-        const availableRooms = rooms.filter(r => r.status === 'AVAILABLE').length
-        const occupiedRooms = rooms.filter(r => r.status === 'OCCUPIED').length
-        const total = rooms.length
+        const response = await roomClientService.getAll()
+        const roomsData = response.rooms || [];
+        console.log('Fetched rooms for stats:', roomsData)
+        const availableRooms = roomsData.filter(r => r.status === 'AVAILABLE').length
+        const occupiedRooms = roomsData.filter(r => r.status === 'OCCUPIED').length
+        const total = roomsData.length
 
         setStats({
           totalRooms: total,
@@ -43,12 +45,12 @@ export function RoomStatCards() {
       change: 'Total rooms',
     },
     {
-      label: 'Available',
+      label: 'AVAILABLE',
       value: stats.availableRooms,
       change: 'Ready to book',
     },
     {
-      label: 'Occupied',
+      label: 'OCCUPIED',
       value: stats.occupiedRooms,
       change: 'Currently rented',
     },
