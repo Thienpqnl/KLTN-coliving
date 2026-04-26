@@ -350,7 +350,7 @@ export const roomService = {
   },
 
   // Update room status
-  updateStatus: async (id: string, status: "AVAILABLE" | "OCCUPIED" | "MAINTENANCE") => {
+  updateStatus: async (id: string, status: "AVAILABLE" | "OCCUPIED") => {
     // Verify room exists
     await roomService.getById(id);
 
