@@ -76,11 +76,13 @@ const createRoom = async (roomData: {
   image?: string;
   amenityIds?: string[];
 }) => {
-  const response = await authFetch("/api/rooms/create", {
+  const response = await authFetch("/api/rooms-upload/create", {
     method: "POST",
+    
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(roomData)
   });
+  console.log('Create Room Response:', response);
   return response.json();
 };
 

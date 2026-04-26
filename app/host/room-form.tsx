@@ -154,9 +154,9 @@ if (images.length > 0) {
       }
 
       if (editMode && roomId) {
-        await apiClient.put(`/rooms/${roomId}`, payload)
+        await apiClient.put(`/rooms-upload/${roomId}`, payload)
       } else {
-        await apiClient.post('/rooms/create', payload)
+        await apiClient.post('/rooms-upload/create', payload)
       }
 
       router.push('/room-management')
@@ -270,8 +270,8 @@ if (images.length > 0) {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="available">Available</option>
-                  <option value="occupied">Occupied</option>
+                  <option value="AVAILABLE">Available</option>
+                  <option value="OCCUPIED">Occupied</option>
                 </select>
               </div>
             </div>
