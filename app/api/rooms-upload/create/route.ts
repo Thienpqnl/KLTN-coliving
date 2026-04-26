@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
         title: data.title,
         description: data.description,
         price: data.price,
+        area: data.area,
         address: data.address,
         image: data.image || [],
         ownerId: authUser.userId,
