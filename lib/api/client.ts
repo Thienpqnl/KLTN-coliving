@@ -47,7 +47,7 @@ if (token) {
     headers, // Fetch API chấp nhận đối tượng Headers này
     credentials: "include", // 🔥 Gửi & nhận cookies
   });
-
+  console.log('response status:', response.status);
   // Xử lý response như cũ...
   const data = await response.json();
   if (!response.ok) {
