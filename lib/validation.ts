@@ -6,7 +6,7 @@ export const roomCreateSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.number().positive("Price must be positive"),
   address: z.string().min(5, "Address must be at least 5 characters"),
-  images: z.array(z.string().url()).optional(),
+  image: z.array(z.string().url()).optional(),
   amenityIds: z.array(z.string()).optional(),
 });
 
