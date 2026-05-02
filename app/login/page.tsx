@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from "@/lib/context/AuthContext";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { refetch } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,6 +23,7 @@ const handleLogin = async (e: React.FormEvent) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
 
       const data = await res.json();
@@ -32,7 +33,7 @@ const handleLogin = async (e: React.FormEvent) => {
         return;
       }
 
-      localStorage.setItem('token', data.token);
+      await refetch();
       router.push('/home');
     } catch (err) {
       setError('Không thể kết nối đến máy chủ');

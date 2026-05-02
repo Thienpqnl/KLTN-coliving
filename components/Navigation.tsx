@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 export function Navigation() {
   const pathname = usePathname();
+  const { user, isLoading, logout } = useAuth();
 
   const isActive = (path: string) => pathname === path;
 
@@ -15,11 +17,11 @@ export function Navigation() {
         <div className="flex items-center">
           <span className="text-2xl font-bold tracking-tighter text-orange-900 font-headline whitespace-nowrap">The Curated Hearth</span>
         </div>
-        
+
         {/* Centered Menu Section */}
         <div className="flex justify-center items-center gap-8 font-headline tracking-tight">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className={`font-semibold border-b-2 transition-colors ${
               isActive('/') || isActive('/home')
                 ? 'text-orange-700 border-orange-500 hover:text-orange-600'
@@ -28,8 +30,8 @@ export function Navigation() {
           >
             Trang chủ
           </Link>
-          <Link 
-            href="/rooms" 
+          <Link
+            href="/rooms"
             className={`font-medium transition-colors ${
               isActive('/rooms')
                 ? 'text-orange-700 border-b-2 border-orange-500'
@@ -38,29 +40,57 @@ export function Navigation() {
           >
             Danh sách phòng
           </Link>
-          <Link 
-            href="#" 
+          <Link
+            href="#"
             className="text-slate-600 font-medium hover:text-orange-600 transition-colors"
           >
             Cộng đồng
           </Link>
         </div>
-        
+
         {/* Auth Buttons Section */}
         <div className="flex items-center justify-end gap-4">
-          <Link 
-            href="/login" 
-            className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-orange-800 hover:bg-orange-50 transition-all"
-          >
-            Đăng nhập
-          </Link>
-          <Link 
-            href="/register" 
-            className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all" 
-            style={{ background: 'linear-gradient(135deg, #944a00 0%, #f28c38 100%)' }}
-          >
-            ĐĂNG KÝ
-          </Link>
+          {isLoading ? (
+            <div className="text-sm text-slate-600">Đang tải...</div>
+          ) : user ? (
+            <>
+              <Link
+                href="/booking"
+                className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-orange-800 hover:bg-orange-50 transition-all"
+              >
+                Booking
+              </Link>
+              <Link
+                href="/profile"
+                className="text-sm font-medium text-slate-700 hover:text-orange-600 transition-colors"
+              >
+                {user.fullName || user.name || user.email}
+              </Link>
+              <button
+                onClick={logout}
+                className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all"
+                style={{ background: 'linear-gradient(135deg, #944a00 0%, #f28c38 100%)' }}
+              >
+                Đăng xuất
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-orange-800 hover:bg-orange-50 transition-all"
+              >
+                Đăng nhập
+              </Link>
+              <Link
+                href="/register"
+                className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all"
+                style={{ background: 'linear-gradient(135deg, #944a00 0%, #f28c38 100%)' }}
+              >
+                ĐĂNG KÝ
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
