@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUser(req)
-    
+
     const userData = await prisma.user.findUnique({
       where: { id: user.userId },
       select: {
@@ -13,6 +13,10 @@ export async function GET(req: NextRequest) {
         email: true,
         name: true,
         fullName: true,
+        phone: true,
+        birthDate: true,
+        address: true,
+        avatarUrl: true,
         role: true,
       },
     })

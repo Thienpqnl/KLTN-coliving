@@ -54,11 +54,18 @@ export function Navigation() {
             <div className="text-sm text-slate-600">Đang tải...</div>
           ) : user ? (
             <>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-slate-700">
-                  {user.fullName || user.name || user.email}
-                </span>
-              </div>
+              <Link
+                href="/booking"
+                className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-orange-800 hover:bg-orange-50 transition-all"
+              >
+                Booking
+              </Link>
+              <Link
+                href="/profile"
+                className="text-sm font-medium text-slate-700 hover:text-orange-600 transition-colors"
+              >
+                {user.fullName || user.name || user.email}
+              </Link>
               <button
                 onClick={logout}
                 className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all"
