@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from "@/lib/context/AuthContext";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { useRouter } from 'next/navigation';
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { refetch } = useAuth();
 const router = useRouter();
   const [formData, setFormData] = useState({
     fullName: '',
@@ -71,13 +71,27 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   setIsLoading(true);
 
   try {
-    await register(
-      formData.email,
-      formData.password,
-      formData.fullName,
-      formData.role
-    );
-    
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+        role: formData.role,
+      }),
+      credentials: 'include',
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setErrors({ submit: data.message || 'Đăng ký thất bại' });
+      return;
+    }
+
+    await refetch();
+
     // Redirect based on role
     if (formData.role === 'HOST') {
       router.push('/host');
@@ -85,7 +99,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       router.push('/home');
     }
   } catch (err: any) {
-    setErrors({ submit: err.message || 'Registration failed' });
+    setErrors({ submit: err.message || 'Đăng ký thất bại' });
   } finally {
     setIsLoading(false);
   }

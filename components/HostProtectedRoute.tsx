@@ -1,23 +1,24 @@
 // components/HostProtectedRoute.tsx
 "use client";
-import { useAuth } from "@/lib/context/AuthContext";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export function HostProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isLoading && !user) {
       router.push("/login");
-    } else if (!loading && user && user.role !== "HOST") {
+    } else if (!isLoading && user && user.role !== "HOST") {
       router.push("/home");
     }
-  }, [user, loading, router]);
+  }, [user, isLoading, router]);
 
-  if (loading) return <div>Loading...</div>;
+  if (isLoading) return <div>Loading...</div>;
   if (!user || user.role !== "HOST") return null;
 
   return <>{children}</>;
 }
+
