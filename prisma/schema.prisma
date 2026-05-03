@@ -14,6 +14,7 @@ model User {
   createdAt DateTime  @default(now())
   name      String
   phone     String?
+  gender    String?
   birthDate DateTime?
   address   String?
   avatarUrl String?

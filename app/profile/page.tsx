@@ -1,20 +1,41 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Navigation } from '@/components/Navigation';
-import { Footer } from '@/components/Footer';
-import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import {
+  CalendarDays,
+  Camera,
+  CreditCard,
+  Home,
+  KeyRound,
+  Loader2,
+  LogOut,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Save,
+  ShieldCheck,
+  Trash2,
+  UserRound,
+  X,
+} from 'lucide-react';
+import { Footer } from '@/components/Footer';
+import { Navigation } from '@/components/Navigation';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { uploadImage } from '@/lib/upload';
 
 interface UserProfile {
   id: string;
   email: string;
+  name?: string;
   fullName: string;
-  phone?: string;
-  birthDate?: string;
-  address?: string;
-  avatarUrl?: string;
+  phone?: string | null;
+  gender?: string | null;
+  birthDate?: string | null;
+  address?: string | null;
+  avatarUrl?: string | null;
   createdAt: string;
 }
 
@@ -31,94 +52,267 @@ interface Booking {
   };
 }
 
+type FormData = Pick<UserProfile, 'fullName' | 'phone' | 'gender' | 'address'> & {
+  birthDate: string;
+};
+
+const emptyForm: FormData = {
+  fullName: '',
+  phone: '',
+  gender: '',
+  birthDate: '',
+  address: '',
+};
+
+function formatDate(date?: string | null) {
+  if (!date) return 'Chưa cập nhật';
+
+  return new Date(date).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function toDateInputValue(date?: string | null) {
+  if (!date) return '';
+
+  return new Date(date).toISOString().split('T')[0];
+}
+
+function profileToForm(profile: UserProfile): FormData {
+  return {
+    fullName: profile.fullName || profile.name || '',
+    phone: profile.phone || '',
+    gender: profile.gender || '',
+    birthDate: toDateInputValue(profile.birthDate),
+    address: profile.address || '',
+  };
+}
+
 export default function ProfilePage() {
-  const { user, isLoading: authLoading, logout } = useAuth();
+  const { user, isLoading: authLoading, logout, refetch } = useAuth();
   const router = useRouter();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    birthDate: '',
-    address: '',
-  });
+  const [formData, setFormData] = useState<FormData>(emptyForm);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
+      router.replace('/login');
     }
   }, [authLoading, user, router]);
 
   useEffect(() => {
-    if (user?.id) {
-      fetchProfile();
-      fetchBookings();
-    }
-  }, [user?.id]);
+    if (!user?.id) return;
 
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch('/api/user/profile', {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setProfile(data);
-        setFormData({
-          fullName: data.fullName || '',
-          phone: data.phone || '',
-          birthDate: data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : '',
-          address: data.address || '',
-        });
+    const controller = new AbortController();
+
+    async function loadProfilePage() {
+      setIsLoading(true);
+      setError('');
+
+      try {
+        const [profileRes, bookingsRes] = await Promise.all([
+          fetch('/api/user/profile', {
+            credentials: 'include',
+            signal: controller.signal,
+          }),
+          fetch('/api/user/bookings', {
+            credentials: 'include',
+            signal: controller.signal,
+          }),
+        ]);
+
+        if (profileRes.status === 401 || bookingsRes.status === 401) {
+          router.replace('/login');
+          return;
+        }
+
+        if (!profileRes.ok) {
+          throw new Error('Không thể tải thông tin hồ sơ.');
+        }
+
+        const profileData = (await profileRes.json()) as UserProfile;
+        setProfile(profileData);
+        setFormData(profileToForm(profileData));
+
+        if (bookingsRes.ok) {
+          const bookingsData = (await bookingsRes.json()) as Booking[];
+          setBookings(bookingsData);
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra.');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
-    } finally {
-      setIsLoading(false);
     }
-  };
 
-  const fetchBookings = async () => {
-    try {
-      const res = await fetch('/api/user/bookings', {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setBookings(data);
+    loadProfilePage();
+
+    return () => controller.abort();
+  }, [user?.id, router]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
       }
-    } catch (error) {
-      console.error('Failed to fetch bookings:', error);
-    }
-  };
+    };
+  }, [avatarPreview]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const activeBooking = useMemo(
+    () => bookings.find((booking) => new Date(booking.endDate) > new Date()),
+    [bookings]
+  );
+
+  const memberSince = profile
+    ? new Date(profile.createdAt).toLocaleString('vi-VN', {
+        month: 'long',
+        year: 'numeric',
+      })
+    : '';
+
+  const displayName = profile?.fullName || profile?.name || profile?.email || 'Khách hàng';
+  const avatarSrc = avatarPreview || (avatarRemoved ? null : profile?.avatarUrl);
+  const genderLabel =
+    {
+      male: 'Nam',
+      female: 'Nữ',
+      other: 'Khác',
+    }[profile?.gender || ''] || 'Chưa cập nhật giới tính';
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [id]: value,
     }));
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Vui lòng chọn file ảnh hợp lệ.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Ảnh đại diện không được vượt quá 5MB.');
+      return;
+    }
+
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarRemoved(false);
+    setEditMode(true);
+    setSuccess('');
+    setError('');
+  };
+
+  const handleRemoveAvatar = () => {
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    setAvatarRemoved(true);
+    setEditMode(true);
+    setSuccess('');
+    setError('');
+  };
+
+  const handleCancel = () => {
+    if (profile) {
+      setFormData(profileToForm(profile));
+    }
+
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    setAvatarRemoved(false);
+    setSuccess('');
+    setError('');
+    setEditMode(false);
+  };
+
   const handleSave = async () => {
+    if (!profile) return;
+
+    setIsSaving(true);
+    setError('');
+    setSuccess('');
+
     try {
+      let avatarUrl = avatarRemoved ? '' : profile.avatarUrl || '';
+
+      if (avatarFile) {
+        avatarUrl = await uploadImage(avatarFile);
+      }
+
       const res = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          avatarUrl,
+        }),
         credentials: 'include',
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setProfile(data);
-        setEditMode(false);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Không thể cập nhật hồ sơ.');
       }
-    } catch (error) {
-      console.error('Failed to update profile:', error);
+
+      setProfile(data);
+      setFormData(profileToForm(data));
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      setAvatarRemoved(false);
+      setEditMode(false);
+      setSuccess('Đã lưu thông tin hồ sơ.');
+      await refetch();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -126,9 +320,10 @@ export default function ProfilePage() {
     return (
       <>
         <Navigation />
-        <main className="pt-20 pb-20 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-slate-600">Đang tải...</p>
+        <main className="min-h-screen px-6 pt-28 pb-20">
+          <div className="mx-auto flex max-w-5xl items-center justify-center rounded-lg border border-slate-200 bg-white p-10 text-slate-600 shadow-sm">
+            <Loader2 className="mr-3 h-5 w-5 animate-spin text-orange-600" />
+            Đang tải hồ sơ khách hàng...
           </div>
         </main>
         <Footer />
@@ -136,13 +331,20 @@ export default function ProfilePage() {
     );
   }
 
-  if (!profile) {
+  if (error && !profile) {
     return (
       <>
         <Navigation />
-        <main className="pt-20 pb-20 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-slate-600">Không tìm thấy thông tin hồ sơ</p>
+        <main className="min-h-screen px-6 pt-28 pb-20">
+          <div className="mx-auto max-w-2xl rounded-lg border border-red-200 bg-red-50 p-8 text-center">
+            <h1 className="text-xl font-bold text-red-800">Không tải được hồ sơ</h1>
+            <p className="mt-2 text-red-700">{error}</p>
+            <Link
+              href="/login"
+              className="mt-6 inline-flex items-center rounded-full bg-red-700 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-800"
+            >
+              Đăng nhập lại
+            </Link>
           </div>
         </main>
         <Footer />
@@ -150,365 +352,429 @@ export default function ProfilePage() {
     );
   }
 
-  const activeBooking = bookings.find(b => new Date(b.endDate) > new Date());
-  const memberSince = new Date(profile.createdAt).toLocaleString('vi-VN', {
-    month: 'long',
-    year: 'numeric'
-  });
+  if (!profile) return null;
 
   return (
     <>
       <Navigation />
-      <main className="max-w-7xl mx-auto px-8 pt-24 pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          {/* Sidebar */}
-          <aside className="md:col-span-4 lg:col-span-3 space-y-6">
-            {/* Profile Card */}
-            <div className="bg-white p-8 rounded-2xl border border-slate-200 flex flex-col items-center text-center shadow-sm">
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-orange-500 shadow-md bg-slate-100 flex items-center justify-center">
-                  {profile.avatarUrl ? (
+      <main className="min-h-screen bg-slate-50 px-4 pt-24 pb-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-6 rounded-lg border border-orange-100 bg-white p-6 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
+              Hồ sơ khách hàng
+            </p>
+            <div className="mt-3 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <div>
+                <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">
+                  Xin chào, {displayName}
+                </h1>
+                <p className="mt-2 max-w-2xl text-slate-600">
+                  Quản lý thông tin cá nhân, phòng đang ở và cài đặt bảo mật cho tài khoản của bạn.
+                </p>
+              </div>
+              <Link
+                href="/rooms"
+                className="inline-flex items-center justify-center rounded-full bg-orange-600 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-orange-700"
+              >
+                Tìm phòng mới
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <aside className="space-y-6 lg:col-span-4 xl:col-span-3">
+              <section className="rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
+                <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-orange-500 bg-orange-50 text-3xl font-extrabold text-orange-700">
+                  {avatarSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={profile.avatarUrl}
-                      alt={profile.fullName}
-                      className="w-full h-full object-cover"
+                      src={avatarSrc}
+                      alt={displayName}
+                      className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-4xl font-bold text-orange-600">
-                      {profile.fullName.charAt(0).toUpperCase()}
-                    </span>
+                    initials || <UserRound className="h-10 w-10" />
                   )}
                 </div>
-                <button className="absolute bottom-2 right-2 bg-orange-600 text-white p-2 rounded-full shadow-lg hover:bg-orange-700 transition-colors">
-                  <span className="material-symbols-outlined text-xl">edit</span>
-                </button>
-              </div>
 
-              <div className="mt-6">
-                <h1 className="text-2xl font-bold text-slate-900">{profile.fullName}</h1>
-                <p className="text-slate-500 text-sm mt-1">Thành viên từ {memberSince}</p>
-              </div>
+                <h2 className="mt-5 text-xl font-bold text-slate-950">{displayName}</h2>
+                <p className="mt-1 text-sm text-slate-500">Thành viên từ {memberSince}</p>
 
-              <div className="w-full mt-6 space-y-3">
-                <button className="w-full py-3 bg-orange-600 text-white rounded-full font-semibold hover:bg-orange-700 transition-colors shadow-md">
-                  Thay đổi ảnh
-                </button>
-                <button className="w-full py-3 border border-slate-300 text-slate-700 rounded-full font-semibold hover:bg-slate-50 transition-colors">
-                  Xem hồ sơ công khai
-                </button>
-              </div>
-            </div>
-
-            {/* Navigation Menu */}
-            <nav className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-              <a
-                href="#personal-info"
-                className="flex items-center gap-3 px-4 py-3 bg-orange-50 text-orange-700 rounded-lg font-semibold transition-all"
-              >
-                <span className="material-symbols-outlined">person</span>
-                Thông tin cá nhân
-              </a>
-              <a
-                href="#my-apartment"
-                className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-lg font-medium transition-all"
-              >
-                <span className="material-symbols-outlined">home_work</span>
-                Căn hộ đang ở
-              </a>
-              <a
-                href="#security"
-                className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-lg font-medium transition-all"
-              >
-                <span className="material-symbols-outlined">security</span>
-                Bảo mật
-              </a>
-              <button
-                onClick={logout}
-                className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-all"
-              >
-                <span className="material-symbols-outlined">logout</span>
-                Đăng xuất
-              </button>
-            </nav>
-          </aside>
-
-          {/* Main Content */}
-          <div className="md:col-span-8 lg:col-span-9 space-y-6">
-            {/* Personal Info Section */}
-            <section
-              id="personal-info"
-              className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm"
-            >
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider inline-block mb-2">
-                    Quản lý tài khoản
-                  </span>
-                  <h2 className="text-2xl font-bold text-slate-900">Thông tin cá nhân</h2>
-                </div>
-                {editMode && (
-                  <button
-                    onClick={handleSave}
-                    className="flex items-center gap-2 text-orange-600 font-semibold hover:text-orange-700 transition-colors"
+                <div className="mt-5 flex flex-col gap-2">
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleAvatarChange}
+                    disabled={isSaving}
+                  />
+                  <label
+                    htmlFor="avatar-upload"
+                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-orange-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-700"
                   >
-                    <span className="material-symbols-outlined">save</span>
-                    Lưu thay đổi
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Họ và tên
+                    <Camera className="h-4 w-4" />
+                    Đổi ảnh đại diện
                   </label>
-                  <input
-                    id="fullName"
-                    type="text"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    className="w-full bg-transparent border-0 border-b border-slate-300 focus:ring-0 focus:border-orange-600 px-0 py-2 text-lg font-medium disabled:cursor-not-allowed disabled:text-slate-600 transition-colors"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Email (Không thể thay đổi)
-                  </label>
-                  <input
-                    type="email"
-                    value={profile.email}
-                    disabled
-                    className="w-full bg-transparent border-0 border-b border-slate-300 px-0 py-2 text-slate-400 font-medium cursor-not-allowed"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Số điện thoại
-                  </label>
-                  <input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    className="w-full bg-transparent border-0 border-b border-slate-300 focus:ring-0 focus:border-orange-600 px-0 py-2 text-lg font-medium disabled:cursor-not-allowed disabled:text-slate-600 transition-colors"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Ngày sinh
-                  </label>
-                  <input
-                    id="birthDate"
-                    type="date"
-                    value={formData.birthDate}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    className="w-full bg-transparent border-0 border-b border-slate-300 focus:ring-0 focus:border-orange-600 px-0 py-2 text-lg font-medium disabled:cursor-not-allowed disabled:text-slate-600 transition-colors"
-                  />
-                </div>
-
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Địa chỉ hiện tại
-                  </label>
-                  <input
-                    id="address"
-                    type="text"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    className="w-full bg-transparent border-0 border-b border-slate-300 focus:ring-0 focus:border-orange-600 px-0 py-2 text-lg font-medium disabled:cursor-not-allowed disabled:text-slate-600 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-8 flex gap-4">
-                {!editMode ? (
-                  <button
-                    onClick={() => setEditMode(true)}
-                    className="px-8 py-3 bg-orange-600 text-white rounded-full font-semibold hover:bg-orange-700 transition-colors"
-                  >
-                    Chỉnh sửa thông tin
-                  </button>
-                ) : (
-                  <>
+                  {avatarSrc && (
                     <button
-                      onClick={handleSave}
-                      className="px-8 py-3 bg-orange-600 text-white rounded-full font-semibold hover:bg-orange-700 transition-colors"
+                      type="button"
+                      onClick={handleRemoveAvatar}
+                      disabled={isSaving}
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Lưu thay đổi
+                      <Trash2 className="h-4 w-4" />
+                      Xóa ảnh
                     </button>
-                    <button
-                      onClick={() => setEditMode(false)}
-                      className="px-8 py-3 border border-slate-300 text-slate-700 rounded-full font-semibold hover:bg-slate-50 transition-colors"
-                    >
-                      Hủy
-                    </button>
-                  </>
-                )}
-              </div>
-            </section>
+                  )}
+                  {avatarFile && (
+                    <p className="text-xs text-slate-500">
+                      Ảnh mới sẽ được cập nhật khi bấm Lưu.
+                    </p>
+                  )}
+                </div>
 
-            {/* Current Apartment Section */}
-            {activeBooking && (
+                <div className="mt-5 space-y-3 text-left text-sm text-slate-600">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-4 w-4 text-orange-600" />
+                    <span className="break-all">{profile.email}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-4 w-4 text-orange-600" />
+                    <span>{profile.phone || 'Chưa cập nhật số điện thoại'}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <UserRound className="h-4 w-4 text-orange-600" />
+                    <span>{genderLabel}</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="mt-0.5 h-4 w-4 text-orange-600" />
+                    <span>{profile.address || 'Chưa cập nhật địa chỉ'}</span>
+                  </div>
+                </div>
+              </section>
+
+              <nav className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+                <a
+                  href="#personal-info"
+                  className="flex items-center gap-3 rounded-md bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-700"
+                >
+                  <UserRound className="h-4 w-4" />
+                  Thông tin cá nhân
+                </a>
+                <a
+                  href="#current-room"
+                  className="flex items-center gap-3 rounded-md px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                >
+                  <Home className="h-4 w-4" />
+                  Phòng đang ở
+                </a>
+                <a
+                  href="#security"
+                  className="flex items-center gap-3 rounded-md px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Bảo mật
+                </a>
+                <button
+                  onClick={logout}
+                  className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Đăng xuất
+                </button>
+              </nav>
+            </aside>
+
+            <div className="space-y-6 lg:col-span-8 xl:col-span-9">
               <section
-                id="my-apartment"
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+                id="personal-info"
+                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
               >
-                <div className="p-8">
-                  <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider inline-block mb-2">
-                    Hợp đồng hiện tại
-                  </span>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-6">Căn hộ đang ở</h2>
+                <div className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-center">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
+                      Quản lý tài khoản
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold text-slate-950">Thông tin cá nhân</h2>
+                  </div>
 
-                  <div className="flex flex-col lg:flex-row gap-8 items-start">
-                    <div className="w-full lg:w-1/2 aspect-video rounded-xl overflow-hidden shadow-md bg-slate-200">
-                      {activeBooking.room.image && activeBooking.room.image[0] && (
+                  {!editMode ? (
+                    <button
+                      onClick={() => {
+                        setSuccess('');
+                        setError('');
+                        setEditMode(true);
+                      }}
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Chỉnh sửa
+                    </button>
+                  ) : (
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSaving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+                        Lưu
+                      </button>
+                      <button
+                        onClick={handleCancel}
+                        disabled={isSaving}
+                        className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <X className="h-4 w-4" />
+                        Hủy
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {(error || success) && (
+                  <div
+                    className={`mt-5 rounded-lg border p-4 text-sm ${
+                      error
+                        ? 'border-red-200 bg-red-50 text-red-700'
+                        : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    }`}
+                  >
+                    {error || success}
+                  </div>
+                )}
+
+                <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <label className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                      Họ và tên
+                    </span>
+                    <input
+                      id="fullName"
+                      type="text"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      disabled={!editMode || isSaving}
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                      Email
+                    </span>
+                    <input
+                      type="email"
+                      value={profile.email}
+                      disabled
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-slate-50 px-4 font-medium text-slate-500"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                      Số điện thoại
+                    </span>
+                    <input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone || ''}
+                      onChange={handleInputChange}
+                      disabled={!editMode || isSaving}
+                      placeholder="Nhập số điện thoại"
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                      Ngày sinh
+                    </span>
+                    <input
+                      id="birthDate"
+                      type="date"
+                      value={formData.birthDate}
+                      onChange={handleInputChange}
+                      disabled={!editMode || isSaving}
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                      Giới tính
+                    </span>
+                    <select
+                      id="gender"
+                      value={formData.gender || ''}
+                      onChange={handleInputChange}
+                      disabled={!editMode || isSaving}
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
+                    >
+                      <option value="">Chưa cập nhật</option>
+                      <option value="male">Nam</option>
+                      <option value="female">Nữ</option>
+                      <option value="other">Khác</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-2 md:col-span-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                      Địa chỉ hiện tại
+                    </span>
+                    <input
+                      id="address"
+                      type="text"
+                      value={formData.address || ''}
+                      onChange={handleInputChange}
+                      disabled={!editMode || isSaving}
+                      placeholder="Nhập địa chỉ"
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section
+                id="current-room"
+                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="mb-5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
+                    Lưu trú
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold text-slate-950">Phòng đang ở</h2>
+                </div>
+
+                {activeBooking ? (
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="relative aspect-video overflow-hidden rounded-lg bg-slate-100">
+                      {activeBooking.room.image?.[0] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={activeBooking.room.image[0]}
                           alt={activeBooking.room.title}
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                         />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-slate-400">
+                          <Home className="h-12 w-12" />
+                        </div>
                       )}
                     </div>
 
-                    <div className="w-full lg:w-1/2 space-y-6">
+                    <div className="flex flex-col justify-between gap-6">
                       <div>
-                        <h3 className="text-2xl font-bold text-slate-900">
+                        <h3 className="text-2xl font-bold text-slate-950">
                           {activeBooking.room.title}
                         </h3>
-                        <p className="text-slate-500 flex items-center gap-1 mt-1">
-                          <span className="material-symbols-outlined text-lg">
-                            location_on
-                          </span>
+                        <p className="mt-2 flex items-start gap-2 text-slate-600">
+                          <MapPin className="mt-0.5 h-4 w-4 text-orange-600" />
                           {activeBooking.room.address}
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-slate-50 p-4 rounded-lg">
-                          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                            Ngày bắt đầu
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div className="rounded-lg bg-slate-50 p-4">
+                          <CalendarDays className="h-5 w-5 text-orange-600" />
+                          <p className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                            Bắt đầu
                           </p>
-                          <p className="font-bold text-slate-900">
-                            {new Date(activeBooking.startDate).toLocaleDateString('vi-VN')}
+                          <p className="mt-1 font-bold text-slate-950">
+                            {formatDate(activeBooking.startDate)}
                           </p>
                         </div>
-                        <div className="bg-slate-50 p-4 rounded-lg">
-                          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        <div className="rounded-lg bg-slate-50 p-4">
+                          <CalendarDays className="h-5 w-5 text-orange-600" />
+                          <p className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                            Kết thúc
+                          </p>
+                          <p className="mt-1 font-bold text-slate-950">
+                            {formatDate(activeBooking.endDate)}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-slate-50 p-4">
+                          <CreditCard className="h-5 w-5 text-orange-600" />
+                          <p className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-500">
                             Giá thuê
                           </p>
-                          <p className="font-bold text-orange-600">
+                          <p className="mt-1 font-bold text-orange-700">
                             {activeBooking.room.price.toLocaleString('vi-VN')} đ/tháng
                           </p>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <Home className="mx-auto h-12 w-12 text-slate-300" />
+                    <h3 className="mt-4 text-lg font-bold text-slate-950">
+                      Chưa có phòng đang ở
+                    </h3>
+                    <p className="mt-2 text-slate-600">
+                      Khi đặt phòng thành công, thông tin phòng hiện tại sẽ xuất hiện tại đây.
+                    </p>
+                    <Link
+                      href="/rooms"
+                      className="mt-5 inline-flex items-center rounded-full bg-orange-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-700"
+                    >
+                      Duyệt danh sách phòng
+                    </Link>
+                  </div>
+                )}
+              </section>
 
-                      <div className="flex gap-4">
-                        <button className="flex-1 py-3 bg-slate-900 text-white rounded-full font-semibold hover:bg-slate-800 transition-colors">
-                          Chi tiết hợp đồng
-                        </button>
-                        <button className="px-6 py-3 border border-slate-300 text-slate-700 rounded-full font-semibold hover:bg-slate-50 transition-colors">
-                          Thanh toán
-                        </button>
+              <section
+                id="security"
+                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="mb-5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
+                    Bảo mật
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold text-slate-950">Tài khoản</h2>
+                </div>
+
+                <div className="divide-y divide-slate-200">
+                  <div className="flex items-center justify-between gap-4 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-orange-700">
+                        <KeyRound className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-950">Mật khẩu</h3>
+                        <p className="text-sm text-slate-500">
+                          Tài khoản đang đăng nhập bằng email và mật khẩu.
+                        </p>
                       </div>
                     </div>
+                    <span className="text-sm font-semibold text-slate-400">Sắp có</span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-950">Phiên đăng nhập</h3>
+                        <p className="text-sm text-slate-500">
+                          Hồ sơ này chỉ hiển thị sau khi đăng nhập thành công.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-700">
+                      Đang hoạt động
+                    </span>
                   </div>
                 </div>
               </section>
-            )}
-
-            {!activeBooking && (
-              <section
-                id="my-apartment"
-                className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center"
-              >
-                <span className="material-symbols-outlined text-5xl text-slate-300 block mb-4">
-                  home_work
-                </span>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">
-                  Chưa có căn hộ đang ở
-                </h3>
-                <p className="text-slate-500 mb-6">
-                  Hãy đặt phòng để bắt đầu cuộc sống mới của bạn
-                </p>
-                <Link
-                  href="/rooms"
-                  className="inline-block px-8 py-3 bg-orange-600 text-white rounded-full font-semibold hover:bg-orange-700 transition-colors"
-                >
-                  Duyệt danh sách phòng
-                </Link>
-              </section>
-            )}
-
-            {/* Security Section */}
-            <section
-              id="security"
-              className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm"
-            >
-              <div className="mb-8">
-                <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider inline-block mb-2">
-                  Bảo mật &amp; Quyền riêng tư
-                </span>
-                <h2 className="text-2xl font-bold text-slate-900">Bảo mật</h2>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 border-b border-slate-200">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-orange-600">
-                      <span className="material-symbols-outlined">lock</span>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900">Mật khẩu</h4>
-                      <p className="text-sm text-slate-500">Đã thay đổi 3 tháng trước</p>
-                    </div>
-                  </div>
-                  <button className="text-orange-600 font-semibold hover:underline transition-colors">
-                    Thay đổi
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border-b border-slate-200">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                      <span className="material-symbols-outlined">google</span>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900">Liên kết Google</h4>
-                      <p className="text-sm text-slate-500">
-                        Đang hoạt động: {profile.email}
-                      </p>
-                    </div>
-                  </div>
-                  <button className="text-slate-400 font-semibold cursor-not-allowed">
-                    Hủy liên kết
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
-                      <span className="material-symbols-outlined">devices</span>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900">Quản lý thiết bị</h4>
-                      <p className="text-sm text-slate-500">
-                        Hiện tại có 1 thiết bị đang đăng nhập
-                      </p>
-                    </div>
-                  </div>
-                  <button className="text-orange-600 font-semibold hover:underline transition-colors">
-                    Xem tất cả
-                  </button>
-                </div>
-              </div>
-            </section>
+            </div>
           </div>
         </div>
       </main>

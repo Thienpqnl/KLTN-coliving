@@ -54,12 +54,14 @@ export function Navigation() {
             <div className="text-sm text-slate-600">Đang tải...</div>
           ) : user ? (
             <>
-              <Link
-                href="/booking"
-                className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-orange-800 hover:bg-orange-50 transition-all"
-              >
-                Booking
-              </Link>
+              {user.role === 'HOST' && (
+                <Link
+                  href="/bookings"
+                  className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-orange-800 hover:bg-orange-50 transition-all"
+                >
+                  Booking
+                </Link>
+              )}
               <Link
                 href="/profile"
                 className="text-sm font-medium text-slate-700 hover:text-orange-600 transition-colors"
