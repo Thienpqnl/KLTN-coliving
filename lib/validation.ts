@@ -53,6 +53,7 @@ export const reviewCreateSchema = z.object({
 export const userProfileUpdateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
   phone: z.string().optional(),
+  gender: z.string().optional(),
 });
 
 export const userCreateSchema = z.object({

@@ -8,6 +8,7 @@ export interface User {
   name?: string;
   fullName?: string;
   phone?: string;
+  gender?: string;
   birthDate?: string;
   address?: string;
   avatarUrl?: string;
