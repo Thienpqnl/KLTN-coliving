@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   CalendarDays,
+  Camera,
   CreditCard,
   Home,
   KeyRound,
@@ -16,12 +17,14 @@ import {
   Phone,
   Save,
   ShieldCheck,
+  Trash2,
   UserRound,
   X,
 } from 'lucide-react';
 import { Footer } from '@/components/Footer';
 import { Navigation } from '@/components/Navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { uploadImage } from '@/lib/upload';
 
 interface UserProfile {
   id: string;
@@ -29,6 +32,7 @@ interface UserProfile {
   name?: string;
   fullName: string;
   phone?: string | null;
+  gender?: string | null;
   birthDate?: string | null;
   address?: string | null;
   avatarUrl?: string | null;
@@ -48,13 +52,14 @@ interface Booking {
   };
 }
 
-type FormData = Pick<UserProfile, 'fullName' | 'phone' | 'address'> & {
+type FormData = Pick<UserProfile, 'fullName' | 'phone' | 'gender' | 'address'> & {
   birthDate: string;
 };
 
 const emptyForm: FormData = {
   fullName: '',
   phone: '',
+  gender: '',
   birthDate: '',
   address: '',
 };
@@ -79,6 +84,7 @@ function profileToForm(profile: UserProfile): FormData {
   return {
     fullName: profile.fullName || profile.name || '',
     phone: profile.phone || '',
+    gender: profile.gender || '',
     birthDate: toDateInputValue(profile.birthDate),
     address: profile.address || '',
   };
@@ -92,6 +98,9 @@ export default function ProfilePage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState<FormData>(emptyForm);
   const [error, setError] = useState('');
@@ -157,6 +166,14 @@ export default function ProfilePage() {
     return () => controller.abort();
   }, [user?.id, router]);
 
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
   const activeBooking = useMemo(
     () => bookings.find((booking) => new Date(booking.endDate) > new Date()),
     [bookings]
@@ -170,6 +187,13 @@ export default function ProfilePage() {
     : '';
 
   const displayName = profile?.fullName || profile?.name || profile?.email || 'Khách hàng';
+  const avatarSrc = avatarPreview || (avatarRemoved ? null : profile?.avatarUrl);
+  const genderLabel =
+    {
+      male: 'Nam',
+      female: 'Nữ',
+      other: 'Khác',
+    }[profile?.gender || ''] || 'Chưa cập nhật giới tính';
   const initials = displayName
     .split(' ')
     .filter(Boolean)
@@ -178,7 +202,7 @@ export default function ProfilePage() {
     .join('')
     .toUpperCase();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -186,26 +210,85 @@ export default function ProfilePage() {
     }));
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Vui lòng chọn file ảnh hợp lệ.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Ảnh đại diện không được vượt quá 5MB.');
+      return;
+    }
+
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarRemoved(false);
+    setEditMode(true);
+    setSuccess('');
+    setError('');
+  };
+
+  const handleRemoveAvatar = () => {
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    setAvatarRemoved(true);
+    setEditMode(true);
+    setSuccess('');
+    setError('');
+  };
+
   const handleCancel = () => {
     if (profile) {
       setFormData(profileToForm(profile));
     }
 
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    setAvatarRemoved(false);
     setSuccess('');
     setError('');
     setEditMode(false);
   };
 
   const handleSave = async () => {
+    if (!profile) return;
+
     setIsSaving(true);
     setError('');
     setSuccess('');
 
     try {
+      let avatarUrl = avatarRemoved ? '' : profile.avatarUrl || '';
+
+      if (avatarFile) {
+        avatarUrl = await uploadImage(avatarFile);
+      }
+
       const res = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          avatarUrl,
+        }),
         credentials: 'include',
       });
 
@@ -217,6 +300,12 @@ export default function ProfilePage() {
 
       setProfile(data);
       setFormData(profileToForm(data));
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      setAvatarRemoved(false);
       setEditMode(false);
       setSuccess('Đã lưu thông tin hồ sơ.');
       await refetch();
@@ -296,10 +385,10 @@ export default function ProfilePage() {
             <aside className="space-y-6 lg:col-span-4 xl:col-span-3">
               <section className="rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
                 <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-orange-500 bg-orange-50 text-3xl font-extrabold text-orange-700">
-                  {profile.avatarUrl ? (
+                  {avatarSrc ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={profile.avatarUrl}
+                      src={avatarSrc}
                       alt={displayName}
                       className="h-full w-full object-cover"
                     />
@@ -311,6 +400,40 @@ export default function ProfilePage() {
                 <h2 className="mt-5 text-xl font-bold text-slate-950">{displayName}</h2>
                 <p className="mt-1 text-sm text-slate-500">Thành viên từ {memberSince}</p>
 
+                <div className="mt-5 flex flex-col gap-2">
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleAvatarChange}
+                    disabled={isSaving}
+                  />
+                  <label
+                    htmlFor="avatar-upload"
+                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-orange-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-700"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Đổi ảnh đại diện
+                  </label>
+                  {avatarSrc && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveAvatar}
+                      disabled={isSaving}
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Xóa ảnh
+                    </button>
+                  )}
+                  {avatarFile && (
+                    <p className="text-xs text-slate-500">
+                      Ảnh mới sẽ được cập nhật khi bấm Lưu.
+                    </p>
+                  )}
+                </div>
+
                 <div className="mt-5 space-y-3 text-left text-sm text-slate-600">
                   <div className="flex items-center gap-3">
                     <Mail className="h-4 w-4 text-orange-600" />
@@ -319,6 +442,10 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3">
                     <Phone className="h-4 w-4 text-orange-600" />
                     <span>{profile.phone || 'Chưa cập nhật số điện thoại'}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <UserRound className="h-4 w-4 text-orange-600" />
+                    <span>{genderLabel}</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <MapPin className="mt-0.5 h-4 w-4 text-orange-600" />
@@ -476,6 +603,24 @@ export default function ProfilePage() {
                       disabled={!editMode || isSaving}
                       className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
                     />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                      Giới tính
+                    </span>
+                    <select
+                      id="gender"
+                      value={formData.gender || ''}
+                      onChange={handleInputChange}
+                      disabled={!editMode || isSaving}
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
+                    >
+                      <option value="">Chưa cập nhật</option>
+                      <option value="male">Nam</option>
+                      <option value="female">Nữ</option>
+                      <option value="other">Khác</option>
+                    </select>
                   </label>
 
                   <label className="space-y-2 md:col-span-2">
