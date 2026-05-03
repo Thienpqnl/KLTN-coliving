@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
         name: true,
         fullName: true,
         phone: true,
+        gender: true,
         birthDate: true,
         address: true,
         avatarUrl: true,
@@ -44,16 +45,25 @@ export async function PUT(req: NextRequest) {
     const user = await getAuthUser(req)
     const body = await req.json()
 
-    const { fullName, phone, birthDate, address, avatarUrl } = body
+    const { fullName, phone, gender, birthDate, address, avatarUrl } = body
+
+    if (typeof fullName !== 'string' || fullName.trim().length === 0) {
+      return NextResponse.json(
+        { message: 'Họ và tên không được để trống' },
+        { status: 400 }
+      )
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: user.userId },
       data: {
-        ...(fullName && { fullName }),
-        ...(phone && { phone }),
-        ...(birthDate && { birthDate: new Date(birthDate) }),
-        ...(address && { address }),
-        ...(avatarUrl && { avatarUrl }),
+        fullName: fullName.trim(),
+        name: fullName.trim(),
+        phone: typeof phone === 'string' && phone.trim() ? phone.trim() : null,
+        gender: typeof gender === 'string' && gender.trim() ? gender.trim() : null,
+        birthDate: typeof birthDate === 'string' && birthDate ? new Date(birthDate) : null,
+        address: typeof address === 'string' && address.trim() ? address.trim() : null,
+        ...(typeof avatarUrl === 'string' && { avatarUrl: avatarUrl.trim() || null }),
       },
       select: {
         id: true,
@@ -61,6 +71,7 @@ export async function PUT(req: NextRequest) {
         name: true,
         fullName: true,
         phone: true,
+        gender: true,
         birthDate: true,
         address: true,
         avatarUrl: true,

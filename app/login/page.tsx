@@ -34,8 +34,8 @@ const handleLogin = async (e: React.FormEvent) => {
       }
 
       await refetch();
-      router.push('/home');
-    } catch (err) {
+      router.replace('/profile');
+    } catch {
       setError('Không thể kết nối đến máy chủ');
     } finally {
       setLoading(false);
@@ -47,6 +47,7 @@ const handleLogin = async (e: React.FormEvent) => {
       {/* Left Side - Hero Section */}
       <section className="hidden md:flex md:w-1/2 lg:w-3/5 relative bg-blue-100 items-center justify-center p-12 lg:p-24 overflow-hidden">
         <div className="absolute inset-0 z-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt="Không gian co-living sang trọng"
             className="w-full h-full object-cover"
