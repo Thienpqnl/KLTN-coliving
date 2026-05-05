@@ -36,7 +36,10 @@ export const roomClientService = {
   getById: async (id: string): Promise<Room> => {
     return apiClient.get<Room>(`/rooms/${id}`)
   },
-
+ // Get room by ID
+  getByOwnerId: async (id: string): Promise<Room> => {
+    return apiClient.get<Room>(`/rooms-upload/${id}`)
+  },
   // Create room
   create: async (payload: CreateRoomPayload): Promise<Room> => {
     return apiClient.post<Room>('/rooms-upload/create', payload)
