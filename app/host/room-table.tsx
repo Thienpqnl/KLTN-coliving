@@ -37,7 +37,7 @@ export function RoomsTable() {
   const fetchRooms = async () => {
     try {
       setLoading(true)
-      const res = await apiClient.get<Room[]>('/rooms')
+      const res = await apiClient.get<Room[]>('/rooms-upload')
       setRooms(res)
     } catch (err) {
       console.error('Failed to fetch rooms:', err)
@@ -53,7 +53,7 @@ export function RoomsTable() {
 
     try {
       setDeleting(roomId)
-      await apiClient.delete(`/rooms/${roomId}`)
+      await apiClient.delete(`/rooms-upload/${roomId}`)
       setRooms(prev => prev.filter(room => room.id !== roomId))
     } catch (err) {
       console.error('Failed to delete room:', err)
@@ -168,7 +168,7 @@ export function RoomsTable() {
 
       {/* Table Footer */}
       <div className="px-6 py-3 border-t border-border bg-muted/30 text-xs text-muted-foreground flex justify-between items-center">
-        <span>Showing {rooms.length} room{rooms.length !== 1 ? 's' : ''}</span>
+        <span>Showing {rooms.rooms.length} room{rooms.rooms.length !== 1 ? 's' : ''}</span>
       </div>
     </div>
   )

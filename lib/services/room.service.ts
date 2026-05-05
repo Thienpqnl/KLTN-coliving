@@ -54,7 +54,40 @@ export const roomService = {
 
     return room;
   },
+// Get all rooms by ownerId
+getAllByOwnerId: async (ownerId: string) => {
+  if (!ownerId) {
+    throw new ApiError(400, "Owner ID is required");
+  }
 
+  const rooms = await prisma.room.findMany({
+    where: {
+      ownerId: ownerId,
+    },
+    include: {
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          fullName: true,
+          email: true,
+        },
+      },
+      amenities: {
+        include: {
+          amenity: true,
+        },
+      },
+      reviews: true,
+      bookings: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return rooms;
+},
   // Get room by ID
   getById: async (id: string) => {
     const room = await prisma.room.findUnique({
