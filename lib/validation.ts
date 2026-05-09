@@ -14,7 +14,7 @@ export const roomCreateSchema = z.object({
 export const roomUpdateSchema = roomCreateSchema.partial();
 
 export const roomFilterSchema = z.object({
-  status: z.enum(["AVAILABLE", "OCCUPIED", "MAINTENANCE"]).optional(),
+  status: z.enum(["AVAILABLE", "OCCUPIED"]).optional(),
   minPrice: z.number().optional(),
   maxPrice: z.number().optional(),
   search: z.string().optional(),

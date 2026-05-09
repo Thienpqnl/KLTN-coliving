@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { TrendingUp, Loader2 } from 'lucide-react'
-import { roomClientService } from '@/lib/services/room-client.service'
+import { roomClientService, Room } from '@/lib/services/room-client.service'
 
 export function RoomStatCards() {
   const [stats, setStats] = useState({
@@ -17,10 +17,10 @@ export function RoomStatCards() {
     const fetchStats = async () => {
       try {
         const response = await roomClientService.getAll()
-        const roomsData = response.rooms || [];
+        const roomsData = ((response as any).rooms || response || []) as Room[];
         console.log('Fetched rooms for stats:', roomsData)
-        const availableRooms = roomsData.filter(r => r.status === 'AVAILABLE').length
-        const occupiedRooms = roomsData.filter(r => r.status === 'OCCUPIED').length
+        const availableRooms = roomsData.filter((r: Room) => r.status === 'AVAILABLE').length
+        const occupiedRooms = roomsData.filter((r: Room) => r.status === 'OCCUPIED').length
         const total = roomsData.length
 
         setStats({

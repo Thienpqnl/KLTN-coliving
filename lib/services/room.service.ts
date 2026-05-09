@@ -7,7 +7,7 @@ export const roomService = {
   // Create a new room
   create: async (data: RoomCreate & { ownerId: string }) => {
     // Handle images as array
-    const imageArray = Array.isArray(data.images) ? data.images : [];
+    const imageArray = Array.isArray(data.image) ? data.image : [];
     
     const room = await prisma.room.create({
       data: {
@@ -54,7 +54,40 @@ export const roomService = {
 
     return room;
   },
+// Get all rooms by ownerId
+getAllByOwnerId: async (ownerId: string) => {
+  if (!ownerId) {
+    throw new ApiError(400, "Owner ID is required");
+  }
 
+  const rooms = await prisma.room.findMany({
+    where: {
+      ownerId: ownerId,
+    },
+    include: {
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          fullName: true,
+          email: true,
+        },
+      },
+      amenities: {
+        include: {
+          amenity: true,
+        },
+      },
+      reviews: true,
+      bookings: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return rooms;
+},
   // Get room by ID
   getById: async (id: string) => {
     const room = await prisma.room.findUnique({
@@ -232,8 +265,8 @@ export const roomService = {
     if (data.price !== undefined) updateData.price = data.price;
     if (data.area) updateData.area = data.area;
     if (data.address) updateData.address = data.address;
-    if (data.images !== undefined) {
-      updateData.image = Array.isArray(data.images) ? data.images : [];
+    if (data.image !== undefined) {
+      updateData.image = Array.isArray(data.image) ? data.image : [];
     }
 
     const room = await prisma.room.update({

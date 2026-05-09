@@ -1,6 +1,7 @@
 import { RoomForm } from "@/app/host/room-form"
 import { Sidebar } from "@/app/host/sidebar"
 import { MobileHeader } from "@/app/host/mobile-header"
+import { Suspense } from "react"
 
 export default function AddRoomPage() {
   return (
@@ -8,7 +9,9 @@ export default function AddRoomPage() {
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <MobileHeader />
-        <RoomForm />
+        <Suspense fallback={<div>Loading...</div>}>
+          <RoomForm />
+        </Suspense>
       </main>
     </div>
   )
