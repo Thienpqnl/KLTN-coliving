@@ -1,0 +1,117 @@
+import { NextRequest, NextResponse } from "next/server";
+import { AdminService } from "@/lib/services/admin.service";
+import { ApiError } from "@/lib/api-error";
+import { getAuthUser } from "@/lib/auth";
+import { z } from "zod";
+
+const updateUserSchema = z.object({
+  action: z.enum(["lock", "unlock", "delete", "update_role"]),
+  reason: z.string().optional(),
+  newRole: z.enum(["CUSTOMER", "HOST", "ADMIN"]).optional(),
+});
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const payload = await getAuthUser(request);
+    if (payload.role !== "ADMIN")
+      throw new ApiError(403, "Forbidden: Admin only");
+
+    const body = await request.json();
+    const { action, reason, newRole } = updateUserSchema.parse(body);
+    const userId = params.id;
+
+    let result;
+
+    switch (action) {
+      case "lock":
+        result = await AdminService.lockUser(userId, payload.userId, reason);
+        break;
+      case "unlock":
+        result = await AdminService.unlockUser(payload.userId, userId, reason);
+        break;
+      case "delete":
+        result = await AdminService.deleteUser(userId, payload.userId, reason);
+        break;
+      case "update_role":
+        if (!newRole) throw new ApiError(400, "newRole is required");
+        result = await AdminService.updateUserRole(
+          userId,
+          newRole as string,
+          payload.userId,
+          reason
+        );
+        break;
+      default:
+        throw new ApiError(400, "Invalid action");
+    }
+
+    return NextResponse.json(result);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
+    }
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: error.errors },
+        { status: 400 }
+      );
+    }
+    console.error(error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const payload = await getAuthUser(request);
+    if (payload.role !== "ADMIN")
+      throw new ApiError(403, "Forbidden: Admin only");
+
+    const { default: prisma } = await import("@/lib/prisma");
+
+    const user = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        fullName: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: { bookings: true, rooms: true },
+        },
+      },
+    });
+
+    if (!user) throw new ApiError(404, "User not found");
+
+    return NextResponse.json(user);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

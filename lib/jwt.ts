@@ -3,6 +3,7 @@ import { ApiError } from "./api-error";
 
 export interface JWTPayload {
   userId: string;
+  role?: string;
   iat?: number;
   exp?: number;
 }
@@ -33,12 +34,12 @@ export const extractToken = (authHeader: string | null): string => {
   return parts[1];
 };
 
-export const generateToken = (userId: string): string => {
+export const generateToken = (userId: string, role?: string): string => {
   if (!process.env.JWT_SECRET) {
     throw new ApiError(500, "JWT_SECRET is not configured");
   }
 
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+  return jwt.sign({ userId, role }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
 };

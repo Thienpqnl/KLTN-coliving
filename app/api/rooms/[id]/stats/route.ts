@@ -36,7 +36,6 @@ export async function GET(
           ) / 10
         : 0;
 
-    // Calculate total revenue
     const totalRevenue = room.bookings.reduce((sum, booking) => {
       const nights = Math.ceil(
         (booking.endDate.getTime() - booking.startDate.getTime()) /

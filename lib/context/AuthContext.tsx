@@ -17,6 +17,7 @@ export interface User {
 
 export interface AuthContextType {
   user: User | null;
+  token: string | null;
   isLoading: boolean;
   logout: () => Promise<void>;
   refetch: () => Promise<void>;
@@ -27,12 +28,24 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchUser = async () => {
     try {
+      const storedToken = localStorage.getItem('token');
+      setToken(storedToken);
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
       const response = await fetch('/api/auth/me', {
         method: 'GET',
+        headers,
         credentials: 'include',
       });
 
@@ -52,6 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchUser();
+    // Only fetch on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const logout = async () => {
@@ -82,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, logout, refetch, login }}>
+    <AuthContext.Provider value={{ user, token, isLoading, logout, refetch, login }}>
       {children}
     </AuthContext.Provider>
   );
