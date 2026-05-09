@@ -90,6 +90,11 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       return;
     }
 
+    // Lưu token vào localStorage
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+
     await refetch();
 
     // Redirect based on role

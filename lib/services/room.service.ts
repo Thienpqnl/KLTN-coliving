@@ -7,7 +7,7 @@ export const roomService = {
   // Create a new room
   create: async (data: RoomCreate & { ownerId: string }) => {
     // Handle images as array
-    const imageArray = Array.isArray(data.images) ? data.images : [];
+    const imageArray = Array.isArray(data.image) ? data.image : [];
     
     const room = await prisma.room.create({
       data: {
@@ -265,8 +265,8 @@ getAllByOwnerId: async (ownerId: string) => {
     if (data.price !== undefined) updateData.price = data.price;
     if (data.area) updateData.area = data.area;
     if (data.address) updateData.address = data.address;
-    if (data.images !== undefined) {
-      updateData.image = Array.isArray(data.images) ? data.images : [];
+    if (data.image !== undefined) {
+      updateData.image = Array.isArray(data.image) ? data.image : [];
     }
 
     const room = await prisma.room.update({

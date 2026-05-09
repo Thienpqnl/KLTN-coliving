@@ -33,6 +33,11 @@ const handleLogin = async (e: React.FormEvent) => {
         return;
       }
 
+      // Lưu token vào localStorage
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
       await refetch();
       router.replace('/profile');
     } catch {

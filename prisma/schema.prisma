@@ -8,23 +8,26 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  password  String
-  createdAt DateTime  @default(now())
-  name      String
-  phone     String?
-  gender    String?
-  birthDate DateTime?
-  address   String?
-  avatarUrl String?
-  role      Role      @default(CUSTOMER)
-  updatedAt DateTime  @updatedAt
-  fullName  String
-  bookings  Booking[]
-  invoices  Invoice[]
-  reviews   Review[]
-  rooms     Room[]
+  id           String       @id @default(uuid())
+  email        String       @unique
+  password     String
+  createdAt    DateTime     @default(now())
+  name         String
+  phone        String?
+  gender       String?
+  birthDate    DateTime?
+  address      String?
+  avatarUrl    String?
+  role         Role         @default(CUSTOMER)
+  status       UserStatus   @default(ACTIVE)
+  updatedAt    DateTime     @updatedAt
+  fullName     String
+  bookings     Booking[]
+  invoices     Invoice[]
+  reviews      Review[]
+  rooms        Room[]
+  adminActions AdminLog[]   @relation("AdminAction")
+  affectedLogs AdminLog[]   @relation("AffectedUser")
 }
 
 model Room {
@@ -111,6 +114,23 @@ model Review {
   user      User     @relation(fields: [userId], references: [id])
 }
 
+model AdminLog {
+  id           String   @id @default(uuid())
+  adminId      String
+  admin        User     @relation("AdminAction", fields: [adminId], references: [id], onDelete: Cascade)
+  targetUserId String?
+  targetUser   User?    @relation("AffectedUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+  action       String   // lock_user, unlock_user, delete_user, update_user, etc.
+  targetId     String?  // ID of affected user/room
+  targetType   String   // user, room, booking, etc.
+  oldValue     String?  // JSON string of previous value
+  newValue     String?  // JSON string of new value
+  description  String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+}
+
 enum Role {
   CUSTOMER
   SERVER
@@ -119,9 +139,17 @@ enum Role {
   HOST
 }
 
+enum UserStatus {
+  ACTIVE
+  LOCKED
+  DELETED
+}
+
 enum RoomStatus {
   AVAILABLE
   OCCUPIED
+  PENDING
+  HIDDEN
 }
 
 enum BookingStatus {
