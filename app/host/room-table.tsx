@@ -26,7 +26,7 @@ const getStatusColor = (status: string) => {
 
 
 export function RoomsTable() {
-  const [rooms, setRooms] = useState<Room[]>([])
+  const [rooms, setRooms] = useState<{ rooms?: Room[] }>({})
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -37,7 +37,7 @@ export function RoomsTable() {
   const fetchRooms = async () => {
     try {
       setLoading(true)
-      const res = await apiClient.get<Room[]>('/rooms')
+      const res = await apiClient.get<{ rooms: Room[] }>('/rooms-upload')
       setRooms(res)
     } catch (err) {
       console.error('Failed to fetch rooms:', err)
@@ -53,8 +53,11 @@ export function RoomsTable() {
 
     try {
       setDeleting(roomId)
-      await apiClient.delete(`/rooms/${roomId}`)
-      setRooms(prev => prev.filter(room => room.id !== roomId))
+      await apiClient.delete(`/rooms-upload/${roomId}`)
+      setRooms(prev => ({
+        ...prev,
+        rooms: prev.rooms?.filter(room => room.id !== roomId) || []
+      }))
     } catch (err) {
       console.error('Failed to delete room:', err)
       alert('Failed to delete room')
@@ -71,7 +74,7 @@ export function RoomsTable() {
     )
   }
 
-  if (rooms.length === 0) {
+  if (rooms.rooms?.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-2xl p-12 text-center">
         <p className="text-muted-foreground mb-6">No rooms created yet</p>
@@ -100,7 +103,7 @@ export function RoomsTable() {
 
       {/* Table Body */}
       <div className="divide-y divide-border">
-        {rooms.rooms.map((room) => (
+        {rooms.rooms?.map((room) => (
           <div
             key={room.id}
             className="px-6 py-4 hover:bg-muted/20 transition-colors"
@@ -168,7 +171,7 @@ export function RoomsTable() {
 
       {/* Table Footer */}
       <div className="px-6 py-3 border-t border-border bg-muted/30 text-xs text-muted-foreground flex justify-between items-center">
-        <span>Showing {rooms.length} room{rooms.length !== 1 ? 's' : ''}</span>
+        <span>Showing {rooms.rooms?.length || 0} room{(rooms.rooms?.length || 0) !== 1 ? 's' : ''}</span>
       </div>
     </div>
   )

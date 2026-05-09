@@ -22,12 +22,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check authentication
     const authUser = await getAuthUser(request);
 
     const { id } = await params;
     
-    // Verify room exists and belongs to the user
     const room = await roomService.getById(id);
     if (room.ownerId !== authUser.userId) {
       return handleApiError(new Error("Unauthorized: You can only edit your own rooms"));
@@ -48,12 +46,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check authentication
     const authUser = await getAuthUser(request);
 
     const { id } = await params;
     
-    // Verify room exists and belongs to the user
     const room = await roomService.getById(id);
     if (room.ownerId !== authUser.userId) {
       return handleApiError(new Error("Unauthorized: You can only delete your own rooms"));
