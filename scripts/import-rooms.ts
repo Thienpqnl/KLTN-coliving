@@ -132,11 +132,24 @@ async function main() {
           data: {
             title: room.title,
             description: `Phòng trọ tại ${room.address}. Liên hệ: ${room.phone}. \nNguồn: ${room.link}`,
-            area: areaStr,
-            price: priceNum,
+            areaText: areaStr,
+            areaValue: areaStr.replace(/[^\d.,]/g, "").replace(",", ".") || null,
+            priceText: room.price,
+            priceValue: BigInt(Math.round(priceNum)),
             address: room.address,
-            image: room.image ? [room.image] : [],
+            sourceUrl: room.link || null,
             ownerId: owner.id,
+            images: room.image
+              ? {
+                  create: [
+                    {
+                      url: room.image,
+                      alt: room.title,
+                      sortOrder: 0,
+                    },
+                  ],
+                }
+              : undefined,
           },
         });
 
