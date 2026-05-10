@@ -1,177 +1,210 @@
 #!/usr/bin/env node
 
-/**
- * Import Script - Convert CSV to JavaScript/CJS version
- * This version doesn't need ts-node
- * Run with: node scripts/import-rooms-cjs.js
- */
+require('dotenv/config');
 
 const { PrismaClient } = require('@prisma/client');
+const csv = require('csv-parser');
 const fs = require('fs');
 const path = require('path');
 
 const prisma = new PrismaClient();
+const shouldReset = process.argv.includes('--reset');
 
-// Parse price format like "1.3 triệu/tháng" to number
-function parsePrice(priceStr) {
-  const match = priceStr.match(/^([\d.]+)\s*(triệu|nghìn)?/);
-  if (!match) return 0;
-  
-  let price = parseFloat(match[1]);
-  if (match[2] === 'triệu') {
-    price *= 1_000_000;
-  } else if (match[2] === 'nghìn') {
-    price *= 1_000;
+function cleanRow(row) {
+  return Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [
+      key.replace(/^\uFEFF/, '').trim(),
+      typeof value === 'string' ? value.trim() : value,
+    ]),
+  );
+}
+
+function readCsv(filePath) {
+  return new Promise((resolve, reject) => {
+    const rows = [];
+
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on('data', (row) => rows.push(cleanRow(row)))
+      .on('error', reject)
+      .on('end', () => resolve(rows));
+  });
+}
+
+function nullableText(value) {
+  return value && value.trim() ? value.trim() : null;
+}
+
+function parseBigInt(value) {
+  const normalized = nullableText(value);
+  if (!normalized) return null;
+
+  const digits = normalized.replace(/[^\d]/g, '');
+  return digits ? BigInt(digits) : null;
+}
+
+function parseDecimalString(value) {
+  const normalized = nullableText(value);
+  if (!normalized) return null;
+
+  const match = normalized.replace(',', '.').match(/\d+(\.\d+)?/);
+  return match ? match[0] : null;
+}
+
+function splitPipe(value) {
+  return Array.from(
+    new Set(
+      (value || '')
+        .split('|')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function getImageUrls(value) {
+  return splitPipe(value).filter((url) => {
+    if (!/^https?:\/\//i.test(url)) return false;
+    if (url.includes('track.static123.com/session')) return false;
+    return true;
+  });
+}
+
+async function importRoom(row) {
+  const title = nullableText(row.title);
+  const sourceUrl = nullableText(row.url);
+
+  if (!title) {
+    return { status: 'skipped', reason: 'missing title' };
   }
-  return price;
-}
 
-// Parse area format like "20 m2" to string
-function parseArea(areaStr) {
-  return areaStr.trim();
-}
+  if (sourceUrl) {
+    const existingRoom = await prisma.room.findFirst({
+      where: { sourceUrl },
+      select: { id: true },
+    });
 
-// Parse CSV line - handling quoted fields
-function parseCSVLine(line) {
-  const result = [];
-  let current = '';
-  let insideQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (char === '"') {
-      if (insideQuotes && nextChar === '"') {
-        current += '"';
-        i++;
-      } else {
-        insideQuotes = !insideQuotes;
-      }
-    } else if (char === ',' && !insideQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
+    if (existingRoom) {
+      return { status: 'skipped', reason: 'already imported' };
     }
   }
-  result.push(current);
-  return result;
-}
 
-// Read and parse CSV file
-function readCSV(filePath) {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n').filter(line => line.trim());
-  
-  // Skip header
-  const dataLines = lines.slice(1);
-  
-  const rooms = dataLines.map(line => {
-    const fields = parseCSVLine(line);
-    return {
-      title: fields[0]?.trim() || '',
-      price: fields[1]?.trim() || '0',
-      area: fields[2]?.trim() || '0 m2',
-      address: fields[3]?.trim() || '',
-      phone: fields[4]?.trim() || '',
-      image: fields[5]?.trim() || '',
-      link: fields[6]?.trim() || '',
-    };
+  const amenities = splitPipe(row.amenities);
+  const images = getImageUrls(row.images);
+
+  await prisma.room.create({
+    data: {
+      title,
+      description: nullableText(row.description) || title,
+      priceText: nullableText(row.price_text),
+      priceValue: parseBigInt(row.price_value),
+      areaText: nullableText(row.area_text),
+      areaValue: parseDecimalString(row.area_value),
+      address: nullableText(row.address) || '',
+      district: nullableText(row.district),
+      city: nullableText(row.city),
+      sourceUrl,
+      amenities: {
+        create: amenities.map((name) => ({
+          amenity: {
+            connectOrCreate: {
+              where: { name },
+              create: { name },
+            },
+          },
+        })),
+      },
+      images: {
+        create: images.map((url, index) => ({
+          url,
+          alt: title,
+          sortOrder: index,
+        })),
+      },
+    },
   });
 
-  return rooms;
+  return {
+    status: 'imported',
+    amenityCount: amenities.length,
+    imageCount: images.length,
+  };
 }
 
 async function main() {
-  try {
-    console.log('📁 Reading CSV file...');
-    const csvPath = path.join(process.cwd(), 'phongtro123.csv');
-    
-    if (!fs.existsSync(csvPath)) {
-      console.error(`❌ File not found: ${csvPath}`);
-      process.exit(1);
-    }
+  const csvPath = path.join(process.cwd(), 'phongtro123_data.csv');
 
-    const rooms = readCSV(csvPath);
-    
-    console.log(`✅ Found ${rooms.length} rooms to import\n`);
+  if (!fs.existsSync(csvPath)) {
+    throw new Error(`File not found: ${csvPath}`);
+  }
 
-    // Get or create default owner (admin user)
-    let owner = await prisma.user.findUnique({
-      where: { email: 'admin@coliving.com' },
-    });
+  await prisma.$connect();
 
-    if (!owner) {
-      console.log('👤 Creating default owner user...');
-      owner = await prisma.user.create({
-        data: {
-          email: 'admin@coliving.com',
-          password: 'hashed_password_admin',
-          name: 'Admin User',
-          fullName: 'Admin User',
-          role: 'HOST',
-        },
-      });
-      console.log(`✅ Created owner: ${owner.email}\n`);
-    } else {
-      console.log(`✅ Using existing owner: ${owner.email}\n`);
-    }
+  if (shouldReset) {
+    console.log('Resetting room data...');
+    await prisma.$transaction([
+      prisma.roomImage.deleteMany(),
+      prisma.roomAmenity.deleteMany(),
+      prisma.room.deleteMany(),
+      prisma.amenity.deleteMany(),
+    ]);
+    console.log('Room data reset complete');
+  }
 
-    console.log(`📝 Importing ${rooms.length} rooms...`);
-    
-    let imported = 0;
-    let skipped = 0;
+  console.log(`Reading CSV: ${csvPath}`);
+  const rows = await readCsv(csvPath);
+  console.log(`Found ${rows.length} rows`);
 
-    for (const room of rooms) {
-      // Skip if title is empty
-      if (!room.title) {
-        skipped++;
-        continue;
+  let imported = 0;
+  let skipped = 0;
+  let failed = 0;
+  let roomImages = 0;
+  let roomAmenities = 0;
+
+  for (const [index, row] of rows.entries()) {
+    try {
+      const result = await importRoom(row);
+
+      if (result.status === 'imported') {
+        imported += 1;
+        roomImages += result.imageCount;
+        roomAmenities += result.amenityCount;
+      } else {
+        skipped += 1;
       }
 
-      try {
-        const priceNum = parsePrice(room.price);
-        const areaStr = parseArea(room.area);
-
-        const newRoom = await prisma.room.create({
-          data: {
-            title: room.title,
-            description: `Phòng trọ tại ${room.address}. Liên hệ: ${room.phone}. \nNguồn: ${room.link}`,
-            area: areaStr,
-            price: priceNum,
-            address: room.address,
-            image: room.image ? [room.image] : [],
-            ownerId: owner.id,
-          },
-        });
-
-        imported++;
-        if (imported % 5 === 0) {
-          console.log(`✅ [${imported}/${rooms.length}] Processing...`);
-        }
-      } catch (error) {
-        console.error(`❌ Failed to import: ${room.title.substring(0, 40)}`);
-        console.error(`   Error: ${error.message}`);
-        skipped++;
+      if ((index + 1) % 25 === 0 || index + 1 === rows.length) {
+        console.log(`Processed ${index + 1}/${rows.length}`);
       }
+    } catch (error) {
+      failed += 1;
+      console.error(`Failed row ${index + 1}: ${row.title || '(no title)'}`);
+      console.error(error.message);
     }
+  }
 
-    console.log(`\n📊 Import Summary:`);
-    console.log(`   ✅ Imported: ${imported} rooms`);
-    console.log(`   ⏭️  Skipped: ${skipped} rooms`);
-    console.log(`   📦 Total: ${imported + skipped} rows\n`);
-    
-    if (imported > 0) {
-      console.log('🎉 Import completed successfully!');
-    }
+  const amenityCount = await prisma.amenity.count();
 
-  } catch (error) {
-    console.error('❌ Import failed:', error);
-    process.exit(1);
-  } finally {
-    await prisma.$disconnect();
+  console.log('');
+  console.log('Import summary');
+  console.log(`Rooms imported: ${imported}`);
+  console.log(`Rooms skipped: ${skipped}`);
+  console.log(`Rows failed: ${failed}`);
+  console.log(`RoomImage rows created: ${roomImages}`);
+  console.log(`RoomAmenity rows created: ${roomAmenities}`);
+  console.log(`Total amenities in database: ${amenityCount}`);
+
+  if (failed > 0) {
+    process.exitCode = 1;
   }
 }
 
-main();
+main()
+  .catch((error) => {
+    console.error('Import failed');
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

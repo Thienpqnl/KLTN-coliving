@@ -3,6 +3,66 @@ import { Prisma } from "@prisma/client";
 import { RoomCreate, RoomUpdate, RoomFilter } from "../validation";
 import { ApiError } from "../api-error";
 
+const roomInclude = {
+  owner: {
+    select: {
+      id: true,
+      name: true,
+      fullName: true,
+      email: true,
+    },
+  },
+  amenities: {
+    include: {
+      amenity: true,
+    },
+  },
+  images: {
+    orderBy: {
+      sortOrder: "asc" as const,
+    },
+  },
+  reviews: true,
+  bookings: true,
+};
+
+const roomListInclude = {
+  owner: {
+    select: {
+      id: true,
+      name: true,
+      fullName: true,
+      email: true,
+    },
+  },
+  amenities: {
+    include: {
+      amenity: true,
+    },
+  },
+  images: {
+    orderBy: {
+      sortOrder: "asc" as const,
+    },
+    take: 1,
+  },
+};
+
+const normalizeRoom = (room: any) => {
+  const imageUrls = room.images?.map((image: any) => image.url) || [];
+  const priceValue = room.priceValue == null ? null : Number(room.priceValue);
+  const areaValue = room.areaValue == null ? null : Number(room.areaValue);
+
+  return {
+    ...room,
+    priceValue,
+    areaValue,
+    price: priceValue ?? 0,
+    area: room.areaText || (areaValue == null ? "" : `${areaValue} m2`),
+    image: imageUrls,
+  };
+};
+
 export const roomService = {
   // Create a new room
   create: async (data: RoomCreate & { ownerId: string }) => {
@@ -13,29 +73,21 @@ export const roomService = {
       data: {
         title: data.title,
         description: data.description,
-        price: data.price,
-        area: data.area,
+        priceText: data.price ? `${data.price.toLocaleString("vi-VN")} đ/tháng` : null,
+        priceValue: data.price ? BigInt(Math.round(data.price)) : null,
+        areaText: data.area,
+        areaValue: data.area ? new Prisma.Decimal(String(data.area).replace(/[^\d.,]/g, "").replace(",", ".") || "0") : null,
         address: data.address,
-        image: imageArray,
         ownerId: data.ownerId,
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            fullName: true,
-            email: true,
-          },
+        images: {
+          create: imageArray.map((url, index) => ({
+            url,
+            alt: data.title,
+            sortOrder: index,
+          })),
         },
-        amenities: {
-          include: {
-            amenity: true,
-          },
-        },
-        reviews: true,
-        bookings: true,
       },
+      include: roomInclude,
     });
 
     // Add amenities if provided
@@ -52,7 +104,7 @@ export const roomService = {
       );
     }
 
-    return room;
+    return normalizeRoom(room);
   },
 // Get all rooms by ownerId
 getAllByOwnerId: async (ownerId: string) => {
@@ -64,48 +116,20 @@ getAllByOwnerId: async (ownerId: string) => {
     where: {
       ownerId: ownerId,
     },
-    include: {
-      owner: {
-        select: {
-          id: true,
-          name: true,
-          fullName: true,
-          email: true,
-        },
-      },
-      amenities: {
-        include: {
-          amenity: true,
-        },
-      },
-      reviews: true,
-      bookings: true,
-    },
+    include: roomInclude,
     orderBy: {
       createdAt: "desc",
     },
   });
 
-  return rooms;
+  return rooms.map(normalizeRoom);
 },
   // Get room by ID
   getById: async (id: string) => {
     const room = await prisma.room.findUnique({
       where: { id },
       include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            fullName: true,
-            email: true,
-          },
-        },
-        amenities: {
-          include: {
-            amenity: true,
-          },
-        },
+        ...roomInclude,
         reviews: {
           include: {
             user: {
@@ -117,7 +141,6 @@ getAllByOwnerId: async (ownerId: string) => {
             },
           },
         },
-        bookings: true,
       },
     });
 
@@ -125,7 +148,7 @@ getAllByOwnerId: async (ownerId: string) => {
       throw new ApiError(404, "Room not found");
     }
 
-    return room;
+    return normalizeRoom(room);
   },
 
   // Get all rooms with filters (old, for reference)
@@ -133,8 +156,8 @@ getAllByOwnerId: async (ownerId: string) => {
     const rooms = await prisma.room.findMany({
       where: {
         ...(filters?.status && { status: filters.status }),
-        ...(filters?.minPrice && { price: { gte: filters.minPrice } }),
-        ...(filters?.maxPrice && { price: { lte: filters.maxPrice } }),
+        ...(filters?.minPrice && { priceValue: { gte: filters.minPrice } }),
+        ...(filters?.maxPrice && { priceValue: { lte: filters.maxPrice } }),
         ...(filters?.ownerId && { ownerId: filters.ownerId }),
         ...(filters?.search && {
           OR: [
@@ -144,28 +167,12 @@ getAllByOwnerId: async (ownerId: string) => {
           ],
         }),
       },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            fullName: true,
-            email: true,
-          },
-        },
-        amenities: {
-          include: {
-            amenity: true,
-          },
-        },
-        reviews: true,
-        bookings: true,
-      },
+      include: roomListInclude,
       orderBy: {
         createdAt: "desc",
       },
     });
-    return rooms;
+    return rooms.map(normalizeRoom);
   },
 
   // Get all rooms with filters and pagination
@@ -180,8 +187,8 @@ getAllByOwnerId: async (ownerId: string) => {
   ) => {
     const where: Prisma.RoomWhereInput = {
       ...(filters?.status && { status: filters.status }),
-      ...(filters?.minPrice && { price: { gte: filters.minPrice } }),
-      ...(filters?.maxPrice && { price: { lte: filters.maxPrice } }),
+      ...(filters?.minPrice && { priceValue: { gte: filters.minPrice } }),
+      ...(filters?.maxPrice && { priceValue: { lte: filters.maxPrice } }),
       ...(filters?.ownerId && { ownerId: filters.ownerId }),
       ...(filters?.search && {
         OR: [
@@ -191,10 +198,10 @@ getAllByOwnerId: async (ownerId: string) => {
         ],
       }),
       ...(neighborhoods && neighborhoods.length > 0 && {
-        address: {
-          in: neighborhoods,
-          mode: Prisma.QueryMode.insensitive,
-        },
+        OR: neighborhoods.flatMap((neighborhood) => [
+          { district: { contains: neighborhood, mode: Prisma.QueryMode.insensitive } },
+          { address: { contains: neighborhood, mode: Prisma.QueryMode.insensitive } },
+        ]),
       }),
       ...(amenities && amenities.length > 0 && {
         amenities: {
@@ -221,37 +228,21 @@ getAllByOwnerId: async (ownerId: string) => {
     // Determine ordering based on sortBy
     let orderBy: any = { createdAt: "desc" };
     if (sortBy === "price-low") {
-      orderBy = { price: "asc" };
+      orderBy = { priceValue: "asc" };
     } else if (sortBy === "price-high") {
-      orderBy = { price: "desc" };
+      orderBy = { priceValue: "desc" };
     } else if (sortBy === "area-large") {
-      orderBy = { area: "desc" };
+      orderBy = { areaValue: "desc" };
     }
 
     const rooms = await prisma.room.findMany({
       where,
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            fullName: true,
-            email: true,
-          },
-        },
-        amenities: {
-          include: {
-            amenity: true,
-          },
-        },
-        reviews: true,
-        bookings: true,
-      },
+      include: roomListInclude,
       orderBy,
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { rooms, total };
+    return { rooms: rooms.map(normalizeRoom), total };
   },
 
   // Update room
@@ -262,34 +253,36 @@ getAllByOwnerId: async (ownerId: string) => {
     const updateData: any = {};
     if (data.title) updateData.title = data.title;
     if (data.description) updateData.description = data.description;
-    if (data.price !== undefined) updateData.price = data.price;
-    if (data.area) updateData.area = data.area;
-    if (data.address) updateData.address = data.address;
-    if (data.image !== undefined) {
-      updateData.image = Array.isArray(data.image) ? data.image : [];
+    if (data.price !== undefined) {
+      updateData.priceText = `${data.price.toLocaleString("vi-VN")} đ/tháng`;
+      updateData.priceValue = BigInt(Math.round(data.price));
     }
+    if (data.area) {
+      updateData.areaText = data.area;
+      updateData.areaValue = new Prisma.Decimal(String(data.area).replace(/[^\d.,]/g, "").replace(",", ".") || "0");
+    }
+    if (data.address) updateData.address = data.address;
 
     const room = await prisma.room.update({
       where: { id },
       data: updateData,
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            fullName: true,
-            email: true,
-          },
-        },
-        amenities: {
-          include: {
-            amenity: true,
-          },
-        },
-        reviews: true,
-        bookings: true,
-      },
+      include: roomListInclude,
     });
+
+    if (data.image !== undefined) {
+      const imageArray = Array.isArray(data.image) ? data.image : [];
+      await prisma.roomImage.deleteMany({
+        where: { roomId: id },
+      });
+      await prisma.roomImage.createMany({
+        data: imageArray.map((url, index) => ({
+          roomId: id,
+          url,
+          alt: data.title,
+          sortOrder: index,
+        })),
+      });
+    }
 
     // Update amenities if provided
     if (data.amenityIds) {
@@ -313,7 +306,7 @@ getAllByOwnerId: async (ownerId: string) => {
       }
     }
 
-    return room;
+    return normalizeRoom(room);
   },
 
   // Delete room
@@ -362,24 +355,12 @@ getAllByOwnerId: async (ownerId: string) => {
         },
       },
       include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            fullName: true,
-            email: true,
-          },
-        },
-        amenities: {
-          include: {
-            amenity: true,
-          },
-        },
+        ...roomInclude,
         reviews: true,
       },
     });
 
-    return rooms;
+    return rooms.map(normalizeRoom);
   },
 
   // Update room status
@@ -390,25 +371,9 @@ getAllByOwnerId: async (ownerId: string) => {
     const room = await prisma.room.update({
       where: { id },
       data: { status },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            fullName: true,
-            email: true,
-          },
-        },
-        amenities: {
-          include: {
-            amenity: true,
-          },
-        },
-        reviews: true,
-        bookings: true,
-      },
+      include: roomInclude,
     });
 
-    return room;
+    return normalizeRoom(room);
   },
 };

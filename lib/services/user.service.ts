@@ -55,8 +55,16 @@ export const userService = {
               select: {
                 id: true,
                 title: true,
-                image: true,
-                price: true,
+                priceValue: true,
+                priceText: true,
+                images: {
+                  orderBy: {
+                    sortOrder: "asc",
+                  },
+                  select: {
+                    url: true,
+                  },
+                },
               },
             },
           },
@@ -67,7 +75,14 @@ export const userService = {
               select: {
                 id: true,
                 title: true,
-                image: true,
+                images: {
+                  orderBy: {
+                    sortOrder: "asc",
+                  },
+                  select: {
+                    url: true,
+                  },
+                },
               },
             },
           },
@@ -79,7 +94,25 @@ export const userService = {
       throw new ApiError(404, "User not found");
     }
 
-    return user;
+    return {
+      ...user,
+      bookings: user.bookings.map((booking) => ({
+        ...booking,
+        room: {
+          ...booking.room,
+          priceValue: booking.room.priceValue == null ? null : Number(booking.room.priceValue),
+          price: booking.room.priceValue == null ? 0 : Number(booking.room.priceValue),
+          image: booking.room.images.map((image) => image.url),
+        },
+      })),
+      reviews: user.reviews.map((review) => ({
+        ...review,
+        room: {
+          ...review.room,
+          image: review.room.images.map((image) => image.url),
+        },
+      })),
+    };
   },
 
   // Update user profile
