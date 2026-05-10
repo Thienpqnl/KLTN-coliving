@@ -34,23 +34,36 @@ model Room {
   id          String        @id @default(uuid())
   title       String
   description String
-  area        String
-  price       Float
+
+  priceText   String?
+  priceValue  BigInt?
+
+  areaText    String?
+  areaValue   Decimal?      @db.Decimal(10,2)
+
   address     String
-  image       String[]
+  district    String?
+  city        String?
+
+  sourceUrl   String?
+
   status      RoomStatus    @default(AVAILABLE)
-  ownerId     String
-  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  ownerId     String?
+  owner       User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+
   bookings    Booking[]
   reviews     Review[]
   amenities   RoomAmenity[]
+  images      RoomImage[]
 }
 
 model Amenity {
   id    String        @id @default(uuid())
-  name  String
+  name  String        @unique
   rooms RoomAmenity[]
 }
 
@@ -62,6 +75,18 @@ model RoomAmenity {
   room      Room    @relation(fields: [roomId], references: [id])
 
   @@unique([roomId, amenityId])
+}
+
+model RoomImage {
+  id        String   @id @default(uuid())
+  roomId    String
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
 }
 
 model Booking {

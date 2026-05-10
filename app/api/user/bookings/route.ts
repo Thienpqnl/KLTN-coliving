@@ -14,15 +14,31 @@ export async function GET(req: NextRequest) {
             id: true,
             title: true,
             address: true,
-            image: true,
-            price: true,
+            priceValue: true,
+            priceText: true,
+            images: {
+              orderBy: {
+                sortOrder: 'asc',
+              },
+              select: {
+                url: true,
+              },
+            },
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json(bookings)
+    return NextResponse.json(bookings.map((booking) => ({
+      ...booking,
+      room: {
+        ...booking.room,
+        priceValue: booking.room.priceValue == null ? null : Number(booking.room.priceValue),
+        price: booking.room.priceValue == null ? 0 : Number(booking.room.priceValue),
+        image: booking.room.images.map((image) => image.url),
+      },
+    })))
   } catch (error) {
     console.error('Bookings error:', error)
     return NextResponse.json(
@@ -54,11 +70,29 @@ export async function POST(req: NextRequest) {
         endDate: new Date(endDate),
       },
       include: {
-        room: true,
+        room: {
+          include: {
+            images: {
+              orderBy: {
+                sortOrder: 'asc',
+              },
+            },
+          },
+        },
       },
     })
 
-    return NextResponse.json(booking, { status: 201 })
+    return NextResponse.json({
+      ...booking,
+      room: {
+        ...booking.room,
+        priceValue: booking.room.priceValue == null ? null : Number(booking.room.priceValue),
+        areaValue: booking.room.areaValue == null ? null : Number(booking.room.areaValue),
+        price: booking.room.priceValue == null ? 0 : Number(booking.room.priceValue),
+        area: booking.room.areaText || '',
+        image: booking.room.images.map((image) => image.url),
+      },
+    }, { status: 201 })
   } catch (error) {
     console.error('Booking creation error:', error)
     return NextResponse.json(

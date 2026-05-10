@@ -12,20 +12,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = roomCreateSchema.parse(body);
 
-    // Get first image from array, or empty string
-    const firstImage = (data.image && data.image.length > 0) ? data.image[0] : '';
+    const imageArray = data.image || [];
 
     const room = await prisma.room.create({
       data: {
         title: data.title,
         description: data.description,
-        price: data.price,
-        area: data.area,
+        priceText: `${data.price.toLocaleString("vi-VN")} đ/tháng`,
+        priceValue: BigInt(Math.round(data.price)),
+        areaText: data.area,
+        areaValue: data.area.replace(/[^\d.,]/g, "").replace(",", ".") || null,
         address: data.address,
-        image: data.image || [],
         ownerId: authUser.userId,
+        images: {
+          create: imageArray.map((url, index) => ({
+            url,
+            alt: data.title,
+            sortOrder: index,
+          })),
+        },
       },
       include: {
+        images: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
         amenities: {
           include: {
             amenity: true,
@@ -56,6 +68,11 @@ export async function POST(request: NextRequest) {
           amenities: {
             include: {
               amenity: true,
+            },
+          },
+          images: {
+            orderBy: {
+              sortOrder: "asc",
             },
           },
           reviews: true,
