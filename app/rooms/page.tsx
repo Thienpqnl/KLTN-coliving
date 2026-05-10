@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
@@ -204,7 +205,9 @@ export default function RoomsPage() {
             {rooms.length > 0 ? (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {rooms.map((room) => (
-                  <RoomCard key={room.id} room={room} />
+                  <Link key={room.id} href={`/rooms/${room.id}`} className="block">
+                    <RoomCard room={room} />
+                  </Link>
                 ))}
               </div>
             ) : (
