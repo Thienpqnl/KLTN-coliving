@@ -8,55 +8,47 @@ datasource db {
 }
 
 model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
+  id           String     @id @default(uuid())
+  email        String     @unique
   password     String
-  createdAt    DateTime     @default(now())
-  name         String
-  phone        String?
-  gender       String?
-  birthDate    DateTime?
+  fullName     String
+  createdAt    DateTime   @default(now())
   address      String?
   avatarUrl    String?
-  role         Role         @default(CUSTOMER)
-  status       UserStatus   @default(ACTIVE)
-  updatedAt    DateTime     @updatedAt
-  fullName     String
+  birthDate    DateTime?
+  gender       String?
+  name         String
+  phone        String?
+  role         Role       @default(CUSTOMER)
+  status       UserStatus @default(ACTIVE)
+  updatedAt    DateTime   @updatedAt
+  adminActions AdminLog[] @relation("AdminAction")
+  affectedLogs AdminLog[] @relation("AffectedUser")
   bookings     Booking[]
   invoices     Invoice[]
   reviews      Review[]
   rooms        Room[]
-  adminActions AdminLog[]   @relation("AdminAction")
-  affectedLogs AdminLog[]   @relation("AffectedUser")
 }
 
 model Room {
   id          String        @id @default(uuid())
   title       String
   description String
-
-  priceText   String?
-  priceValue  BigInt?
-
-  areaText    String?
-  areaValue   Decimal?      @db.Decimal(10,2)
-
   address     String
-  district    String?
-  city        String?
-
-  sourceUrl   String?
-
-  status      RoomStatus    @default(AVAILABLE)
-
-  ownerId     String?
-  owner       User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
-
+  ownerId     String?
+  status      RoomStatus    @default(AVAILABLE)
+  areaText    String?
+  areaValue   Decimal?      @db.Decimal(10, 2)
+  city        String?
+  district    String?
+  priceText   String?
+  priceValue  BigInt?
+  sourceUrl   String?
   bookings    Booking[]
   reviews     Review[]
+  owner       User?         @relation(fields: [ownerId], references: [id])
   amenities   RoomAmenity[]
   images      RoomImage[]
 }
@@ -142,18 +134,18 @@ model Review {
 model AdminLog {
   id           String   @id @default(uuid())
   adminId      String
-  admin        User     @relation("AdminAction", fields: [adminId], references: [id], onDelete: Cascade)
   targetUserId String?
-  targetUser   User?    @relation("AffectedUser", fields: [targetUserId], references: [id], onDelete: Cascade)
-  action       String   // lock_user, unlock_user, delete_user, update_user, etc.
-  targetId     String?  // ID of affected user/room
-  targetType   String   // user, room, booking, etc.
-  oldValue     String?  // JSON string of previous value
-  newValue     String?  // JSON string of new value
+  action       String
+  targetId     String?
+  targetType   String
+  oldValue     String?
+  newValue     String?
   description  String?
   ipAddress    String?
   userAgent    String?
   createdAt    DateTime @default(now())
+  admin        User     @relation("AdminAction", fields: [adminId], references: [id], onDelete: Cascade)
+  targetUser   User?    @relation("AffectedUser", fields: [targetUserId], references: [id], onDelete: Cascade)
 }
 
 enum Role {
