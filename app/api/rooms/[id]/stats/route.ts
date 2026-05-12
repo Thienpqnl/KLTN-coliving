@@ -41,7 +41,7 @@ export async function GET(
         (booking.endDate.getTime() - booking.startDate.getTime()) /
           (1000 * 60 * 60 * 24)
       );
-      return sum + room.price * nights;
+      return sum + Number(room.priceValue || 0) * nights;
     }, 0);
 
     return successResponse({

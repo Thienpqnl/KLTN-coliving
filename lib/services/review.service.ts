@@ -105,7 +105,14 @@ export const reviewService = {
           select: {
             id: true,
             title: true,
-            image: true,
+            images: {
+              orderBy: {
+                sortOrder: "asc",
+              },
+              select: {
+                url: true,
+              },
+            },
           },
         },
       },
@@ -114,7 +121,13 @@ export const reviewService = {
       },
     });
 
-    return reviews;
+    return reviews.map((review) => ({
+      ...review,
+      room: {
+        ...review.room,
+        image: review.room.images.map((image) => image.url),
+      },
+    }));
   },
 
   // Update review
