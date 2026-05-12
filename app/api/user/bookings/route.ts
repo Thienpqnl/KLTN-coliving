@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         ...booking.room,
         priceValue: booking.room.priceValue == null ? null : Number(booking.room.priceValue),
         price: booking.room.priceValue == null ? 0 : Number(booking.room.priceValue),
-        image: booking.room.images.map((image) => image.url),
+          image: (booking.room.images as { url: string }[]).map((image) => image.url),
       },
     })))
   } catch (error) {
@@ -71,10 +71,20 @@ export async function POST(req: NextRequest) {
       },
       include: {
         room: {
-          include: {
+          select: {
+            id: true,
+            title: true,
+            address: true,
+            priceValue: true,
+            priceText: true,
+            areaValue: true,
+            areaText: true,
             images: {
               orderBy: {
                 sortOrder: 'asc',
+              },
+              select: {
+                url: true,
               },
             },
           },
@@ -82,15 +92,17 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    const room = (booking as any).room
+
     return NextResponse.json({
       ...booking,
       room: {
-        ...booking.room,
-        priceValue: booking.room.priceValue == null ? null : Number(booking.room.priceValue),
-        areaValue: booking.room.areaValue == null ? null : Number(booking.room.areaValue),
-        price: booking.room.priceValue == null ? 0 : Number(booking.room.priceValue),
-        area: booking.room.areaText || '',
-        image: booking.room.images.map((image) => image.url),
+        ...room,
+        priceValue: room.priceValue == null ? null : Number(room.priceValue),
+        areaValue: room.areaValue == null ? null : Number(room.areaValue),
+        price: room.priceValue == null ? 0 : Number(room.priceValue),
+        area: room.areaText || '',
+        image: room.images.map((image: any) => image.url),
       },
     }, { status: 201 })
   } catch (error) {
