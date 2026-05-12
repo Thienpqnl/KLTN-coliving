@@ -19,6 +19,29 @@ export class ApiError extends Error {
   }
 }
 
+const sanitizeForJson = (value: unknown): unknown => {
+  if (typeof value === "bigint") {
+    const asNumber = Number(value);
+    return Number.isSafeInteger(asNumber) ? asNumber : value.toString();
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(sanitizeForJson);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, sanitizeForJson(item)])
+    );
+  }
+
+  return value;
+};
+
 export const handleApiError = (error: unknown): ReturnType<typeof NextResponse.json> => {
   // eslint-disable-next-line no-console
   console.error("API Error:", error);
@@ -70,7 +93,7 @@ export const successResponse = <T>(data: T, statusCode = 200) => {
   return NextResponse.json(
     {
       success: true,
-      data,
+      data: sanitizeForJson(data),
     } as ApiResponse<T>,
     { status: statusCode }
   );
