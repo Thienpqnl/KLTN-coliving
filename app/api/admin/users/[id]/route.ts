@@ -12,16 +12,17 @@ const updateUserSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await props.params;
     const payload = await getAuthUser(request);
     if (payload.role !== "ADMIN")
       throw new ApiError(403, "Forbidden: Admin only");
 
     const body = await request.json();
     const { action, reason, newRole } = updateUserSchema.parse(body);
-    const userId = params.id;
+    const userId = id;
 
     let result;
 
