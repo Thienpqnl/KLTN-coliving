@@ -5,6 +5,12 @@ import { Footer } from '@/components/Footer';
 import { roomService } from '@/lib/services/room.service';
 
 type RoomDetail = Awaited<ReturnType<typeof roomService.getById>>;
+type RoomAmenityItem = {
+  amenity?: {
+    id: string;
+    name: string;
+  } | null;
+};
 
 const fallbackImage = 'https://via.placeholder.com/900x600?text=Room';
 
@@ -134,7 +140,7 @@ function BookingPanel({ room }: { room: RoomDetail }) {
           </div>
 
           <Link
-            href={`/bookings?roomId=${room.id}`}
+            href={`/rooms/${room.id}/book`}
             className="flex w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-orange-900 to-orange-500 py-5 text-lg font-black tracking-wide text-white shadow-lg transition-transform hover:scale-[0.98]"
           >
             Đặt ngay
@@ -196,7 +202,9 @@ export default async function RoomDetailPage({
   }
 
   const images = getImageUrls(room);
-  const amenities = room.amenities?.map((item: any) => item.amenity).filter(Boolean) || [];
+  const amenities = ((room.amenities ?? []) as RoomAmenityItem[])
+    .map((item) => item.amenity)
+    .filter((amenity): amenity is { id: string; name: string } => Boolean(amenity));
   const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
 
   return (
