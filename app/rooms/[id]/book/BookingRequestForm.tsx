@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 type BookingRequestFormProps = {
   roomId: string;
@@ -14,11 +15,23 @@ function addMonths(dateValue: string, months: number) {
 }
 
 export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
+  const { user, isLoading } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [moveInDate, setMoveInDate] = useState(today);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    setFullName(user.fullName || user.name || '');
+    setEmail(user.email || '');
+    setPhone(user.phone || '');
+  }, [user]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,8 +60,8 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
       }
 
       setMessage('Yêu cầu đặt phòng đã được gửi. Quản trị viên sẽ liên hệ để xác nhận chi tiết.');
-      event.currentTarget.reset();
       setMoveInDate(today);
+      event.currentTarget.reset();
     } catch (err) {
       const fallback = 'Không thể gửi yêu cầu đặt phòng. Vui lòng đăng nhập và thử lại.';
       setError(err instanceof Error ? err.message : fallback);
@@ -68,10 +81,13 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
             className="w-full rounded-xl border-none bg-[#e8e8ed] px-6 py-4 text-[#1a1c1f] outline-none transition-all duration-300 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#f28c38]"
             id="fullName"
             name="fullName"
+            onChange={(event) => setFullName(event.target.value)}
             placeholder="Nguyễn Văn A"
             required
             type="text"
+            value={fullName}
           />
+          {isLoading && <p className="px-1 text-xs font-medium text-[#887365]">Đang tải thông tin tài khoản...</p>}
         </div>
         <div className="space-y-2">
           <label className="px-1 text-[0.75rem] font-bold uppercase tracking-wider text-[#887365]" htmlFor="email">
@@ -81,9 +97,11 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
             className="w-full rounded-xl border-none bg-[#e8e8ed] px-6 py-4 text-[#1a1c1f] outline-none transition-all duration-300 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#f28c38]"
             id="email"
             name="email"
+            onChange={(event) => setEmail(event.target.value)}
             placeholder="nguyenvana@example.com"
             required
             type="email"
+            value={email}
           />
         </div>
       </div>
@@ -97,9 +115,11 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
             className="w-full rounded-xl border-none bg-[#e8e8ed] px-6 py-4 text-[#1a1c1f] outline-none transition-all duration-300 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#f28c38]"
             id="phone"
             name="phone"
+            onChange={(event) => setPhone(event.target.value)}
             placeholder="090 000 0000"
             required
             type="tel"
+            value={phone}
           />
         </div>
         <div className="space-y-2">

@@ -24,10 +24,16 @@ function formatCurrency(value?: number | null) {
   return `${value.toLocaleString('vi-VN')} đ`;
 }
 
+function formatMonthlyPrice(room: RoomDetail) {
+  if (room.price) return formatCurrency(room.price);
+  if (room.priceValue) return formatCurrency(Number(room.priceValue));
+  return room.priceText?.replace(/\/\s*tháng/gi, '').replace(/\s*đ\s*tháng/gi, 'đ').trim() || 'Liên hệ';
+}
+
 function RoomSummary({ room }: { room: RoomDetail }) {
   const images = getImageUrls(room);
   const image = images[0] || fallbackImage;
-  const price = room.priceText || (room.price ? `${room.price.toLocaleString('vi-VN')} đ/tháng` : 'Liên hệ');
+  const price = formatMonthlyPrice(room);
   const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
   const amenities = ((room.amenities ?? []) as RoomAmenityItem[])
     .map((item) => item.amenity?.name)
@@ -55,8 +61,8 @@ function RoomSummary({ room }: { room: RoomDetail }) {
                   {location}
                 </p>
               </div>
-              <div className="sm:text-right">
-                <span className="text-3xl font-extrabold text-[#944a00]">{price}</span>
+              <div className="min-w-fit sm:text-right">
+                <span className="whitespace-nowrap text-2xl font-extrabold text-[#944a00] sm:text-3xl">{price}</span>
                 <span className="block text-[0.65rem] font-bold uppercase text-[#887365]">Mỗi Tháng</span>
               </div>
             </div>
