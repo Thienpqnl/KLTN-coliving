@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, X, Upload, Loader2 } from 'lucide-react'
+import { X, Upload, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { apiClient } from '@/lib/api/client'
 import { uploadImage } from "@/lib/upload";
@@ -14,9 +13,11 @@ interface Room {
   price: number
   area: string
   address: string
-  image: string
+  image?: string | string[]
+  images?: { url: string }[]
   status: 'AVAILABLE' | 'OCCUPIED'
-  amenityIds: string[]
+  amenityIds?: string[]
+  amenities?: { amenity?: { id: string; name: string } }[]
 }
 
 interface Amenity {
@@ -44,6 +45,7 @@ export function RoomForm() {
   const [images, setImages] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([])
 const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   // Load amenities
   useEffect(() => {
@@ -74,16 +76,23 @@ useEffect(() => {
       const fetchRoom = async () => {
         try {
           const res = await apiClient.get<Room>(`/rooms/${roomId}`)
+          const roomImages = [
+            ...(res.images?.map((image) => image.url) || []),
+            ...(Array.isArray(res.image) ? res.image : res.image ? [res.image] : []),
+          ].filter(Boolean)
+          const amenityIds = res.amenityIds || res.amenities?.map((item) => item.amenity?.id).filter((id): id is string => Boolean(id)) || []
+
           setFormData({
             title: res.title,
             description: res.description,
             price: res.price.toString(),
             area: res.area,
             address: res.address,
-            image: res.image,
+            image: roomImages[0] || '',
             status: res.status,
           })
-          setSelectedAmenities(res.amenityIds)
+          setExistingImageUrls(Array.from(new Set(roomImages)))
+          setSelectedAmenities(amenityIds)
           setEditMode(true)
         } catch (error) {
           console.error('Failed to fetch room:', error)
@@ -123,6 +132,10 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   setImages(prev => prev.filter((_, i) => i !== index));
   setImagePreviews(prev => prev.filter((_, i) => i !== index));
 };
+  const removeExistingImage = (index: number) => {
+    setExistingImageUrls(prev => prev.filter((_, i) => i !== index))
+  }
+
   const toggleAmenity = (amenityId: string) => {
     setSelectedAmenities(prev =>
       prev.includes(amenityId)
@@ -137,13 +150,14 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 
     try {
 
-        let imageUrls: string[] = [];
+        let imageUrls: string[] = [...existingImageUrls];
 
 // upload tất cả ảnh
 if (images.length > 0) {
-  imageUrls = await Promise.all(
+  const uploadedUrls = await Promise.all(
     images.map((img) => uploadImage(img))
   );
+  imageUrls = [...imageUrls, ...uploadedUrls];
 }
 
       const payload = {
@@ -157,7 +171,7 @@ if (images.length > 0) {
       }
 
       if (editMode && roomId) {
-        await apiClient.put(`/rooms-upload/${roomId}`, payload)
+        await apiClient.put(`/rooms/${roomId}`, payload)
       } else {
         await apiClient.post('/rooms-upload/create', payload)
       }
@@ -382,13 +396,32 @@ if (images.length > 0) {
             </div>
 
             {/* Image Preview */}
-          {images.length > 0 && (
+          {(existingImageUrls.length > 0 || images.length > 0) && (
   <div>
     <h3 className="font-semibold text-foreground mb-3">
-      SELECTED IMAGES ({images.length})
+      SELECTED IMAGES ({existingImageUrls.length + images.length})
     </h3>
 
     <div className="grid grid-cols-2 gap-3">
+      {existingImageUrls.map((imageUrl, index) => (
+        <div key={imageUrl} className="relative group">
+          <img
+            src={imageUrl}
+            alt="existing room"
+            className="w-full h-32 object-cover rounded-lg border"
+          />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-lg">
+            <button
+              type="button"
+              onClick={() => removeExistingImage(index)}
+              className="bg-white p-2 rounded-full text-red-500 hover:text-red-700"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-xs mt-1 truncate">Current image</p>
+        </div>
+      ))}
       {images.map((image, index) => (
         <div key={index} className="relative group">
         <img

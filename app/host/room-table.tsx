@@ -53,7 +53,7 @@ export function RoomsTable() {
 
     try {
       setDeleting(roomId)
-      await apiClient.delete(`/rooms-upload/${roomId}`)
+      await apiClient.delete(`/rooms/${roomId}`)
       setRooms(prev => ({
         ...prev,
         rooms: prev.rooms?.filter(room => room.id !== roomId) || []
