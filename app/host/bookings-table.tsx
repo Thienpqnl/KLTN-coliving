@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Search, AlertCircle } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { bookingClientService, Booking } from '@/lib/services/booking-client.service'
 
 export function BookingsTable() {
@@ -21,7 +19,7 @@ export function BookingsTable() {
   const fetchBookings = async () => {
     try {
       setLoading(true)
-      const res = await bookingClientService.getAll()
+      const res = await bookingClientService.getHostAll()
       setBookings(res)
     } catch (error) {
       console.error('Failed to fetch bookings:', error)
@@ -35,7 +33,7 @@ export function BookingsTable() {
       setActionLoading(bookingId)
       await bookingClientService.approve(bookingId)
       setBookings(prev =>
-        prev.map(b => b.id === bookingId ? { ...b, status: 'approved' } : b)
+        prev.map(b => b.id === bookingId ? { ...b, status: 'CONFIRMED' } : b)
       )
     } catch (error) {
       console.error('Failed to approve booking:', error)
@@ -50,7 +48,7 @@ export function BookingsTable() {
       setActionLoading(bookingId)
       await bookingClientService.reject(bookingId)
       setBookings(prev =>
-        prev.map(b => b.id === bookingId ? { ...b, status: 'rejected' } : b)
+        prev.map(b => b.id === bookingId ? { ...b, status: 'CANCELLED' } : b)
       )
     } catch (error) {
       console.error('Failed to reject booking:', error)
@@ -62,22 +60,47 @@ export function BookingsTable() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending':
+      case 'PENDING':
         return 'bg-orange-100 text-orange-700'
-      case 'approved':
+      case 'CONFIRMED':
         return 'bg-emerald-100 text-emerald-700'
-      case 'rejected':
+      case 'CANCELLED':
         return 'bg-red-100 text-red-700'
-      case 'completed':
+      case 'COMPLETED':
         return 'bg-blue-100 text-blue-700'
       default:
         return 'bg-gray-100 text-gray-700'
     }
   }
 
-  const filteredBookings = bookings.filter(booking =>
-    booking.id.includes(searchTerm.toLowerCase())
-  )
+  const filteredBookings = bookings.filter((booking) => {
+    const keyword = searchTerm.toLowerCase()
+    return (
+      booking.id.toLowerCase().includes(keyword) ||
+      booking.room?.title.toLowerCase().includes(keyword) ||
+      booking.user?.email?.toLowerCase().includes(keyword) ||
+      booking.user?.fullName?.toLowerCase().includes(keyword) ||
+      booking.user?.name?.toLowerCase().includes(keyword)
+    )
+  })
+
+  const formatPrice = (booking: Booking) => {
+    if (booking.totalPrice) return `${booking.totalPrice.toLocaleString('vi-VN')} đ`
+    if (booking.room?.priceText) return booking.room.priceText
+    if (booking.room?.priceValue) return `${Number(booking.room.priceValue).toLocaleString('vi-VN')} đ`
+    return 'Liên hệ'
+  }
+
+  const formatStatus = (status: Booking['status']) => {
+    const labels = {
+      PENDING: 'Pending',
+      CONFIRMED: 'Confirmed',
+      CANCELLED: 'Cancelled',
+      COMPLETED: 'Completed',
+    }
+
+    return labels[status] || status
+  }
 
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage)
   const startIdx = (currentPage - 1) * itemsPerPage
@@ -137,8 +160,8 @@ export function BookingsTable() {
             <div key={booking.id} className="grid grid-cols-6 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors">
               {/* Room ID */}
               <div>
-                <p className="text-sm font-medium text-foreground">Room</p>
-                <p className="text-xs text-muted-foreground">{booking.roomId}</p>
+                <p className="text-sm font-medium text-foreground">{booking.room?.title || 'Room'}</p>
+                <p className="text-xs text-muted-foreground">{booking.user?.fullName || booking.user?.name || booking.user?.email || booking.roomId}</p>
               </div>
 
               {/* Check-in */}
@@ -158,20 +181,20 @@ export function BookingsTable() {
               {/* Price */}
               <div>
                 <p className="text-sm font-semibold text-foreground">
-                  ${booking.totalPrice.toFixed(2)}
+                  {formatPrice(booking)}
                 </p>
               </div>
 
               {/* Status */}
               <div>
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}>
-                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                  {formatStatus(booking.status)}
                 </span>
               </div>
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                {booking.status === 'pending' && (
+                {booking.status === 'PENDING' && (
                   <>
                     <button
                       onClick={() => handleApprove(booking.id)}

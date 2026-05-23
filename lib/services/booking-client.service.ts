@@ -7,8 +7,22 @@ export interface Booking {
   userId: string
   startDate: string
   endDate: string
-  status: 'pending' | 'approved' | 'rejected' | 'completed'
-  totalPrice: number
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+  totalPrice?: number
+  user?: {
+    id: string
+    name?: string
+    fullName?: string
+    email?: string
+    phone?: string
+  }
+  room?: {
+    id: string
+    title: string
+    priceText?: string | null
+    priceValue?: number | string | null
+    address?: string
+  }
   createdAt: string
   updatedAt: string
 }
@@ -20,13 +34,17 @@ export interface CreateBookingPayload {
 }
 
 export interface UpdateBookingPayload {
-  status?: 'pending' | 'approved' | 'rejected' | 'completed'
+  status?: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
 }
 
 export const bookingClientService = {
   // Get all bookings
   getAll: async (): Promise<Booking[]> => {
     return apiClient.get<Booking[]>('/bookings')
+  },
+
+  getHostAll: async (): Promise<Booking[]> => {
+    return apiClient.get<Booking[]>('/host/bookings')
   },
 
   // Get booking by ID
@@ -55,13 +73,17 @@ export const bookingClientService = {
     return apiClient.get(url)
   },
 
+  getHostStats: async () => {
+    return apiClient.get('/host/bookings/stats')
+  },
+
   // Approve booking
   approve: async (id: string): Promise<Booking> => {
-    return apiClient.put<Booking>(`/bookings/${id}`, { status: 'approved' })
+    return apiClient.put<Booking>(`/bookings/${id}`, { status: 'CONFIRMED' })
   },
 
   // Reject booking
   reject: async (id: string): Promise<Booking> => {
-    return apiClient.put<Booking>(`/bookings/${id}`, { status: 'rejected' })
+    return apiClient.put<Booking>(`/bookings/${id}`, { status: 'CANCELLED' })
   },
 }
