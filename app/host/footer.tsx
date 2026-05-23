@@ -7,14 +7,14 @@ export function Footer() {
         <div>
           <h4 className="font-serif text-lg text-foreground">The Curated Hearth</h4>
           <p className="text-xs text-muted-foreground mt-1">
-            © 2024 The Curated Hearth. Editorial, Co-Living Experiences
+            © 2024 The Curated Hearth. Trải nghiệm co-living được tuyển chọn.
           </p>
         </div>
         <div className="flex items-center gap-6 text-xs text-muted-foreground">
-          <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-          <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-          <a href="#" className="hover:text-foreground transition-colors">Sustainability</a>
-          <a href="#" className="hover:text-foreground transition-colors">Accessibility</a>
+          <a href="#" className="hover:text-foreground transition-colors">Chính sách bảo mật</a>
+          <a href="#" className="hover:text-foreground transition-colors">Điều khoản dịch vụ</a>
+          <a href="#" className="hover:text-foreground transition-colors">Bền vững</a>
+          <a href="#" className="hover:text-foreground transition-colors">Trợ năng</a>
         </div>
       </div>
     </footer>

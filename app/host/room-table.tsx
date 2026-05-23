@@ -40,27 +40,27 @@ export function RoomsTable() {
       const res = await apiClient.get<{ rooms: Room[] }>('/rooms-upload')
       setRooms(res)
     } catch (err) {
-      console.error('Failed to fetch rooms:', err)
+      console.error('Không thể tải danh sách phòng:', err)
     } finally {
       setLoading(false)
     }
   }
 
   const handleDelete = async (roomId: string) => {
-    if (!confirm('Are you sure you want to delete this room?')) {
+    if (!confirm('Bạn có chắc muốn xóa phòng này không?')) {
       return
     }
 
     try {
       setDeleting(roomId)
-      await apiClient.delete(`/rooms-upload/${roomId}`)
+      await apiClient.delete(`/rooms/${roomId}`)
       setRooms(prev => ({
         ...prev,
         rooms: prev.rooms?.filter(room => room.id !== roomId) || []
       }))
     } catch (err) {
-      console.error('Failed to delete room:', err)
-      alert('Failed to delete room')
+      console.error('Không thể xóa phòng:', err)
+      alert('Không thể xóa phòng')
     } finally {
       setDeleting(null)
     }
@@ -77,11 +77,11 @@ export function RoomsTable() {
   if (rooms.rooms?.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-2xl p-12 text-center">
-        <p className="text-muted-foreground mb-6">No rooms created yet</p>
+        <p className="text-muted-foreground mb-6">Bạn chưa tạo phòng nào</p>
         <Link href="/room-management/add-room">
           <Button className="bg-primary hover:bg-primary/90">
             <Plus className="w-4 h-4 mr-2" />
-            Create Your First Room
+            Tạo phòng đầu tiên
           </Button>
         </Link>
       </div>
@@ -93,11 +93,11 @@ export function RoomsTable() {
       {/* Table Header */}
       <div className="px-6 py-4 border-b border-border bg-muted/30">
         <div className="grid grid-cols-12 gap-4 items-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <div className="col-span-4">Room Name</div>
-          <div className="col-span-2">Price</div>
-          <div className="col-span-2">Status</div>
-          <div className="col-span-2">Address</div>
-          <div className="col-span-2">Actions</div>
+          <div className="col-span-4">Tên phòng</div>
+          <div className="col-span-2">Giá</div>
+          <div className="col-span-2">Trạng thái</div>
+          <div className="col-span-2">Địa chỉ</div>
+          <div className="col-span-2">Thao tác</div>
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export function RoomsTable() {
 
               {/* Price */}
               <div className="col-span-2 text-sm font-semibold text-foreground">
-                ${room.price.toFixed(2)}
+                {room.price.toLocaleString('vi-VN')} đ
               </div>
 
               {/* Status */}
@@ -136,7 +136,7 @@ export function RoomsTable() {
                     room.status
                   )}`}
                 >
-                  {room.status}
+                  {room.status === 'AVAILABLE' ? 'Còn trống' : 'Đã thuê'}
                 </span>
               </div>
 
@@ -171,7 +171,7 @@ export function RoomsTable() {
 
       {/* Table Footer */}
       <div className="px-6 py-3 border-t border-border bg-muted/30 text-xs text-muted-foreground flex justify-between items-center">
-        <span>Showing {rooms.rooms?.length || 0} room{(rooms.rooms?.length || 0) !== 1 ? 's' : ''}</span>
+        <span>Đang hiển thị {rooms.rooms?.length || 0} phòng</span>
       </div>
     </div>
   )
