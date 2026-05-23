@@ -15,14 +15,18 @@ export function BookingStatCards() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const bookingStats = await bookingClientService.getStats() as any
+        const bookingStats = await bookingClientService.getHostStats() as {
+          pendingCount?: number
+          occupancyPercentage?: number
+          projectedRevenue?: number
+        }
         setStats({
           pending: (bookingStats?.pendingCount as number) || 0,
           occupancy: (bookingStats?.occupancyPercentage as number) || 0,
           revenue: (bookingStats?.projectedRevenue as number) || 0,
         })
       } catch (error) {
-        console.error('Failed to fetch booking stats:', error)
+        console.error('Không thể tải thống kê đặt phòng:', error)
       } finally {
         setLoading(false)
       }
@@ -33,22 +37,22 @@ export function BookingStatCards() {
   const statCards = [
     {
       icon: <Calendar className="h-5 w-5" />,
-      label: 'Pending Bookings',
+      label: 'Đặt phòng đang chờ',
       value: stats.pending.toString(),
       color: 'bg-orange-50',
       iconColor: 'text-orange-600',
     },
     {
       icon: <Users className="h-5 w-5" />,
-      label: 'Current Occupancy',
+      label: 'Tỷ lệ lấp đầy',
       value: `${stats.occupancy}%`,
       color: 'bg-blue-50',
       iconColor: 'text-blue-600',
     },
     {
       icon: <TrendingUp className="h-5 w-5" />,
-      label: 'Projected Revenue',
-      value: `$${stats.revenue.toFixed(2)}`,
+      label: 'Doanh thu dự kiến',
+      value: `${stats.revenue.toLocaleString('vi-VN')} đ`,
       color: 'bg-emerald-50',
       iconColor: 'text-emerald-600',
     },

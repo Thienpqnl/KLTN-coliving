@@ -25,12 +25,12 @@ href: string
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/host" },
-  { label: "Room Management", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
-  { label: "Bookings", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
-  { label: "Transactions", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
-  { label: "Chat", icon: <MessageSquare className="h-4 w-4" />, href: "/chat" },
-  { label: "Analytics", icon: <BarChart3 className="h-4 w-4" />, href: "/analytics" },
+  { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, href: "/host" },
+  { label: "Quản lý phòng", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
+  { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
+  { label: "Giao dịch", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
+  { label: "Tin nhắn", icon: <MessageSquare className="h-4 w-4" />, href: "/chat" },
+  { label: "Phân tích", icon: <BarChart3 className="h-4 w-4" />, href: "/analytics" },
 ]
 export function Sidebar() {
    const pathname = usePathname()
@@ -43,8 +43,8 @@ export function Sidebar() {
             <span className="text-primary-foreground font-bold text-lg">M</span>
           </div>
           <div>
-            <h1 className="font-semibold text-sm text-foreground">Management Portal</h1>
-            <p className="text-xs text-muted-foreground">Port Workspace</p>
+            <h1 className="font-semibold text-sm text-foreground">Cổng chủ nhà</h1>
+            <p className="text-xs text-muted-foreground">Không gian quản lý</p>
           </div>
       
         </Link>
@@ -79,7 +79,7 @@ export function Sidebar() {
       <div className="px-3 pb-3">
         <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
           <Plus className="h-4 w-4" />
-          Add New Room
+          Thêm phòng mới
         </Button>
       </div>
 
@@ -87,11 +87,11 @@ export function Sidebar() {
       <div className="px-3 pb-2">
         <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
           <Settings className="h-4 w-4" />
-          Settings
+          Cài đặt
         </button>
         <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
           <HelpCircle className="h-4 w-4" />
-          Support
+          Hỗ trợ
         </button>
       </div>
 
@@ -103,8 +103,8 @@ export function Sidebar() {
             <AvatarFallback>JH</AvatarFallback>
           </Avatar>
           <div className="flex-1 text-left">
-            <p className="text-sm font-medium text-foreground">Johan Hearth</p>
-            <p className="text-xs text-muted-foreground">Co-founder</p>
+            <p className="text-sm font-medium text-foreground">Chủ nhà</p>
+            <p className="text-xs text-muted-foreground">Quản lý lưu trú</p>
           </div>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </button>

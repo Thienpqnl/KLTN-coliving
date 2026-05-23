@@ -19,12 +19,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 
 const navItems = [
-  { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, active: true },
-  { label: "Room Management", icon: <BedDouble className="h-4 w-4" /> },
-  { label: "Bookings", icon: <CalendarCheck className="h-4 w-4" /> },
-  { label: "Transactions", icon: <Receipt className="h-4 w-4" /> },
-  { label: "Chat", icon: <MessageSquare className="h-4 w-4" /> },
-  { label: "Analytics", icon: <BarChart3 className="h-4 w-4" /> },
+  { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, active: true },
+  { label: "Quản lý phòng", icon: <BedDouble className="h-4 w-4" /> },
+  { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" /> },
+  { label: "Giao dịch", icon: <Receipt className="h-4 w-4" /> },
+  { label: "Tin nhắn", icon: <MessageSquare className="h-4 w-4" /> },
+  { label: "Phân tích", icon: <BarChart3 className="h-4 w-4" /> },
 ]
 
 export function MobileHeader() {
@@ -39,14 +39,14 @@ export function MobileHeader() {
             <span className="text-primary-foreground font-bold">M</span>
           </div>
           <div>
-            <h1 className="font-semibold text-sm text-foreground">Management Portal</h1>
-            <p className="text-xs text-muted-foreground">Port Workspace</p>
+            <h1 className="font-semibold text-sm text-foreground">Cổng chủ nhà</h1>
+            <p className="text-xs text-muted-foreground">Không gian quản lý</p>
           </div>
         </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="p-2 rounded-lg hover:bg-secondary transition-colors"
-          aria-label={isOpen ? "Close menu" : "Open menu"}
+          aria-label={isOpen ? "Đóng menu" : "Mở menu"}
         >
           {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -66,14 +66,14 @@ export function MobileHeader() {
                   <span className="text-primary-foreground font-bold text-lg">M</span>
                 </div>
                 <div>
-                  <h1 className="font-semibold text-sm text-foreground">Management Portal</h1>
-                  <p className="text-xs text-muted-foreground">Port Workspace</p>
+                  <h1 className="font-semibold text-sm text-foreground">Cổng chủ nhà</h1>
+                  <p className="text-xs text-muted-foreground">Không gian quản lý</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="Close menu"
+                aria-label="Đóng menu"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -105,7 +105,7 @@ export function MobileHeader() {
             <div className="px-3 pb-3">
               <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
                 <Plus className="h-4 w-4" />
-                Add New Room
+                Thêm phòng mới
               </Button>
             </div>
 
@@ -113,11 +113,11 @@ export function MobileHeader() {
             <div className="px-3 pb-2">
               <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
                 <Settings className="h-4 w-4" />
-                Settings
+                Cài đặt
               </button>
               <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
                 <HelpCircle className="h-4 w-4" />
-                Support
+                Hỗ trợ
               </button>
             </div>
 
@@ -129,8 +129,8 @@ export function MobileHeader() {
                   <AvatarFallback>JH</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-foreground">Johan Hearth</p>
-                  <p className="text-xs text-muted-foreground">Co-founder</p>
+                  <p className="text-sm font-medium text-foreground">Chủ nhà</p>
+                  <p className="text-xs text-muted-foreground">Quản lý lưu trú</p>
                 </div>
               </div>
             </div>
