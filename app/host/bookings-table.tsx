@@ -22,7 +22,7 @@ export function BookingsTable() {
       const res = await bookingClientService.getHostAll()
       setBookings(res)
     } catch (error) {
-      console.error('Failed to fetch bookings:', error)
+      console.error('Không thể tải đặt phòng:', error)
     } finally {
       setLoading(false)
     }
@@ -36,8 +36,8 @@ export function BookingsTable() {
         prev.map(b => b.id === bookingId ? { ...b, status: 'CONFIRMED' } : b)
       )
     } catch (error) {
-      console.error('Failed to approve booking:', error)
-      alert('Failed to approve booking')
+      console.error('Không thể xác nhận đặt phòng:', error)
+      alert('Không thể xác nhận đặt phòng')
     } finally {
       setActionLoading(null)
     }
@@ -51,8 +51,8 @@ export function BookingsTable() {
         prev.map(b => b.id === bookingId ? { ...b, status: 'CANCELLED' } : b)
       )
     } catch (error) {
-      console.error('Failed to reject booking:', error)
-      alert('Failed to reject booking')
+      console.error('Không thể từ chối đặt phòng:', error)
+      alert('Không thể từ chối đặt phòng')
     } finally {
       setActionLoading(null)
     }
@@ -93,10 +93,10 @@ export function BookingsTable() {
 
   const formatStatus = (status: Booking['status']) => {
     const labels = {
-      PENDING: 'Pending',
-      CONFIRMED: 'Confirmed',
-      CANCELLED: 'Cancelled',
-      COMPLETED: 'Completed',
+      PENDING: 'Đang chờ',
+      CONFIRMED: 'Đã xác nhận',
+      CANCELLED: 'Đã hủy',
+      COMPLETED: 'Hoàn tất',
     }
 
     return labels[status] || status
@@ -118,7 +118,7 @@ export function BookingsTable() {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
         <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <p className="text-muted-foreground">No bookings yet</p>
+        <p className="text-muted-foreground">Chưa có đặt phòng</p>
       </div>
     )
   }
@@ -131,7 +131,7 @@ export function BookingsTable() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search bookings..."
+            placeholder="Tìm đặt phòng..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value)
@@ -146,12 +146,12 @@ export function BookingsTable() {
       <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
         {/* Table Header */}
         <div className="grid grid-cols-6 gap-4 px-6 py-3 border-b border-border bg-muted/30">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Room</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Check-in</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Check-out</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Price</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Phòng</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nhận phòng</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Trả phòng</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Giá</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Trạng thái</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Thao tác</div>
         </div>
 
         {/* Table Rows */}
@@ -160,7 +160,7 @@ export function BookingsTable() {
             <div key={booking.id} className="grid grid-cols-6 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors">
               {/* Room ID */}
               <div>
-                <p className="text-sm font-medium text-foreground">{booking.room?.title || 'Room'}</p>
+                <p className="text-sm font-medium text-foreground">{booking.room?.title || 'Phòng'}</p>
                 <p className="text-xs text-muted-foreground">{booking.user?.fullName || booking.user?.name || booking.user?.email || booking.roomId}</p>
               </div>
 
@@ -204,14 +204,14 @@ export function BookingsTable() {
                       {actionLoading === booking.id ? (
                         <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
                       ) : null}
-                      Approve
+                      Xác nhận
                     </button>
                     <button
                       onClick={() => handleReject(booking.id)}
                       disabled={actionLoading === booking.id}
                       className="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded hover:bg-red-600 transition-colors disabled:opacity-50"
                     >
-                      Reject
+                      Từ chối
                     </button>
                   </>
                 )}
@@ -225,7 +225,7 @@ export function BookingsTable() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            Showing {startIdx + 1}-{Math.min(startIdx + itemsPerPage, filteredBookings.length)} of {filteredBookings.length} bookings
+            Hiển thị {startIdx + 1}-{Math.min(startIdx + itemsPerPage, filteredBookings.length)} trong {filteredBookings.length} đặt phòng
           </p>
           <div className="flex items-center gap-2">
             <button
