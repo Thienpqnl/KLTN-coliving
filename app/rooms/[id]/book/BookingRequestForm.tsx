@@ -14,8 +14,32 @@ function addMonths(dateValue: string, months: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function getBookingErrorMessage(message: unknown) {
+  if (typeof message !== 'string') {
+    return 'Không thể gửi yêu cầu đặt phòng.';
+  }
+
+  if (message === 'Unauthorized') {
+    return 'Vui lòng đăng nhập trước khi gửi yêu cầu đặt phòng.';
+  }
+
+  if (message === 'Room is not available') {
+    return 'Phòng này hiện không khả dụng để đặt.';
+  }
+
+  if (message.includes('already booked')) {
+    return 'Phòng này đã có yêu cầu đặt trong khoảng thời gian bạn chọn.';
+  }
+
+  if (message === 'Validation failed') {
+    return 'Thông tin đặt phòng chưa hợp lệ. Vui lòng kiểm tra lại ngày chuyển đến.';
+  }
+
+  return message;
+}
+
 export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
-  const { user, isLoading } = useAuth();
+  const { user, token, isLoading } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -40,11 +64,22 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
     setError(null);
 
     try {
+      if (!user) {
+        throw new Error('Vui lòng đăng nhập trước khi gửi yêu cầu đặt phòng.');
+      }
+
+      const authToken = token || localStorage.getItem('token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
       const response = await fetch('/api/bookings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({
           roomId,
@@ -56,7 +91,8 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload?.message || 'Không thể gửi yêu cầu đặt phòng.');
+        const firstFieldError = payload?.errors ? Object.values(payload.errors).flat().at(0) : null;
+        throw new Error(getBookingErrorMessage(payload?.message || payload?.error || firstFieldError));
       }
 
       setMessage('Yêu cầu đặt phòng đã được gửi. Quản trị viên sẽ liên hệ để xác nhận chi tiết.');
@@ -168,7 +204,7 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
 
       <button
         className="w-full rounded-full bg-gradient-to-r from-[#944a00] to-[#f28c38] py-5 text-sm font-bold uppercase tracking-[0.1em] text-white shadow-xl shadow-orange-900/20 transition-all hover:shadow-orange-900/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isLoading || !user}
         type="submit"
       >
         {isSubmitting ? 'Đang gửi yêu cầu...' : 'Gửi Yêu Cầu Đặt Chỗ'}

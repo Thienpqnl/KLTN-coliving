@@ -15,7 +15,11 @@ export function BookingStatCards() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const bookingStats = await bookingClientService.getStats() as any
+        const bookingStats = await bookingClientService.getHostStats() as {
+          pendingCount?: number
+          occupancyPercentage?: number
+          projectedRevenue?: number
+        }
         setStats({
           pending: (bookingStats?.pendingCount as number) || 0,
           occupancy: (bookingStats?.occupancyPercentage as number) || 0,
