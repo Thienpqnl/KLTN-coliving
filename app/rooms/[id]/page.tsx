@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { roomService } from '@/lib/services/room.service';
+import { FavoriteButton } from './FavoriteButton';
 
 type RoomDetail = Awaited<ReturnType<typeof roomService.getById>>;
 type RoomAmenityItem = {
@@ -225,9 +226,7 @@ export default async function RoomDetailPage({
               <button className="rounded-full bg-white p-3 shadow-sm transition-colors hover:bg-orange-50" aria-label="Chia sẻ">
                 <span className="material-symbols-outlined">share</span>
               </button>
-              <button className="rounded-full bg-white p-3 shadow-sm transition-colors hover:bg-orange-50" aria-label="Yêu thích">
-                <span className="material-symbols-outlined">favorite</span>
-              </button>
+              <FavoriteButton roomId={room.id} />
             </div>
           </div>
         </header>

@@ -8,47 +8,49 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  password     String
-  fullName     String
-  createdAt    DateTime   @default(now())
-  address      String?
-  avatarUrl    String?
-  birthDate    DateTime?
-  gender       String?
-  name         String
-  phone        String?
-  role         Role       @default(CUSTOMER)
-  status       UserStatus @default(ACTIVE)
-  updatedAt    DateTime   @updatedAt
-  adminActions AdminLog[] @relation("AdminAction")
-  affectedLogs AdminLog[] @relation("AffectedUser")
-  bookings     Booking[]
-  invoices     Invoice[]
-  reviews      Review[]
-  rooms        Room[]
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  fullName      String
+  createdAt     DateTime       @default(now())
+  address       String?
+  avatarUrl     String?
+  birthDate     DateTime?
+  gender        String?
+  name          String
+  phone         String?
+  role          Role           @default(CUSTOMER)
+  status        UserStatus     @default(ACTIVE)
+  updatedAt     DateTime       @updatedAt
+  adminActions  AdminLog[]     @relation("AdminAction")
+  affectedLogs  AdminLog[]     @relation("AffectedUser")
+  bookings      Booking[]
+  favoriteRooms FavoriteRoom[]
+  invoices      Invoice[]
+  reviews       Review[]
+  rooms         Room[]
 }
 
 model Room {
-  id          String        @id @default(uuid())
+  id          String         @id @default(uuid())
   title       String
   description String
   address     String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   ownerId     String?
-  status      RoomStatus    @default(AVAILABLE)
+  status      RoomStatus     @default(AVAILABLE)
   areaText    String?
-  areaValue   Decimal?      @db.Decimal(10, 2)
+  areaValue   Decimal?       @db.Decimal(10, 2)
   city        String?
   district    String?
   priceText   String?
   priceValue  BigInt?
   sourceUrl   String?
   bookings    Booking[]
+  favoritedBy FavoriteRoom[]
   reviews     Review[]
-  owner       User?         @relation(fields: [ownerId], references: [id])
+  owner       User?          @relation(fields: [ownerId], references: [id])
   amenities   RoomAmenity[]
   images      RoomImage[]
 }
@@ -78,6 +80,19 @@ model RoomImage {
   createdAt DateTime @default(now())
   room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
+  @@index([roomId])
+}
+
+model FavoriteRoom {
+  id        String   @id @default(uuid())
+  userId    String
+  roomId    String
+  createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roomId])
+  @@index([userId])
   @@index([roomId])
 }
 
