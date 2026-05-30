@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
   Menu,
@@ -14,9 +15,13 @@ import {
   Plus,
   Settings,
   HelpCircle,
+  ChevronDown,
+  LogOut,
+  UserRound,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/lib/hooks/useAuth"
 
 const navItems = [
   { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, active: true },
@@ -29,6 +34,17 @@ const navItems = [
 
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const { user, logout } = useAuth()
+  const displayName = user?.fullName || user?.name || user?.email || "Chủ nhà"
+  const fallback =
+    displayName
+      .split(" ")
+      .filter(Boolean)
+      .slice(-2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "HN"
 
   return (
     <div className="lg:hidden">
@@ -103,9 +119,11 @@ export function MobileHeader() {
 
             {/* Add Room Button */}
             <div className="px-3 pb-3">
-              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+              <Button asChild className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+                <Link href="/room-management/add-room" onClick={() => setIsOpen(false)}>
                 <Plus className="h-4 w-4" />
                 Thêm phòng mới
+                </Link>
               </Button>
             </div>
 
@@ -123,16 +141,42 @@ export function MobileHeader() {
 
             {/* User Section */}
             <div className="p-3 border-t border-border">
-              <div className="flex items-center gap-3 p-2">
+              <button
+                type="button"
+                onClick={() => setIsUserMenuOpen((current) => !current)}
+                className="flex w-full cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-secondary"
+                aria-expanded={isUserMenuOpen}
+              >
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face" />
-                  <AvatarFallback>JH</AvatarFallback>
+                  {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={displayName} />}
+                  <AvatarFallback>{fallback}</AvatarFallback>
                 </Avatar>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-foreground">Chủ nhà</p>
-                  <p className="text-xs text-muted-foreground">Quản lý lưu trú</p>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="truncate text-sm font-medium text-foreground">{displayName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user?.email || "Tài khoản chủ nhà"}</p>
                 </div>
-              </div>
+                <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isUserMenuOpen && "rotate-180")} />
+              </button>
+              {isUserMenuOpen && (
+                <div className="mt-2 space-y-1">
+                  <Link
+                    href="/profile"
+                    onClick={() => setIsOpen(false)}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  >
+                    <UserRound className="h-4 w-4" />
+                    Xem trang cá nhân
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
