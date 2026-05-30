@@ -56,12 +56,24 @@ type FormData = Pick<UserProfile, 'fullName' | 'phone' | 'gender' | 'address'> &
   birthDate: string;
 };
 
+type ChangePasswordForm = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
+
 const emptyForm: FormData = {
   fullName: '',
   phone: '',
   gender: '',
   birthDate: '',
   address: '',
+};
+
+const emptyPasswordForm: ChangePasswordForm = {
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
 };
 
 function formatDate(date?: string | null) {
@@ -103,8 +115,12 @@ export default function ProfilePage() {
   const [avatarRemoved, setAvatarRemoved] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState<FormData>(emptyForm);
+  const [passwordForm, setPasswordForm] = useState<ChangePasswordForm>(emptyPasswordForm);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -210,6 +226,16 @@ export default function ProfilePage() {
     }));
   };
 
+  const handlePasswordInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setPasswordForm((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+    setPasswordError('');
+    setPasswordSuccess('');
+  };
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -313,6 +339,54 @@ export default function ProfilePage() {
       setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordError('Vui lòng nhập đầy đủ thông tin đổi mật khẩu.');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Không thể đổi mật khẩu.');
+      }
+
+      setPasswordForm(emptyPasswordForm);
+      setPasswordSuccess(data.message || 'Đã đổi mật khẩu thành công.');
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra.');
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -753,8 +827,84 @@ export default function ProfilePage() {
                         </p>
                       </div>
                     </div>
-                    <span className="text-sm font-semibold text-slate-400">Sắp có</span>
+                    <span className="text-sm font-semibold text-slate-400">Có hiệu lực ngay</span>
                   </div>
+
+                  <form onSubmit={handleChangePassword} className="py-6">
+                    {(passwordError || passwordSuccess) && (
+                      <div
+                        className={`mb-5 rounded-lg border p-4 text-sm ${
+                          passwordError
+                            ? 'border-red-200 bg-red-50 text-red-700'
+                            : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        }`}
+                      >
+                        {passwordError || passwordSuccess}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <label className="space-y-2">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                          Mật khẩu hiện tại
+                        </span>
+                        <input
+                          id="currentPassword"
+                          type="password"
+                          value={passwordForm.currentPassword}
+                          onChange={handlePasswordInputChange}
+                          disabled={isChangingPassword}
+                          autoComplete="current-password"
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
+                        />
+                      </label>
+
+                      <label className="space-y-2">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                          Mật khẩu mới
+                        </span>
+                        <input
+                          id="newPassword"
+                          type="password"
+                          value={passwordForm.newPassword}
+                          onChange={handlePasswordInputChange}
+                          disabled={isChangingPassword}
+                          autoComplete="new-password"
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
+                        />
+                      </label>
+
+                      <label className="space-y-2">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                          Xác nhận mật khẩu mới
+                        </span>
+                        <input
+                          id="confirmPassword"
+                          type="password"
+                          value={passwordForm.confirmPassword}
+                          onChange={handlePasswordInputChange}
+                          disabled={isChangingPassword}
+                          autoComplete="new-password"
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-5 flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={isChangingPassword}
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isChangingPassword ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <KeyRound className="h-4 w-4" />
+                        )}
+                        Đổi mật khẩu
+                      </button>
+                    </div>
+                  </form>
 
                   <div className="flex items-center justify-between gap-4 py-4">
                     <div className="flex items-center gap-4">
