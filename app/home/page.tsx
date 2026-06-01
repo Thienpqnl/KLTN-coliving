@@ -103,6 +103,15 @@ export default function HomePage() {
                 </button>
               </form>
             </div>
+
+            {/* Smart Search Button */}
+            <div className="mt-6 flex justify-center">
+              <Link href="/preferences" className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 hover:border-blue-400 hover:shadow-lg transition-all">
+                <span className="material-symbols-outlined text-blue-600 group-hover:scale-110 transition-transform">auto_awesome</span>
+                <span className="font-bold text-blue-900">Tìm phòng bằng AI thông minh</span>
+                <span className="material-symbols-outlined text-blue-600 group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
+              </Link>
+            </div>
           </div>
         </section>
 

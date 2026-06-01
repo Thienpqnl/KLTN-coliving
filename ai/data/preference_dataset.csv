@@ -1,0 +1,1001 @@
+user_id,lifestyle_archetype,preferred_location_district_id,max_distance_to_work_km,budget_min_vnd,budget_max_vnd,preferred_room_type,preferred_gender,accept_smoking_roommates,accept_pets,need_private_bathroom,need_air_conditioner,need_parking,need_balcony,need_kitchen,internet_requirement,furniture_requirement,max_roommates,preferred_contract_months,priority_cleanliness,priority_location,priority_budget,priority_privacy,priority_social_environment
+U00001,Privacy Seeker,TX,1.5,1344919,4282225,studio,female,0,1,0,0,1,0,0,medium,standard,2,3,4,4,2,5,1
+U00002,Young Professional,D1,10.4,6888440,11235462,studio,female,1,0,1,1,0,0,1,high,fully_furnished,2,6,3,4,3,4,2
+U00003,Student,GV,10.8,2436365,4574349,studio,any,1,1,1,0,0,0,0,high,minimal,5,6,2,2,3,1,4
+U00004,Student,TB,15.5,2220935,7092941,apartment,male,1,1,0,0,1,0,0,high,standard,3,24,2,4,3,2,4
+U00005,Student,GV,9.3,1121384,5828717,studio,male,0,0,1,0,0,0,0,medium,minimal,6,3,2,1,3,1,4
+U00006,Young Professional,D3,16.4,5166144,8063238,studio,any,0,0,0,0,1,0,1,medium,fully_furnished,6,6,3,1,5,3,2
+U00007,Young Professional,D1,18.5,3302338,8074273,apartment,female,1,1,1,1,0,0,1,high,standard,5,24,3,4,5,3,2
+U00008,Remote Worker,D2,15.2,7257466,10833813,studio,any,0,0,0,1,0,1,0,high,standard,4,6,3,5,4,3,2
+U00009,Student,TD,17.2,1058479,2450150,shared_room,female,0,1,0,0,1,0,0,medium,minimal,6,6,2,3,5,1,3
+U00010,Young Professional,D1,15.9,3932930,6894624,shared_room,male,0,1,0,0,1,0,1,basic,standard,5,3,3,4,5,3,3
+U00011,Student,GV,17.3,3306285,6443022,shared_room,male,1,1,0,0,0,0,1,high,standard,5,6,1,2,2,1,4
+U00012,Student,GV,7.2,1563870,4589813,shared_room,male,0,1,0,0,0,0,0,high,minimal,4,6,1,2,3,1,4
+U00013,Student,TD,14.6,1019382,5968588,shared_room,any,1,1,0,0,1,0,1,medium,minimal,6,6,2,4,3,2,4
+U00014,Student,TD,1.7,2735315,6832268,shared_room,male,0,1,1,1,0,0,1,high,standard,3,3,2,4,1,1,3
+U00015,Remote Worker,D7,6.8,11169649,13377707,studio,any,0,0,1,1,1,1,1,high,standard,2,6,3,2,2,4,1
+U00016,Student,TB,12.2,3352274,7874261,apartment,any,1,0,0,0,1,0,0,high,minimal,5,12,2,5,1,2,3
+U00017,Privacy Seeker,TB,9.8,2193235,6345005,shared_room,female,1,0,1,1,1,0,0,medium,standard,1,12,3,4,1,5,1
+U00018,Young Professional,D3,2.8,3848934,5157829,shared_room,female,1,1,1,1,0,0,1,medium,minimal,6,3,4,5,4,3,2
+U00019,Young Professional,D3,3.7,5792690,7680057,apartment,male,1,1,0,0,1,0,0,medium,minimal,4,6,3,5,3,3,2
+U00020,Student,GV,18.1,1904879,5396433,studio,male,1,0,0,0,0,0,0,high,minimal,6,12,2,2,3,2,4
+U00021,Young Professional,PN,4.5,3056777,7371481,studio,male,1,1,0,0,0,0,0,medium,minimal,3,3,3,4,4,3,3
+U00022,Social Butterfly,HK,7.5,4608888,8218693,apartment,female,0,1,0,1,0,1,0,basic,standard,6,12,2,3,3,1,4
+U00023,Student,GV,8.6,2325660,7058320,apartment,male,1,0,1,0,1,0,0,medium,standard,5,12,2,3,2,2,4
+U00024,Remote Worker,D2,10.2,11737418,15447774,apartment,male,0,1,0,0,0,1,1,high,minimal,2,12,4,3,1,5,2
+U00025,Privacy Seeker,CG,14.8,1254180,5457742,shared_room,male,1,0,0,1,1,0,0,medium,fully_furnished,2,12,4,3,1,5,2
+U00026,Privacy Seeker,TD,3.5,3868911,5724350,studio,male,0,0,0,0,1,0,0,high,minimal,1,3,3,1,4,4,2
+U00027,Student,TD,4.9,2439024,5631144,studio,male,0,0,0,0,1,0,0,medium,minimal,3,6,3,2,1,1,4
+U00028,Social Butterfly,D1,14.5,6337137,7502408,studio,any,0,1,0,0,1,0,0,high,minimal,6,12,2,2,5,1,5
+U00029,Student,TD,8.3,3323454,6888440,studio,female,1,0,0,0,1,0,0,medium,minimal,4,3,2,4,4,2,4
+U00030,Young Professional,D1,4.5,4865724,7402600,studio,any,0,0,0,0,1,0,0,high,fully_furnished,4,3,3,5,3,3,3
+U00031,Remote Worker,D7,9.3,7302914,9186567,apartment,male,1,0,0,1,0,0,1,high,standard,1,12,4,1,5,4,1
+U00032,Young Professional,D3,16.0,4606446,9400620,studio,any,0,1,1,1,0,1,1,high,standard,6,3,3,2,2,3,2
+U00033,Young Professional,D3,12.2,5852757,9881464,apartment,any,0,0,0,1,1,1,1,medium,standard,3,6,3,1,3,3,3
+U00034,Young Professional,D1,13.0,3991473,7602166,studio,male,0,1,1,0,1,0,0,basic,minimal,1,6,3,4,2,4,2
+U00035,Student,TD,6.8,2523202,5086612,studio,male,1,1,0,0,1,0,0,medium,minimal,3,12,2,3,1,2,5
+U00036,Young Professional,D1,3.7,6664912,9645116,studio,any,1,0,1,1,0,1,1,high,minimal,1,6,3,4,5,4,3
+U00037,Young Professional,D3,11.2,5923436,7513105,studio,male,0,1,1,0,0,0,0,high,minimal,1,6,3,3,1,4,2
+U00038,Young Professional,D1,5.1,5053576,9745886,studio,any,0,1,0,1,1,1,1,high,minimal,3,3,3,4,1,3,3
+U00039,Young Professional,PN,7.4,5998880,8345596,apartment,female,1,1,0,1,0,0,1,high,fully_furnished,5,24,4,4,1,3,3
+U00040,Social Butterfly,D1,3.1,3940472,6758909,studio,any,0,0,0,0,0,0,0,high,minimal,5,6,2,5,2,1,4
+U00041,Student,TB,18.0,2687742,7446667,studio,male,0,1,0,0,0,0,0,medium,minimal,6,12,2,2,2,2,4
+U00042,Student,GV,14.2,3014156,7271276,apartment,any,1,1,1,0,0,0,0,high,standard,4,24,2,3,2,2,3
+U00043,Young Professional,D3,7.9,4694075,9380612,apartment,male,1,1,0,1,1,0,1,basic,standard,5,24,3,4,1,3,3
+U00044,Young Professional,PN,12.7,5924549,8566617,apartment,any,0,0,0,1,0,0,1,basic,fully_furnished,6,6,3,4,2,3,2
+U00045,Student,TD,4.4,1337661,5322420,studio,male,0,0,1,0,0,0,0,high,standard,3,6,1,4,4,1,4
+U00046,Social Butterfly,D3,1.5,5430879,6588098,studio,any,1,0,1,0,1,0,0,high,minimal,6,6,3,4,4,1,4
+U00047,Student,TD,3.3,3445068,6483782,studio,any,0,0,1,0,0,0,0,medium,minimal,5,12,2,5,4,1,3
+U00048,Young Professional,D3,9.6,6258722,8245133,studio,any,1,1,0,0,0,1,1,medium,standard,6,3,4,1,4,3,2
+U00049,Young Professional,PN,1.8,6053087,10399742,studio,male,0,0,1,1,0,1,1,high,standard,3,12,3,3,5,2,3
+U00050,Young Professional,D3,13.7,4059912,7054851,studio,male,1,1,0,0,0,0,0,medium,standard,5,3,3,4,3,3,3
+U00051,Student,GV,7.2,1622690,3170013,shared_room,female,0,1,0,0,0,0,0,medium,minimal,6,12,2,4,4,2,4
+U00052,Privacy Seeker,CG,18.5,1902685,4706297,studio,any,1,0,0,0,1,0,0,high,standard,2,3,3,5,3,4,2
+U00053,Social Butterfly,D3,2.1,5508673,7113896,apartment,male,0,0,1,0,0,0,0,medium,minimal,4,12,2,1,5,1,5
+U00054,Privacy Seeker,TB,19.9,2556086,6152183,studio,female,0,1,1,0,1,0,0,medium,minimal,1,3,4,2,5,5,1
+U00055,Social Butterfly,D1,6.3,4467351,8267002,apartment,female,0,0,0,1,1,1,1,medium,fully_furnished,4,6,2,1,3,1,5
+U00056,Privacy Seeker,CG,19.8,2419426,7370669,apartment,male,0,0,0,0,1,0,0,medium,standard,1,24,4,1,2,4,1
+U00057,Young Professional,D1,12.5,5570957,10419144,apartment,any,0,0,0,0,1,1,1,medium,standard,3,12,3,3,2,2,3
+U00058,Young Professional,D1,6.1,5596967,7901654,studio,any,1,0,0,0,1,0,0,high,minimal,6,12,2,1,3,3,1
+U00059,Student,TD,13.4,3014071,7612572,apartment,any,1,1,0,0,1,0,0,high,standard,6,12,2,3,1,2,5
+U00060,Remote Worker,BT,14.4,10299236,12571430,studio,female,0,0,0,1,1,1,1,high,minimal,6,12,4,2,5,3,2
+U00061,Social Butterfly,D1,13.9,7732935,11996188,studio,any,1,1,0,1,0,0,1,medium,fully_furnished,6,3,3,3,1,1,5
+U00062,Student,TB,1.4,1697688,4253245,shared_room,female,0,1,1,0,1,0,0,basic,minimal,5,6,2,3,3,2,3
+U00063,Young Professional,PN,4.9,7261500,10900534,apartment,any,0,0,0,0,1,1,1,high,fully_furnished,5,12,4,4,4,3,3
+U00064,Young Professional,D1,11.4,3649976,7229389,studio,female,0,1,1,0,1,0,0,medium,fully_furnished,3,6,3,1,3,3,3
+U00065,Privacy Seeker,TD,3.4,1103628,2872683,shared_room,any,0,1,0,0,0,0,0,medium,standard,2,3,3,3,3,4,1
+U00066,Remote Worker,BT,9.3,11561842,13749279,studio,female,1,1,1,1,1,0,1,high,minimal,2,12,3,1,2,5,3
+U00067,Social Butterfly,HK,12.7,7468128,8606303,studio,female,0,1,0,0,1,1,1,high,standard,5,3,2,2,3,1,5
+U00068,Remote Worker,D7,4.0,7611746,10402114,studio,female,0,1,1,1,0,0,1,high,fully_furnished,2,6,4,5,5,4,1
+U00069,Remote Worker,D7,5.6,11932848,14928789,studio,female,1,0,0,1,1,1,1,high,standard,1,6,3,2,5,5,1
+U00070,Young Professional,D3,3.6,5952328,8410977,apartment,any,1,0,0,1,0,0,1,high,standard,3,6,3,2,2,3,2
+U00071,Young Professional,D1,9.4,5808048,10474361,apartment,any,1,1,0,1,1,1,1,high,standard,4,6,2,1,1,3,2
+U00072,Privacy Seeker,TB,9.3,1102287,4850542,shared_room,any,1,1,1,0,1,0,0,medium,minimal,2,6,4,2,5,5,1
+U00073,Privacy Seeker,TD,6.0,2231522,6268924,shared_room,female,1,0,1,0,0,0,1,basic,standard,2,12,3,1,4,4,2
+U00074,Student,TB,8.4,2241457,4441292,shared_room,any,0,1,1,0,1,0,0,medium,standard,5,12,2,4,4,2,4
+U00075,Privacy Seeker,TX,4.6,3350761,4751435,studio,male,1,0,1,0,0,0,0,medium,minimal,2,12,4,2,5,5,1
+U00076,Social Butterfly,D1,6.5,3786797,6275655,studio,female,1,1,0,0,0,0,0,high,minimal,6,12,2,4,3,1,5
+U00077,Student,TB,9.3,3374717,7630596,apartment,any,1,0,1,0,1,0,0,medium,minimal,5,24,2,2,4,2,4
+U00078,Remote Worker,BT,12.2,7703831,11135891,studio,female,0,0,0,0,1,1,1,high,minimal,6,3,4,4,5,3,2
+U00079,Student,TD,15.8,2941799,6706082,studio,any,1,1,0,0,1,0,0,medium,standard,6,3,1,1,2,1,4
+U00080,Privacy Seeker,TD,7.4,3046367,4162950,studio,male,1,1,1,0,0,0,0,medium,minimal,1,6,3,5,3,4,1
+U00081,Young Professional,D1,6.7,3688954,7683544,apartment,female,1,1,0,0,1,0,0,basic,minimal,6,24,2,2,3,3,3
+U00082,Social Butterfly,D3,10.7,7746696,11858094,studio,any,1,1,0,1,1,0,1,medium,standard,5,3,3,1,2,1,4
+U00083,Young Professional,D3,7.0,4409341,8519894,apartment,any,1,1,1,1,0,1,1,high,minimal,6,6,3,1,1,3,3
+U00084,Young Professional,D3,1.4,4200989,8950533,apartment,female,0,1,1,1,0,0,1,high,fully_furnished,4,24,3,4,4,3,3
+U00085,Privacy Seeker,TX,15.1,1325272,2524180,shared_room,female,0,1,1,0,1,0,0,medium,standard,2,3,4,1,3,4,1
+U00086,Young Professional,PN,9.5,3603226,5607800,studio,any,0,0,0,0,0,0,0,basic,minimal,3,3,3,4,1,3,2
+U00087,Student,TD,8.4,1521997,6230772,shared_room,male,1,1,0,0,1,0,1,medium,minimal,4,6,2,3,5,1,3
+U00088,Young Professional,D1,3.5,4400749,5892352,shared_room,female,0,1,0,0,1,0,0,basic,minimal,3,6,4,5,1,3,2
+U00089,Student,TB,11.1,3258160,6264435,shared_room,any,0,1,0,1,0,0,0,basic,standard,3,3,2,1,5,1,4
+U00090,Young Professional,PN,11.8,5397634,9604453,apartment,male,1,0,0,1,1,0,1,medium,standard,4,12,3,4,4,3,2
+U00091,Privacy Seeker,CG,13.1,3827515,8506286,apartment,female,0,0,1,1,0,0,1,high,fully_furnished,1,24,3,2,3,4,1
+U00092,Privacy Seeker,CG,8.2,2862491,6531116,studio,any,1,0,1,0,0,0,0,medium,minimal,2,3,3,4,3,5,1
+U00093,Remote Worker,D2,13.1,9361286,11828094,apartment,female,1,1,1,0,1,1,1,high,standard,1,6,4,2,5,5,2
+U00094,Remote Worker,D7,3.2,10653811,13887895,apartment,female,1,0,1,0,0,0,1,high,standard,2,6,3,3,4,4,2
+U00095,Young Professional,D3,13.8,3413683,8119750,studio,female,1,0,0,1,1,1,1,high,standard,6,12,3,4,4,2,4
+U00096,Young Professional,D3,15.3,6842460,10507812,studio,female,1,1,0,1,1,0,1,high,standard,6,6,4,3,4,3,2
+U00097,Student,GV,10.2,1317434,5742679,studio,any,0,0,1,0,1,0,0,high,standard,4,3,2,2,3,1,4
+U00098,Student,TB,10.3,3647952,5887312,shared_room,male,0,1,0,0,1,0,0,basic,standard,5,3,2,2,3,1,4
+U00099,Social Butterfly,HK,18.9,3482647,4669010,studio,female,0,1,0,0,1,0,0,basic,standard,4,3,3,4,4,2,5
+U00100,Social Butterfly,HK,9.4,5895990,9552402,studio,any,1,1,0,1,1,0,1,high,minimal,3,6,2,3,4,1,4
+U00101,Student,TD,15.9,3131544,6224668,shared_room,any,1,0,0,0,0,0,1,medium,standard,4,3,1,1,3,1,4
+U00102,Student,TB,4.2,1100249,2555256,shared_room,any,1,1,0,0,1,0,0,medium,minimal,5,12,2,3,5,1,5
+U00103,Student,GV,17.4,2674886,7256365,studio,female,1,1,1,0,0,0,0,high,standard,4,3,2,1,5,1,4
+U00104,Student,GV,14.1,3256991,7625829,apartment,any,1,0,1,0,1,0,0,high,minimal,4,12,1,1,1,2,4
+U00105,Young Professional,D1,8.2,6012868,7666167,apartment,male,0,0,1,0,1,0,0,high,minimal,2,6,3,5,1,4,2
+U00106,Social Butterfly,D1,8.0,3383587,5051234,studio,female,0,1,0,0,1,0,0,medium,standard,5,6,3,3,2,1,4
+U00107,Young Professional,PN,5.5,7267025,8845539,studio,female,0,1,0,1,1,1,1,medium,fully_furnished,5,3,2,2,2,3,2
+U00108,Young Professional,D1,5.9,3430265,5009169,shared_room,female,0,1,0,0,0,0,1,high,standard,6,12,3,5,1,2,3
+U00109,Privacy Seeker,TD,9.2,2805789,4293859,shared_room,female,1,0,1,0,0,0,0,medium,minimal,2,12,3,1,1,5,1
+U00110,Student,TB,4.7,1441575,5945400,studio,male,0,1,1,0,1,0,0,high,minimal,4,6,3,1,3,2,4
+U00111,Young Professional,D1,13.2,7350114,11393504,studio,female,0,1,0,1,0,1,1,high,standard,6,3,3,1,3,3,3
+U00112,Remote Worker,D7,12.2,9299905,13930430,studio,male,0,1,1,1,0,1,0,high,minimal,2,12,3,3,4,4,1
+U00113,Student,TD,17.5,1357346,4208962,shared_room,female,0,1,0,0,1,0,0,high,minimal,4,6,3,3,3,1,5
+U00114,Student,TD,10.3,2621787,4649991,shared_room,male,1,0,0,0,1,0,0,medium,minimal,6,12,2,2,1,2,4
+U00115,Social Butterfly,D3,13.3,5802147,7392547,apartment,male,1,1,1,0,0,0,0,high,fully_furnished,3,6,2,2,5,1,5
+U00116,Privacy Seeker,TX,9.6,3967573,7435350,apartment,any,0,1,0,0,0,0,0,medium,standard,1,6,5,5,1,5,1
+U00117,Privacy Seeker,TX,3.8,3075113,4541364,studio,male,1,0,0,0,1,0,0,high,minimal,2,3,3,3,1,5,1
+U00118,Student,GV,10.8,1038390,5536943,studio,female,1,1,0,0,0,0,0,high,minimal,4,6,3,3,2,2,4
+U00119,Privacy Seeker,CG,19.1,3751006,8452969,studio,any,0,1,1,0,1,0,1,high,fully_furnished,1,6,4,2,3,4,1
+U00120,Student,TB,10.0,2534144,3584829,shared_room,any,0,1,0,0,0,0,0,basic,minimal,4,12,2,1,3,2,4
+U00121,Remote Worker,D7,1.4,6876567,9943146,apartment,male,1,0,1,1,1,1,1,high,standard,1,12,3,5,2,4,2
+U00122,Privacy Seeker,TB,12.0,2104528,5614284,shared_room,any,0,0,1,1,1,0,0,medium,standard,1,12,5,4,1,4,1
+U00123,Social Butterfly,D1,9.1,7167234,9507147,studio,any,0,1,0,0,0,1,1,high,standard,4,12,2,3,2,1,4
+U00124,Remote Worker,BT,9.2,10717702,11939432,studio,female,0,1,1,1,1,1,1,high,standard,2,12,3,1,2,4,3
+U00125,Remote Worker,BT,2.3,9440053,13017858,apartment,female,0,0,1,1,0,1,1,high,fully_furnished,2,12,4,5,5,4,2
+U00126,Young Professional,D1,15.3,6293545,10347875,apartment,any,1,0,0,0,0,1,1,high,fully_furnished,6,12,3,2,3,3,2
+U00127,Social Butterfly,D3,19.8,5356043,9654736,studio,female,0,1,0,1,1,0,0,medium,fully_furnished,6,6,3,4,5,1,5
+U00128,Social Butterfly,D3,1.8,3965341,6343334,studio,any,0,1,1,0,0,0,0,medium,minimal,6,3,3,2,3,1,4
+U00129,Young Professional,PN,3.2,5032785,7996944,studio,any,1,1,1,0,0,0,0,medium,minimal,3,12,3,1,2,3,2
+U00130,Young Professional,D1,5.5,7917351,9020026,apartment,female,1,0,0,1,0,0,1,high,standard,4,24,3,2,2,2,4
+U00131,Student,TD,19.9,2633094,5770157,shared_room,any,0,0,1,0,1,0,1,medium,standard,6,6,1,3,4,1,5
+U00132,Student,GV,7.2,2313651,4950194,shared_room,any,1,1,0,0,0,0,0,high,minimal,3,3,2,5,3,1,4
+U00133,Young Professional,D1,5.8,6825437,8504108,studio,any,0,0,0,1,0,1,1,medium,minimal,5,12,3,1,4,3,2
+U00134,Remote Worker,BT,9.7,9221099,11059727,studio,male,1,0,0,0,0,1,0,high,fully_furnished,1,6,4,2,3,4,1
+U00135,Remote Worker,D2,14.6,11987367,16708550,apartment,female,1,0,1,0,1,0,1,high,minimal,2,6,4,4,2,4,2
+U00136,Privacy Seeker,TB,9.6,2012712,6773850,shared_room,male,0,0,0,0,1,0,0,medium,standard,2,3,4,5,1,4,1
+U00137,Young Professional,PN,5.3,4983215,7610916,apartment,female,1,0,1,0,0,0,0,medium,minimal,5,12,3,4,2,2,3
+U00138,Social Butterfly,D3,12.6,5602821,9092830,apartment,female,0,0,1,1,1,1,1,basic,standard,6,6,2,2,2,1,4
+U00139,Privacy Seeker,TB,17.5,3652433,7231029,studio,male,0,0,1,0,0,0,0,high,standard,2,3,4,5,4,5,1
+U00140,Student,TD,18.8,3016246,6029953,shared_room,male,0,0,0,0,1,0,1,medium,standard,3,12,2,5,1,2,5
+U00141,Privacy Seeker,TX,9.5,3364918,5862414,studio,any,1,1,1,0,1,0,0,high,minimal,1,6,3,4,2,5,1
+U00142,Young Professional,D3,9.8,7140392,11783160,apartment,female,1,0,1,1,0,1,1,high,fully_furnished,2,12,3,2,1,4,2
+U00143,Student,TB,11.2,1740798,4667759,studio,male,0,1,0,0,0,0,0,high,minimal,4,3,2,2,5,1,4
+U00144,Young Professional,D1,11.8,3797235,5641974,studio,any,1,1,0,0,0,0,0,basic,minimal,3,12,2,3,4,3,3
+U00145,Privacy Seeker,TB,17.3,3996627,6307304,studio,any,1,1,1,0,0,0,0,basic,minimal,1,6,4,1,3,4,1
+U00146,Young Professional,PN,1.6,7695081,10927278,studio,male,1,1,0,0,1,0,1,high,standard,5,3,2,5,1,3,3
+U00147,Young Professional,D1,18.4,3683594,6246477,shared_room,male,1,1,0,1,0,0,0,high,minimal,6,12,4,1,2,3,2
+U00148,Privacy Seeker,TX,4.1,2448867,3791112,shared_room,any,1,1,0,0,0,0,0,basic,minimal,2,12,3,1,3,5,1
+U00149,Young Professional,PN,14.6,6504043,9566776,studio,any,1,0,0,1,0,0,1,medium,standard,3,12,3,3,5,3,3
+U00150,Young Professional,D1,5.5,5539257,9948154,studio,any,1,0,1,1,0,1,1,basic,fully_furnished,2,3,3,2,3,4,3
+U00151,Student,TB,6.4,2413911,4184669,studio,any,0,0,1,0,0,0,0,high,fully_furnished,6,12,2,4,1,2,4
+U00152,Young Professional,D3,14.7,6686020,7768472,studio,female,0,1,0,0,1,0,0,medium,standard,5,6,3,1,4,3,2
+U00153,Privacy Seeker,TB,15.8,1995644,3534363,studio,male,1,1,1,0,1,0,0,high,minimal,2,6,3,2,2,5,1
+U00154,Young Professional,PN,15.3,6546101,8601228,studio,male,1,0,0,1,1,1,1,medium,fully_furnished,5,3,3,5,1,3,3
+U00155,Student,TD,9.4,2161798,6107742,shared_room,female,0,1,0,0,1,0,0,high,standard,5,12,1,3,5,1,4
+U00156,Student,GV,8.9,1370984,3080422,shared_room,male,0,1,0,0,1,0,0,medium,minimal,5,12,2,5,2,1,4
+U00157,Young Professional,D1,14.0,4202452,6976372,studio,any,0,0,0,0,0,0,0,high,minimal,5,3,3,2,2,2,3
+U00158,Social Butterfly,D1,3.3,3166344,4683111,shared_room,male,1,1,0,0,1,0,0,basic,fully_furnished,6,12,2,4,2,2,4
+U00159,Student,TD,3.8,2168849,5079817,studio,any,0,0,0,0,0,0,0,high,minimal,5,12,2,5,4,1,4
+U00160,Young Professional,D3,2.6,5161308,9935528,apartment,any,1,0,0,0,1,0,1,medium,standard,5,6,4,1,3,3,2
+U00161,Social Butterfly,D3,3.0,6656773,9209177,studio,female,1,0,0,1,0,1,1,high,fully_furnished,4,6,3,1,2,1,4
+U00162,Social Butterfly,D3,7.0,3082920,5905929,studio,male,1,1,0,0,0,0,0,medium,minimal,6,3,3,1,3,1,5
+U00163,Student,GV,12.3,3382820,5317450,studio,male,0,0,0,0,0,0,0,high,minimal,6,6,2,3,1,2,4
+U00164,Student,GV,5.8,2101840,5093777,shared_room,female,0,0,0,0,0,0,1,high,minimal,4,6,1,4,3,1,4
+U00165,Young Professional,D3,17.6,5032800,6840506,studio,male,1,1,0,0,1,0,0,high,standard,5,6,3,3,3,3,3
+U00166,Privacy Seeker,TX,5.4,1330970,6025269,studio,any,1,0,1,0,0,0,0,basic,standard,1,3,4,4,3,5,1
+U00167,Student,TD,12.8,2137676,5206696,shared_room,any,0,0,1,0,1,0,1,high,standard,3,3,2,5,4,2,3
+U00168,Privacy Seeker,TB,15.2,3524860,4827994,shared_room,male,0,0,1,0,0,0,0,medium,standard,1,12,4,4,1,5,2
+U00169,Privacy Seeker,CG,2.5,2973942,4536797,shared_room,female,0,1,1,0,1,0,0,high,minimal,2,12,3,1,5,5,2
+U00170,Social Butterfly,D1,8.0,3830487,6294305,shared_room,female,1,1,1,0,1,0,1,high,minimal,6,6,2,2,5,1,5
+U00171,Social Butterfly,D3,14.5,4773347,7349608,apartment,any,0,1,1,0,0,0,0,high,standard,3,6,3,4,4,1,4
+U00172,Young Professional,D3,12.9,4449254,7749864,studio,any,0,1,0,0,0,0,0,high,minimal,3,12,2,3,1,3,3
+U00173,Student,GV,12.3,3069443,4833681,shared_room,any,0,1,0,0,0,0,0,medium,standard,5,12,2,5,1,2,4
+U00174,Student,GV,1.4,2087172,6632591,studio,any,0,0,0,0,1,0,0,high,standard,4,6,2,1,4,1,4
+U00175,Privacy Seeker,TD,18.8,3319903,6859347,studio,any,1,1,1,0,0,0,0,high,standard,1,6,4,3,4,5,1
+U00176,Remote Worker,BT,6.4,10914744,13275979,studio,female,0,0,1,1,1,1,1,high,fully_furnished,1,6,4,5,2,4,2
+U00177,Privacy Seeker,CG,2.2,2936222,5564939,studio,female,0,0,1,0,1,0,0,medium,minimal,1,3,3,1,2,4,1
+U00178,Remote Worker,D2,15.3,7397158,9122393,apartment,male,1,0,1,1,0,1,1,high,standard,2,24,5,5,4,4,2
+U00179,Student,TB,7.9,3028130,4959435,shared_room,male,0,0,0,0,1,0,0,basic,fully_furnished,5,3,1,4,4,1,4
+U00180,Young Professional,PN,8.8,4650752,7708773,studio,female,0,1,0,0,0,0,0,high,standard,6,12,4,5,2,3,3
+U00181,Remote Worker,D7,11.8,10130677,11430962,studio,any,0,0,1,1,0,1,1,high,standard,5,12,3,1,3,3,2
+U00182,Young Professional,D3,7.5,3978845,5807587,shared_room,female,0,1,0,1,0,0,1,medium,standard,4,12,3,5,4,3,2
+U00183,Student,TD,3.9,3196106,6737149,shared_room,female,0,0,1,0,1,0,0,medium,standard,3,12,2,3,3,2,4
+U00184,Young Professional,D1,15.3,5695981,9897047,studio,any,1,0,1,1,1,0,1,medium,standard,1,12,4,4,4,4,3
+U00185,Privacy Seeker,TB,13.0,2140188,3259501,shared_room,any,1,1,1,0,0,0,0,medium,minimal,1,12,3,2,4,4,1
+U00186,Remote Worker,BT,9.7,8683773,10139345,apartment,male,0,1,0,1,1,1,1,high,fully_furnished,3,6,5,2,4,3,3
+U00187,Privacy Seeker,TB,2.8,3777829,6113915,shared_room,male,1,0,1,0,1,0,1,basic,minimal,2,12,3,5,2,4,1
+U00188,Social Butterfly,HK,1.6,6391281,11056052,apartment,female,1,1,1,1,1,1,1,high,fully_furnished,4,12,3,4,5,1,4
+U00189,Social Butterfly,D1,19.9,3167645,5084780,studio,male,0,0,1,0,0,0,0,medium,standard,3,6,2,5,1,1,4
+U00190,Social Butterfly,HK,19.3,5823464,9696856,studio,male,1,0,0,1,0,1,1,medium,fully_furnished,6,6,2,1,5,1,4
+U00191,Social Butterfly,HK,7.7,4822429,9247974,studio,male,0,1,1,1,0,0,1,medium,standard,6,3,3,3,1,1,4
+U00192,Student,TD,11.9,2550483,5499816,shared_room,female,0,1,0,1,1,0,1,high,minimal,5,6,2,1,3,1,4
+U00193,Young Professional,D1,14.5,5606720,8966759,apartment,male,1,0,1,1,0,1,1,high,fully_furnished,2,12,3,1,4,4,3
+U00194,Student,TB,13.6,1109025,5056272,studio,male,1,0,1,0,0,0,0,high,fully_furnished,4,12,2,1,1,1,3
+U00195,Young Professional,D3,6.5,3818841,8131983,studio,male,1,0,0,1,0,0,1,high,fully_furnished,6,6,3,2,3,2,3
+U00196,Remote Worker,D7,6.7,8168169,12182336,studio,male,0,0,1,1,0,0,1,high,standard,1,6,3,3,1,4,3
+U00197,Social Butterfly,D3,12.0,7493900,9346514,apartment,any,0,0,1,0,0,1,1,high,standard,3,12,4,5,3,1,5
+U00198,Social Butterfly,HK,5.0,7566009,10203304,studio,male,1,1,0,1,0,1,1,medium,standard,4,3,2,1,2,2,5
+U00199,Young Professional,PN,13.1,4103825,7955433,apartment,any,1,0,0,0,0,0,0,high,minimal,5,24,2,5,2,3,3
+U00200,Remote Worker,D2,8.7,6028672,10110818,studio,female,0,0,1,0,1,1,1,high,fully_furnished,2,12,5,3,3,4,1
+U00201,Young Professional,D3,10.8,4566512,6841149,shared_room,female,0,1,1,1,0,0,1,medium,minimal,2,3,4,4,5,4,3
+U00202,Student,TD,16.1,3228573,6229791,shared_room,male,0,1,0,1,1,0,1,high,minimal,5,3,3,5,1,1,4
+U00203,Remote Worker,D2,14.9,11234799,14840750,studio,male,1,0,0,1,1,1,1,high,minimal,1,3,3,1,5,4,1
+U00204,Young Professional,D1,4.8,3220889,8185322,apartment,male,0,0,1,1,1,0,1,high,fully_furnished,1,6,3,3,3,4,3
+U00205,Student,TD,10.7,1335364,3099601,shared_room,female,1,0,0,0,1,0,0,medium,minimal,4,12,2,5,1,2,4
+U00206,Young Professional,D1,11.4,7528016,9538306,studio,male,1,0,1,1,1,1,1,high,fully_furnished,5,12,3,5,1,3,2
+U00207,Young Professional,D3,7.1,7431121,8878762,apartment,male,1,0,1,1,0,1,1,basic,standard,2,24,3,4,2,4,3
+U00208,Young Professional,PN,1.6,4204825,7297396,studio,female,1,0,0,0,0,0,0,high,minimal,2,12,3,3,1,4,2
+U00209,Student,GV,13.7,1113568,2475778,shared_room,any,1,0,0,0,0,0,0,medium,fully_furnished,5,3,2,4,2,2,4
+U00210,Young Professional,D1,2.7,3997692,5095562,shared_room,female,0,0,0,1,0,0,0,basic,standard,4,6,3,4,1,2,5
+U00211,Young Professional,D3,8.4,7181879,12066030,apartment,male,0,1,0,1,0,1,1,medium,fully_furnished,5,12,2,2,5,3,3
+U00212,Student,TD,3.8,1209143,2798829,shared_room,female,1,1,0,0,1,0,0,medium,minimal,3,6,2,4,4,2,4
+U00213,Social Butterfly,D3,15.5,4249034,6297822,studio,any,0,0,1,0,0,0,0,basic,minimal,3,12,2,2,3,1,4
+U00214,Young Professional,D1,19.2,7980493,9470547,apartment,female,0,1,0,1,0,1,1,high,fully_furnished,3,24,3,3,3,3,3
+U00215,Student,GV,18.4,1873604,5529304,shared_room,female,1,1,0,1,1,0,1,medium,standard,4,12,2,1,5,1,4
+U00216,Student,TD,17.5,3190931,7640157,apartment,female,0,1,1,0,0,0,0,medium,minimal,3,12,3,4,3,2,4
+U00217,Student,GV,14.8,2251809,4252161,shared_room,male,0,1,0,0,0,0,0,high,fully_furnished,5,6,2,2,3,1,3
+U00218,Student,GV,17.6,2310314,5545952,studio,any,1,1,0,0,0,0,0,high,minimal,5,12,2,4,1,1,4
+U00219,Student,GV,9.1,1335198,5977852,studio,male,1,1,0,0,1,0,0,medium,minimal,6,3,2,3,1,1,5
+U00220,Privacy Seeker,TB,17.2,1874580,4506830,shared_room,male,1,1,1,0,1,0,0,medium,standard,1,3,4,5,4,5,1
+U00221,Social Butterfly,D1,12.8,3989195,7541259,studio,male,1,1,0,0,1,0,0,high,minimal,5,3,3,2,4,1,4
+U00222,Student,GV,1.3,2034223,3145582,shared_room,any,0,0,0,0,1,0,0,medium,standard,6,3,2,5,3,1,5
+U00223,Student,TD,8.6,2518835,5419879,studio,female,1,1,0,0,1,0,0,medium,minimal,6,12,2,1,4,2,3
+U00224,Privacy Seeker,CG,4.5,1076527,5832528,studio,female,1,0,1,0,1,0,0,high,minimal,2,3,3,4,1,4,1
+U00225,Student,TB,17.9,2738829,5378958,studio,male,1,1,0,0,1,0,0,high,standard,3,3,1,2,5,1,3
+U00226,Social Butterfly,D1,1.5,7604890,10445461,apartment,any,1,0,0,0,1,1,1,medium,minimal,6,6,3,3,3,1,4
+U00227,Social Butterfly,D3,12.2,7420012,10184828,apartment,any,0,0,0,1,1,1,1,basic,fully_furnished,5,24,3,2,2,1,5
+U00228,Social Butterfly,D3,17.0,5297645,9541871,apartment,male,0,1,0,0,0,0,1,high,standard,4,6,3,5,1,2,5
+U00229,Remote Worker,D2,2.2,9602379,13765858,apartment,male,1,1,1,1,0,1,1,high,fully_furnished,1,12,4,3,4,4,2
+U00230,Social Butterfly,HK,6.8,7018691,10456266,studio,female,1,1,1,1,1,1,1,basic,standard,3,6,2,4,5,1,4
+U00231,Remote Worker,D7,19.4,9384948,11839514,apartment,female,1,0,1,1,0,1,1,high,fully_furnished,2,24,4,3,1,4,1
+U00232,Social Butterfly,HK,11.1,5023290,8753290,apartment,male,0,0,0,1,1,0,1,medium,minimal,6,6,3,1,2,1,4
+U00233,Young Professional,PN,17.3,6830335,9540993,apartment,male,0,1,0,1,0,1,1,medium,standard,5,12,3,4,4,3,3
+U00234,Student,TB,5.7,2829638,7125907,apartment,female,0,0,1,0,1,0,0,high,standard,3,12,2,5,1,1,3
+U00235,Student,TD,5.3,3685369,4711314,shared_room,female,1,1,0,0,0,0,0,medium,minimal,3,3,2,4,5,2,4
+U00236,Privacy Seeker,CG,4.6,2736278,3736762,shared_room,male,0,0,1,0,1,0,0,medium,standard,2,12,3,5,2,4,1
+U00237,Student,TB,18.7,2011158,4695819,studio,any,1,1,0,0,0,0,0,medium,minimal,6,6,2,3,4,1,4
+U00238,Social Butterfly,D3,3.9,3569076,5284533,studio,any,1,0,0,0,1,0,0,medium,minimal,6,3,2,5,3,1,5
+U00239,Young Professional,PN,2.2,7335450,9155048,apartment,male,1,0,0,1,0,1,1,basic,fully_furnished,4,12,3,1,4,3,3
+U00240,Privacy Seeker,TB,1.6,3477105,7843808,studio,any,1,1,1,0,1,0,0,high,minimal,1,6,3,1,3,4,1
+U00241,Student,TD,16.7,3683044,7595943,apartment,male,1,1,0,0,0,0,0,basic,minimal,5,6,2,3,4,1,4
+U00242,Remote Worker,D2,15.7,11629548,14622093,studio,female,0,1,1,1,0,0,1,high,fully_furnished,2,12,4,4,4,4,3
+U00243,Remote Worker,BT,11.1,9535285,11728570,studio,male,1,0,0,1,1,1,1,high,fully_furnished,4,3,3,1,2,3,3
+U00244,Privacy Seeker,TX,14.3,3456418,6494782,shared_room,any,0,0,1,0,0,0,0,medium,minimal,1,3,4,1,2,4,1
+U00245,Young Professional,PN,4.4,6187132,10522784,studio,any,1,1,0,1,1,0,1,high,standard,6,6,3,4,3,3,2
+U00246,Remote Worker,D2,19.6,10975351,13384300,apartment,female,1,1,0,1,0,1,1,high,fully_furnished,1,6,3,1,3,4,2
+U00247,Young Professional,D1,19.8,5010203,6828445,studio,male,1,0,0,0,0,0,0,medium,minimal,4,12,3,3,3,2,3
+U00248,Privacy Seeker,CG,3.2,1209784,4960495,studio,male,1,0,1,0,0,0,0,basic,standard,1,6,2,4,4,4,1
+U00249,Student,TB,13.0,2371173,6228416,studio,female,1,1,0,0,1,0,0,basic,standard,6,6,2,4,4,2,4
+U00250,Remote Worker,D7,11.5,11262823,13078543,apartment,any,0,0,1,1,0,0,1,high,minimal,2,6,2,4,4,4,2
+U00251,Privacy Seeker,CG,4.4,3609382,7305537,apartment,female,1,0,1,0,0,0,0,high,standard,1,24,3,1,4,5,1
+U00252,Social Butterfly,HK,14.2,3529759,8085805,apartment,female,0,0,0,1,0,0,1,high,fully_furnished,5,24,3,3,3,1,5
+U00253,Young Professional,D1,10.4,4721425,6128840,shared_room,male,0,1,1,0,0,0,1,medium,minimal,4,12,4,1,3,3,3
+U00254,Social Butterfly,HK,5.1,6112969,7272504,studio,female,0,0,0,0,1,0,0,high,minimal,6,6,2,2,5,1,5
+U00255,Remote Worker,D2,10.3,11625582,13965318,studio,female,1,0,0,1,0,0,1,high,fully_furnished,2,3,3,2,2,4,1
+U00256,Privacy Seeker,CG,4.2,1061150,2258287,shared_room,female,1,1,1,0,1,0,0,medium,minimal,2,6,3,5,3,5,1
+U00257,Student,TD,1.4,1933106,5776136,studio,male,0,1,0,0,1,0,0,basic,minimal,5,6,1,3,2,2,4
+U00258,Remote Worker,BT,14.9,9062594,11868065,apartment,any,0,0,1,1,0,1,1,high,fully_furnished,1,12,5,4,1,4,2
+U00259,Young Professional,D1,4.0,6601523,8641356,studio,female,0,0,1,1,0,1,1,high,standard,3,6,3,4,5,2,5
+U00260,Privacy Seeker,TD,4.8,2470062,4689679,studio,male,1,0,0,0,1,0,0,medium,minimal,1,6,4,2,3,4,1
+U00261,Privacy Seeker,TB,15.8,1422366,5640608,shared_room,female,0,1,1,1,0,0,1,medium,standard,2,3,4,3,3,4,1
+U00262,Privacy Seeker,CG,7.7,2433523,5611468,studio,any,1,0,1,0,0,0,0,high,standard,2,12,3,2,1,4,1
+U00263,Student,TB,17.7,1709320,3817503,studio,male,0,1,0,0,0,0,0,medium,standard,3,6,1,1,2,2,4
+U00264,Privacy Seeker,TX,18.9,2643842,4014891,shared_room,any,1,0,1,0,0,0,0,medium,standard,1,6,3,1,2,4,2
+U00265,Student,TB,3.3,3976431,5374311,studio,female,1,0,0,0,1,0,0,high,minimal,6,3,2,2,1,1,4
+U00266,Privacy Seeker,TD,10.1,1029468,2961289,shared_room,male,1,1,0,0,1,0,0,medium,minimal,2,3,4,2,2,5,1
+U00267,Social Butterfly,D3,4.6,3927384,6575767,studio,any,1,1,0,0,0,0,0,medium,minimal,5,6,2,4,1,1,4
+U00268,Remote Worker,D2,10.5,10238153,15035920,studio,male,0,1,1,1,1,0,1,high,fully_furnished,1,12,4,5,2,4,2
+U00269,Student,TD,2.4,1904378,6839246,studio,male,1,0,0,0,0,0,0,high,minimal,4,12,3,2,1,1,3
+U00270,Privacy Seeker,TX,2.4,3812888,7396337,studio,male,0,0,1,0,0,0,0,medium,minimal,2,6,4,1,5,4,2
+U00271,Remote Worker,D7,6.0,10187047,12423601,studio,female,1,1,1,1,1,1,1,high,standard,1,3,3,2,1,4,1
+U00272,Student,TD,7.5,2636942,4752767,shared_room,male,0,0,1,0,0,0,0,high,minimal,3,6,2,1,4,2,4
+U00273,Social Butterfly,D1,15.7,4020262,5806139,studio,male,0,1,0,0,0,0,0,medium,minimal,3,6,2,5,5,1,4
+U00274,Remote Worker,BT,3.7,8235477,9355445,apartment,male,1,1,1,1,0,0,1,high,minimal,2,6,4,3,1,4,2
+U00275,Student,TD,8.1,3957414,8191542,studio,any,1,1,0,1,0,1,1,medium,fully_furnished,3,12,2,2,3,1,3
+U00276,Privacy Seeker,TX,14.3,2495934,4293569,studio,female,1,1,0,0,1,0,0,basic,fully_furnished,2,6,4,3,3,4,1
+U00277,Young Professional,PN,5.2,4533843,5692570,shared_room,any,0,1,0,0,1,0,1,basic,standard,6,12,3,3,1,2,3
+U00278,Student,GV,14.8,1193828,4509196,studio,male,1,0,0,0,0,0,0,high,fully_furnished,5,3,3,1,2,2,4
+U00279,Remote Worker,D7,13.3,11224458,14363779,studio,male,0,1,1,0,1,1,1,high,standard,1,6,3,1,1,4,2
+U00280,Remote Worker,D7,18.6,10906303,13578424,apartment,male,0,1,1,0,0,1,1,high,fully_furnished,2,12,4,3,5,4,2
+U00281,Student,TB,12.1,2828887,4114894,studio,male,1,0,0,0,0,0,0,high,minimal,3,3,2,1,2,2,4
+U00282,Privacy Seeker,CG,12.4,3896743,7325215,apartment,any,0,1,1,0,1,0,0,medium,minimal,1,6,3,2,5,5,1
+U00283,Privacy Seeker,TX,15.3,2557015,4884713,studio,male,1,0,1,0,1,0,0,high,minimal,1,6,3,3,4,4,1
+U00284,Privacy Seeker,TX,19.7,2337653,4637318,studio,male,0,1,1,0,0,0,0,medium,minimal,2,3,4,1,5,4,2
+U00285,Student,GV,14.8,3501440,7109713,apartment,any,0,0,1,0,0,0,0,medium,minimal,5,12,2,4,3,2,3
+U00286,Young Professional,D1,18.2,7259320,9778022,apartment,any,0,1,0,1,1,1,1,high,standard,6,12,3,1,1,3,2
+U00287,Young Professional,D3,8.8,3214558,6550266,studio,male,1,0,0,0,1,0,0,medium,minimal,6,12,3,4,1,3,3
+U00288,Remote Worker,D2,15.2,6720344,10346066,apartment,any,0,0,0,1,1,1,0,high,fully_furnished,1,12,3,5,1,4,2
+U00289,Student,TD,1.3,1740216,3509638,shared_room,male,0,0,0,0,1,0,0,basic,standard,6,12,2,5,1,2,3
+U00290,Student,GV,8.6,1989361,6649938,shared_room,female,0,0,0,1,0,0,1,high,fully_furnished,5,12,1,3,1,2,4
+U00291,Young Professional,PN,16.3,3605422,6383137,studio,female,0,0,1,0,0,0,0,medium,standard,2,12,3,2,1,4,3
+U00292,Student,GV,19.5,3611290,7624871,apartment,female,0,1,0,0,0,0,0,medium,minimal,5,12,2,3,5,2,4
+U00293,Student,TD,4.5,2637706,4870569,studio,male,0,0,1,0,0,0,0,basic,standard,3,3,2,3,4,1,4
+U00294,Privacy Seeker,TX,2.4,1628741,3763103,shared_room,any,0,1,1,0,1,0,0,high,minimal,2,3,3,1,4,5,2
+U00295,Remote Worker,BT,5.7,8533719,13472941,studio,any,1,1,1,1,0,1,1,high,fully_furnished,1,3,3,3,1,4,2
+U00296,Young Professional,D3,11.3,7480986,8530066,apartment,female,1,0,1,1,0,0,1,high,standard,1,12,2,2,2,4,2
+U00297,Social Butterfly,D3,19.7,3268559,5862880,studio,male,1,1,0,0,1,0,0,high,minimal,6,3,3,2,1,1,5
+U00298,Student,TD,18.2,2764760,6314202,shared_room,any,1,1,0,0,0,0,0,medium,standard,6,12,2,1,1,2,5
+U00299,Young Professional,D3,9.2,7030710,10442954,apartment,any,0,0,0,1,1,0,0,basic,fully_furnished,3,6,3,1,1,3,4
+U00300,Student,TD,9.6,2155554,3566554,studio,female,0,1,0,0,0,0,0,basic,minimal,6,6,2,4,1,2,3
+U00301,Young Professional,PN,13.9,6715395,10921384,studio,male,1,1,1,0,0,1,1,high,standard,4,3,4,3,1,3,2
+U00302,Young Professional,D3,1.5,6790994,8131055,apartment,male,0,0,1,0,0,0,1,medium,fully_furnished,1,24,3,3,1,4,2
+U00303,Young Professional,PN,17.6,4687038,6495882,studio,female,1,0,0,0,1,0,0,medium,fully_furnished,3,3,3,4,3,3,2
+U00304,Young Professional,PN,8.2,4295067,5798720,shared_room,male,1,1,1,0,0,0,1,high,standard,1,6,4,3,4,4,3
+U00305,Young Professional,D3,15.9,3661658,5006519,shared_room,female,0,1,0,0,0,0,1,basic,standard,3,3,3,4,3,3,3
+U00306,Young Professional,PN,13.8,6709881,9827605,studio,male,1,0,0,0,1,1,1,high,standard,4,6,3,5,1,3,2
+U00307,Student,TB,17.8,1479626,4378198,studio,male,0,1,0,0,0,0,0,medium,minimal,5,6,1,2,2,1,4
+U00308,Social Butterfly,D1,4.2,3230167,7760585,apartment,any,0,1,0,0,1,0,0,medium,minimal,4,24,4,5,5,1,4
+U00309,Social Butterfly,D1,6.9,5864477,9682133,apartment,male,1,0,0,0,1,0,1,high,fully_furnished,5,24,2,4,4,1,4
+U00310,Privacy Seeker,TD,10.9,1177400,4203081,studio,female,1,1,1,0,1,0,0,basic,fully_furnished,2,3,3,3,1,4,1
+U00311,Young Professional,D1,19.0,6851936,11407121,studio,female,1,1,0,1,0,1,1,high,fully_furnished,1,12,4,3,5,4,2
+U00312,Young Professional,PN,1.6,7013225,8605810,studio,any,1,0,0,1,1,1,1,medium,standard,4,6,2,5,1,2,3
+U00313,Young Professional,PN,12.9,4499528,9292881,apartment,male,0,0,1,1,1,0,1,high,standard,3,6,3,3,1,3,3
+U00314,Student,TD,19.5,3638688,4838551,studio,any,1,0,1,0,1,0,0,high,minimal,5,6,2,2,3,2,4
+U00315,Young Professional,D3,12.6,5086008,6196383,shared_room,male,0,0,0,0,1,0,0,basic,fully_furnished,5,3,2,1,5,3,2
+U00316,Student,TD,11.4,2404410,4482104,studio,female,1,1,0,0,1,0,0,high,fully_furnished,5,3,2,3,5,2,3
+U00317,Remote Worker,BT,12.0,11507616,12915589,studio,any,1,0,1,0,1,0,1,high,standard,2,12,4,4,5,4,3
+U00318,Social Butterfly,D1,4.6,6021621,7292381,apartment,any,1,0,0,0,1,0,0,high,standard,3,6,2,4,4,2,5
+U00319,Student,GV,19.7,1514197,4550585,shared_room,female,0,1,0,0,1,0,0,medium,minimal,4,3,2,3,5,1,3
+U00320,Privacy Seeker,TD,11.1,3079374,7027922,studio,female,1,0,1,0,0,0,0,basic,minimal,1,6,3,3,4,5,1
+U00321,Privacy Seeker,TB,7.7,1467656,3799665,studio,any,0,1,1,0,1,0,0,high,minimal,2,3,3,4,5,5,2
+U00322,Young Professional,PN,14.6,6859406,11409195,apartment,any,0,0,0,1,0,0,1,high,standard,1,12,3,5,3,4,3
+U00323,Remote Worker,BT,8.3,6465751,8145226,studio,any,0,0,1,0,0,0,1,high,standard,1,12,2,2,2,4,1
+U00324,Privacy Seeker,TD,10.3,3535168,5009468,shared_room,male,0,0,1,1,0,0,0,medium,standard,1,12,3,1,3,4,1
+U00325,Social Butterfly,D1,8.8,6322310,9224145,apartment,any,0,0,0,0,0,1,0,high,fully_furnished,5,12,2,1,3,2,5
+U00326,Privacy Seeker,TX,11.1,3008434,7635643,studio,any,0,1,1,0,1,0,0,high,minimal,1,3,3,4,1,5,1
+U00327,Young Professional,D1,18.7,7886410,12436951,studio,male,1,1,1,1,1,1,1,medium,fully_furnished,3,3,4,3,2,3,3
+U00328,Young Professional,D3,3.9,3359524,5599331,studio,male,1,1,0,0,0,0,0,high,minimal,3,6,3,5,5,3,3
+U00329,Student,TB,12.6,1185054,2262758,shared_room,any,1,1,0,0,1,0,0,high,minimal,3,12,1,1,4,2,4
+U00330,Young Professional,PN,14.6,6693968,8390538,studio,any,0,1,1,1,0,1,0,high,minimal,1,6,4,2,3,4,2
+U00331,Student,GV,15.1,3198268,5404110,studio,any,0,1,0,0,0,0,0,high,standard,3,12,2,4,2,1,5
+U00332,Student,GV,16.4,3336161,6668013,studio,any,1,0,1,0,0,0,0,high,standard,3,12,2,3,2,2,4
+U00333,Social Butterfly,D3,4.6,6504903,10828843,studio,any,1,0,1,1,1,0,1,high,fully_furnished,4,12,2,2,2,1,4
+U00334,Student,GV,8.0,3571031,5750758,studio,female,0,1,0,0,0,0,0,high,minimal,5,12,2,3,2,2,4
+U00335,Young Professional,D1,19.3,3407304,6977490,shared_room,male,0,0,0,1,1,0,0,medium,standard,3,3,4,1,5,3,2
+U00336,Young Professional,D1,12.7,3880338,6249396,shared_room,any,1,0,0,0,1,0,1,medium,standard,6,3,3,4,3,3,3
+U00337,Privacy Seeker,CG,4.4,1881098,6275886,studio,female,1,0,1,0,1,0,0,high,standard,2,12,4,1,2,4,1
+U00338,Young Professional,D3,12.6,5460865,7368530,studio,male,1,0,0,0,1,0,0,high,minimal,5,3,3,2,2,3,2
+U00339,Young Professional,D1,3.6,5096902,7590256,apartment,female,0,1,1,0,1,0,0,medium,standard,4,6,3,5,3,2,3
+U00340,Privacy Seeker,TX,7.2,2185915,4738327,shared_room,female,0,0,0,0,1,0,0,medium,minimal,1,12,3,4,3,5,1
+U00341,Remote Worker,D7,16.9,6382748,9301049,apartment,female,1,1,1,1,1,0,1,high,fully_furnished,2,12,3,5,5,4,2
+U00342,Privacy Seeker,TB,2.7,1897227,4124133,studio,female,1,1,1,0,1,0,0,high,minimal,2,3,3,2,4,4,2
+U00343,Privacy Seeker,CG,12.6,2595482,5941844,shared_room,male,1,0,0,1,1,0,0,high,standard,1,3,4,4,3,4,2
+U00344,Young Professional,PN,3.2,4632454,7615398,studio,any,1,1,0,0,1,0,0,medium,minimal,6,3,4,2,5,3,2
+U00345,Student,TD,9.4,1953230,6613791,shared_room,male,1,0,0,0,1,0,1,basic,fully_furnished,4,12,2,2,3,2,4
+U00346,Student,TD,15.6,2752000,5075849,studio,female,0,1,1,0,1,0,0,high,minimal,6,6,2,4,1,1,4
+U00347,Student,TD,10.8,3124426,8111360,studio,male,0,0,1,1,1,1,1,high,standard,6,6,2,1,3,2,4
+U00348,Remote Worker,D7,15.7,9408859,12247657,apartment,any,0,1,1,0,0,0,0,high,standard,6,6,4,2,3,3,2
+U00349,Student,TD,12.4,3526317,5565105,shared_room,female,1,1,0,1,0,0,0,high,minimal,4,12,1,2,3,2,4
+U00350,Social Butterfly,D1,16.3,4422483,6850545,shared_room,any,0,0,0,0,0,0,0,medium,minimal,5,12,3,3,2,1,3
+U00351,Student,TD,12.5,2524175,6767714,shared_room,male,1,1,1,1,1,0,0,high,standard,3,3,2,4,4,1,4
+U00352,Remote Worker,D7,7.7,9032095,10361901,apartment,any,0,0,1,0,1,1,1,high,standard,1,24,3,1,1,4,1
+U00353,Student,TB,12.3,2221405,3562795,studio,female,0,1,1,0,1,0,0,medium,standard,5,3,1,5,1,2,4
+U00354,Young Professional,D3,2.4,5234473,10193408,studio,female,1,1,0,0,0,0,1,medium,minimal,5,6,4,3,4,3,3
+U00355,Student,GV,14.3,2629589,7144202,apartment,male,0,1,1,0,0,0,0,high,standard,6,6,2,5,1,1,4
+U00356,Student,TB,18.2,2449633,5634027,shared_room,male,1,0,0,1,0,0,0,basic,standard,3,12,2,2,5,2,4
+U00357,Privacy Seeker,CG,16.1,3953341,8819524,studio,male,0,0,1,1,0,0,1,medium,minimal,1,12,4,1,2,5,2
+U00358,Student,TB,1.0,1067119,2848329,shared_room,male,0,0,1,0,0,0,0,medium,fully_furnished,3,6,1,5,3,1,4
+U00359,Young Professional,PN,18.5,7116354,8686491,studio,female,0,0,1,1,1,1,1,high,standard,1,12,3,3,5,4,3
+U00360,Remote Worker,D7,17.0,8523002,13162646,studio,any,1,1,0,0,1,1,1,high,fully_furnished,2,6,4,4,1,4,2
+U00361,Privacy Seeker,TB,19.0,2209977,3898022,shared_room,female,0,1,1,0,0,0,0,basic,minimal,2,3,3,1,3,4,1
+U00362,Social Butterfly,D3,7.9,6670135,11182466,studio,female,0,0,0,1,1,1,1,high,standard,5,12,1,2,5,1,4
+U00363,Social Butterfly,D1,9.3,3924223,7678704,apartment,male,1,0,1,0,1,0,0,high,standard,4,24,3,4,4,1,5
+U00364,Student,GV,10.2,1217845,4769065,studio,any,0,0,0,0,1,0,0,high,minimal,6,3,1,3,2,2,3
+U00365,Young Professional,PN,4.6,6827143,9981042,apartment,any,0,1,0,1,1,0,1,medium,minimal,6,6,3,1,2,2,5
+U00366,Young Professional,D1,1.9,6939536,10403882,apartment,any,1,1,0,1,1,1,1,medium,fully_furnished,5,6,3,4,3,3,3
+U00367,Young Professional,D1,5.0,5227398,8525441,studio,male,0,0,1,1,1,1,1,high,fully_furnished,5,12,3,1,3,3,3
+U00368,Remote Worker,D7,3.7,10501578,12147664,studio,male,1,1,1,0,1,0,1,high,minimal,1,12,4,4,4,5,2
+U00369,Remote Worker,D7,4.0,8331925,11621788,studio,any,1,0,1,0,0,0,1,high,minimal,2,12,4,3,3,5,2
+U00370,Young Professional,PN,18.1,7447414,11035580,apartment,female,0,1,0,0,0,1,1,high,minimal,5,12,3,3,2,3,3
+U00371,Privacy Seeker,TX,9.3,3497287,6540762,studio,male,1,1,1,0,1,0,0,medium,minimal,1,3,4,2,1,5,2
+U00372,Young Professional,D1,5.1,4375627,6789327,studio,female,0,1,1,0,0,0,0,medium,minimal,5,6,3,5,3,3,2
+U00373,Young Professional,PN,11.4,3416993,6196888,shared_room,female,0,1,0,1,1,0,1,medium,minimal,6,12,3,4,2,3,2
+U00374,Young Professional,D3,10.6,5909171,10400730,apartment,female,0,1,0,1,1,0,1,medium,fully_furnished,3,6,3,1,2,3,2
+U00375,Young Professional,D3,2.2,6993948,11851814,studio,any,0,1,1,1,0,1,1,high,standard,1,3,3,1,4,4,2
+U00376,Student,TD,19.6,1378570,3422116,shared_room,any,1,1,0,0,1,0,0,high,minimal,6,12,2,2,1,1,4
+U00377,Young Professional,D3,12.8,5042205,7028875,studio,any,1,0,1,0,1,0,0,medium,minimal,5,6,3,5,3,3,2
+U00378,Remote Worker,D2,13.7,6151130,9482115,studio,any,0,0,1,1,1,1,1,high,minimal,1,6,3,1,1,4,2
+U00379,Student,TD,17.7,1153801,5273541,studio,female,1,0,0,0,1,0,0,high,minimal,5,6,1,2,2,1,5
+U00380,Young Professional,D1,3.7,5782424,8860753,apartment,male,0,1,0,1,0,1,1,high,minimal,3,12,3,2,4,2,3
+U00381,Young Professional,D1,14.9,5530107,10373668,studio,female,0,0,0,0,1,0,1,high,standard,6,3,4,4,5,3,1
+U00382,Student,TD,5.6,2334484,6351312,shared_room,male,1,1,0,0,0,0,0,basic,standard,5,3,2,1,3,2,4
+U00383,Student,TD,17.7,2061352,7048106,studio,male,0,0,0,0,1,0,0,medium,minimal,6,12,1,1,5,2,4
+U00384,Young Professional,D1,1.0,5103956,8436049,apartment,male,0,0,0,1,1,0,1,high,minimal,6,24,3,1,3,3,3
+U00385,Young Professional,D3,8.9,4260136,8632911,apartment,male,1,0,0,1,0,1,1,high,standard,6,24,3,4,3,2,5
+U00386,Student,TB,9.2,3580696,4810282,shared_room,female,1,1,1,0,0,0,0,medium,standard,3,3,3,4,2,1,3
+U00387,Young Professional,D1,18.5,5659472,7996814,apartment,any,1,0,1,0,0,0,0,medium,fully_furnished,1,6,2,4,2,4,2
+U00388,Remote Worker,BT,19.4,8098405,9531657,studio,any,1,1,0,0,0,1,1,high,fully_furnished,2,12,3,3,5,4,2
+U00389,Student,GV,9.2,3355284,6432285,studio,female,0,1,1,0,0,0,0,medium,minimal,4,12,1,1,1,2,3
+U00390,Social Butterfly,HK,11.1,6378638,10168227,studio,male,0,0,1,0,1,0,1,medium,standard,6,12,3,5,1,2,4
+U00391,Privacy Seeker,CG,19.9,3259386,5515317,studio,any,1,1,1,0,0,0,0,medium,standard,1,12,3,3,3,4,1
+U00392,Remote Worker,D2,18.9,10223347,13836310,studio,male,1,1,1,1,0,1,1,high,fully_furnished,2,6,4,3,3,4,2
+U00393,Student,GV,4.6,3279996,6358634,shared_room,female,0,0,1,0,1,0,1,high,standard,5,6,2,3,4,2,5
+U00394,Privacy Seeker,TX,10.9,2894369,6437199,shared_room,female,1,0,1,1,0,0,1,high,standard,2,3,3,1,1,5,1
+U00395,Young Professional,D3,1.3,7589682,9518096,studio,any,0,1,1,1,0,0,1,high,standard,3,12,3,2,3,2,4
+U00396,Young Professional,D3,6.7,5275443,8401088,apartment,female,1,0,0,0,0,0,1,high,fully_furnished,3,12,3,3,3,3,3
+U00397,Social Butterfly,HK,7.5,5134563,8213707,apartment,any,0,1,1,1,0,1,1,high,fully_furnished,4,6,2,4,5,1,5
+U00398,Social Butterfly,HK,9.8,6085116,8419382,apartment,any,1,0,0,1,1,1,1,medium,standard,6,12,3,2,5,1,4
+U00399,Social Butterfly,D1,11.8,6829692,8132758,apartment,any,0,1,0,1,1,0,1,basic,minimal,6,24,2,2,5,2,5
+U00400,Student,TD,9.6,1754140,3464554,shared_room,any,0,0,1,0,1,0,0,high,minimal,5,6,2,4,3,2,4
+U00401,Young Professional,D3,8.2,3822857,4999118,shared_room,male,0,1,1,0,1,0,0,high,minimal,6,12,3,2,4,3,3
+U00402,Young Professional,D3,6.9,3274859,6789476,studio,any,1,1,1,0,0,0,0,basic,standard,3,3,3,4,1,3,3
+U00403,Young Professional,PN,8.3,6762136,9416975,apartment,female,1,0,1,1,0,0,1,high,fully_furnished,2,12,4,2,3,4,3
+U00404,Privacy Seeker,TD,1.6,3416446,5151830,studio,any,1,0,1,0,1,0,0,high,minimal,2,6,3,4,1,4,1
+U00405,Young Professional,D1,1.2,5480602,8342940,apartment,male,1,1,1,1,1,0,1,medium,fully_furnished,3,12,3,1,1,3,3
+U00406,Student,TB,16.6,2909214,6230757,shared_room,female,1,1,0,1,1,0,0,medium,standard,6,3,2,4,3,1,4
+U00407,Social Butterfly,D3,13.9,7608732,9883761,studio,any,1,1,1,1,0,1,1,high,standard,3,12,2,3,1,1,5
+U00408,Remote Worker,BT,6.9,10942090,14264340,studio,female,1,1,0,1,0,1,1,high,fully_furnished,1,12,4,5,1,4,2
+U00409,Student,TB,11.5,1021787,4862202,shared_room,any,0,0,0,0,1,0,0,high,minimal,4,3,2,5,2,2,4
+U00410,Remote Worker,BT,4.1,10871415,13773801,studio,female,1,0,1,1,1,0,0,high,fully_furnished,2,6,2,2,5,4,2
+U00411,Young Professional,D3,8.2,5915064,7695194,apartment,any,0,0,0,0,1,0,0,basic,minimal,3,6,3,5,5,3,2
+U00412,Student,TD,5.8,2527134,5792032,studio,any,1,1,0,0,0,0,0,medium,minimal,3,3,2,1,3,2,4
+U00413,Privacy Seeker,TX,15.6,2793427,3970769,studio,male,0,1,1,0,0,0,0,high,minimal,1,6,3,1,2,5,2
+U00414,Student,TD,4.7,2240729,5882803,studio,female,0,0,0,0,0,0,0,basic,standard,4,12,3,2,2,2,4
+U00415,Social Butterfly,HK,5.6,5038235,9099273,studio,female,0,0,1,1,1,1,1,medium,minimal,6,3,2,2,3,2,5
+U00416,Student,TD,13.8,2103021,3229777,shared_room,female,0,1,0,0,1,0,0,high,standard,3,3,1,1,4,1,4
+U00417,Remote Worker,D7,10.0,9040907,11126733,apartment,male,0,0,1,1,1,0,1,high,fully_furnished,1,12,4,4,4,4,3
+U00418,Student,TD,9.1,3634437,6700777,studio,female,1,0,1,0,0,0,0,high,minimal,4,6,2,2,3,1,4
+U00419,Student,TD,1.8,1642409,4905383,studio,male,0,0,0,0,0,0,0,high,minimal,6,12,2,1,2,2,4
+U00420,Student,TD,13.7,2372379,3447764,shared_room,any,0,0,0,0,1,0,0,high,minimal,6,6,2,5,4,1,4
+U00421,Social Butterfly,D3,5.1,6632147,8810291,apartment,female,1,0,0,0,0,1,0,medium,minimal,6,12,2,2,2,1,4
+U00422,Young Professional,D1,11.8,7723091,9833513,studio,any,0,0,0,1,1,0,1,high,fully_furnished,3,3,2,5,2,3,3
+U00423,Privacy Seeker,CG,7.3,3744252,5979402,studio,any,0,0,0,0,0,0,0,high,minimal,1,6,4,3,2,5,2
+U00424,Young Professional,D1,12.1,5938064,7836254,studio,any,1,0,0,0,0,0,0,basic,standard,2,12,4,2,5,4,2
+U00425,Privacy Seeker,TD,16.4,2041430,6786370,studio,male,1,1,0,0,0,0,0,medium,standard,2,6,2,3,2,4,1
+U00426,Student,TD,8.5,1625465,6407884,studio,male,1,0,0,0,0,0,0,basic,standard,6,6,2,4,3,1,3
+U00427,Privacy Seeker,TB,6.6,2599271,7431150,apartment,any,1,1,1,0,1,0,0,high,minimal,6,6,4,4,5,3,1
+U00428,Social Butterfly,D1,4.8,7293065,11684767,studio,any,0,1,0,1,1,1,1,medium,minimal,5,3,2,1,5,1,5
+U00429,Social Butterfly,D1,5.3,7996718,9052988,studio,any,1,1,0,1,1,1,1,high,fully_furnished,6,3,3,3,5,1,5
+U00430,Social Butterfly,HK,7.5,6717430,7963190,studio,male,0,1,1,0,0,0,0,high,minimal,6,6,2,1,2,1,4
+U00431,Student,GV,5.4,3415370,5966467,shared_room,any,1,1,1,0,0,0,0,high,minimal,3,12,2,1,3,2,5
+U00432,Privacy Seeker,CG,4.0,3715089,6677627,shared_room,female,1,1,1,1,0,0,0,high,minimal,2,6,2,5,5,4,1
+U00433,Privacy Seeker,TB,6.6,2923385,5532578,shared_room,female,1,0,1,0,0,0,1,basic,minimal,1,12,4,3,2,4,1
+U00434,Young Professional,D1,15.3,6894863,11033096,studio,male,1,1,1,1,1,0,1,high,standard,3,3,2,4,4,3,2
+U00435,Young Professional,PN,16.8,6904419,9467674,apartment,any,0,1,1,1,0,1,1,medium,fully_furnished,2,12,4,5,5,4,2
+U00436,Social Butterfly,D3,17.8,6802881,9127860,apartment,any,1,0,0,1,1,1,1,high,fully_furnished,3,6,2,1,1,1,5
+U00437,Social Butterfly,D3,13.1,6020288,7965660,studio,any,1,0,0,0,0,0,0,high,standard,3,3,2,1,4,1,5
+U00438,Student,GV,4.5,3992291,8122817,studio,female,0,0,0,1,1,1,0,high,standard,6,6,2,4,4,1,3
+U00439,Privacy Seeker,TB,15.1,3404665,8003209,studio,female,1,0,1,1,0,0,1,medium,standard,2,3,3,5,4,4,1
+U00440,Young Professional,D1,10.4,5935573,7632457,apartment,female,1,1,1,0,0,0,0,high,standard,6,6,3,5,4,3,3
+U00441,Young Professional,PN,19.1,7922016,12599344,apartment,male,0,0,0,1,1,0,1,medium,minimal,6,6,3,3,5,3,3
+U00442,Social Butterfly,HK,8.3,4143997,7679858,studio,male,0,0,0,0,0,0,0,medium,standard,4,6,3,1,1,2,5
+U00443,Young Professional,D3,3.4,5123792,9959186,studio,female,1,0,0,1,0,0,1,medium,minimal,3,6,2,3,5,3,3
+U00444,Student,TD,11.5,3924334,8238752,studio,female,0,1,1,1,1,0,1,high,fully_furnished,5,3,2,4,1,1,5
+U00445,Young Professional,D3,19.7,6967821,10329414,apartment,any,1,1,1,0,1,1,1,medium,standard,2,24,3,1,4,4,3
+U00446,Student,TD,10.7,2081533,6540509,studio,male,0,1,1,0,0,0,0,medium,minimal,3,12,1,2,2,2,4
+U00447,Young Professional,PN,10.7,4852485,8456813,studio,female,0,0,0,1,1,0,1,medium,standard,3,3,2,1,1,3,3
+U00448,Student,TD,13.0,3306635,7814962,studio,male,0,0,1,0,1,0,0,medium,minimal,5,6,2,5,1,2,4
+U00449,Privacy Seeker,CG,17.1,3198355,7311484,studio,female,1,0,1,0,1,0,0,medium,standard,2,3,4,1,5,4,1
+U00450,Student,TB,9.8,2989678,5841442,studio,any,0,0,1,0,0,0,0,high,minimal,3,6,2,5,3,1,4
+U00451,Privacy Seeker,TB,17.8,3206766,6889617,shared_room,any,0,0,1,1,0,0,1,medium,minimal,1,6,3,4,5,5,1
+U00452,Young Professional,D3,7.3,6637157,9708024,apartment,any,0,0,0,0,1,1,1,medium,fully_furnished,3,6,3,1,1,3,2
+U00453,Social Butterfly,HK,16.7,7173049,8976688,studio,any,1,0,0,0,0,1,1,high,fully_furnished,3,6,2,1,3,1,5
+U00454,Student,TD,18.6,2857978,5826443,shared_room,male,1,0,1,1,1,0,1,medium,fully_furnished,5,3,3,1,4,2,4
+U00455,Young Professional,PN,15.9,4497548,6068146,shared_room,female,1,0,1,1,1,0,0,basic,standard,3,6,3,2,4,2,3
+U00456,Student,GV,16.4,3756456,6969441,shared_room,any,1,0,0,0,0,0,0,high,standard,3,3,2,2,3,1,4
+U00457,Privacy Seeker,TD,11.7,3492131,8204371,apartment,female,0,1,1,1,1,0,1,basic,standard,1,6,4,3,4,4,2
+U00458,Privacy Seeker,TX,17.7,3409341,4739704,shared_room,female,0,0,1,0,1,0,0,basic,minimal,2,3,3,3,2,4,1
+U00459,Student,TB,6.8,1067220,4267106,studio,any,1,1,1,0,0,0,0,medium,standard,6,12,2,5,3,2,5
+U00460,Young Professional,D3,9.1,5606411,8532347,apartment,any,1,1,1,1,0,1,1,basic,minimal,6,6,3,3,1,2,3
+U00461,Privacy Seeker,CG,2.7,1865598,3030028,shared_room,any,1,1,1,0,1,0,0,medium,minimal,1,12,4,2,3,5,1
+U00462,Student,TB,19.8,2584381,4966348,shared_room,female,1,1,0,0,1,0,0,medium,minimal,3,3,1,4,2,2,4
+U00463,Young Professional,PN,8.8,6078788,10929513,apartment,any,0,0,0,1,1,1,1,high,minimal,1,24,3,5,4,4,2
+U00464,Privacy Seeker,TX,11.9,1430501,3915537,studio,female,1,1,0,0,1,0,0,high,minimal,2,3,4,4,1,5,1
+U00465,Privacy Seeker,TD,8.7,2402579,3957011,shared_room,male,0,1,1,0,0,0,0,high,minimal,2,12,3,5,4,5,1
+U00466,Young Professional,PN,19.1,5879373,8716072,studio,female,0,0,1,0,0,1,1,medium,fully_furnished,6,12,2,4,4,3,2
+U00467,Social Butterfly,D1,14.9,4300006,7557163,apartment,female,0,0,0,0,0,0,0,medium,standard,6,6,2,1,5,1,5
+U00468,Student,GV,3.1,2512574,4779804,shared_room,any,0,0,0,0,1,0,0,medium,fully_furnished,6,6,2,1,5,2,4
+U00469,Remote Worker,BT,14.4,8903003,11125926,studio,any,1,0,1,1,0,0,1,high,standard,2,6,3,4,5,4,2
+U00470,Student,TB,4.7,2834380,7179644,studio,male,0,0,0,0,0,0,0,high,standard,6,6,3,3,3,1,4
+U00471,Privacy Seeker,TD,3.6,3203885,6473230,studio,male,1,0,1,0,0,0,0,medium,minimal,2,12,4,4,5,4,1
+U00472,Student,TB,14.0,3833624,7508968,studio,male,1,1,0,0,1,0,0,high,minimal,6,12,1,5,4,2,4
+U00473,Privacy Seeker,TB,17.2,3339055,7487396,apartment,male,1,1,1,0,1,0,0,basic,standard,1,12,3,2,1,4,1
+U00474,Young Professional,D3,15.1,3865797,6687642,studio,male,1,0,1,0,0,0,0,medium,minimal,5,12,3,1,5,3,2
+U00475,Student,GV,19.0,2073033,4031210,shared_room,male,0,1,1,0,1,0,0,medium,standard,5,12,3,3,5,2,4
+U00476,Student,TD,13.9,1414867,5903818,studio,any,1,1,0,0,1,0,0,high,minimal,3,3,1,1,4,2,4
+U00477,Remote Worker,D7,10.5,7256499,11420040,studio,any,1,0,1,0,0,0,1,high,fully_furnished,1,12,4,4,3,4,2
+U00478,Young Professional,PN,1.4,3191793,6760078,shared_room,female,1,0,0,1,0,0,1,medium,standard,4,6,4,4,4,3,3
+U00479,Student,TD,14.9,1756616,6113918,shared_room,female,0,1,0,0,1,0,1,high,standard,3,6,2,5,1,3,4
+U00480,Remote Worker,BT,5.9,6168243,9564925,studio,male,0,0,1,1,0,0,1,high,fully_furnished,2,12,4,1,2,4,2
+U00481,Student,GV,5.1,1358352,4369326,shared_room,female,1,0,0,0,1,0,0,high,minimal,5,12,2,3,4,2,4
+U00482,Privacy Seeker,TB,1.4,3932338,8149436,apartment,any,1,1,1,1,1,0,1,medium,fully_furnished,1,24,3,3,5,4,1
+U00483,Young Professional,D1,9.2,4692610,7564997,apartment,any,0,0,0,0,1,0,0,medium,minimal,3,24,3,3,3,2,3
+U00484,Student,TB,7.5,1558938,5512286,studio,male,1,0,0,0,1,0,0,medium,minimal,3,3,3,3,3,2,4
+U00485,Student,TB,7.0,3360023,7873271,apartment,male,1,1,0,0,1,0,0,medium,standard,3,12,2,3,4,2,4
+U00486,Student,TD,12.2,3008922,4592808,studio,female,1,0,0,0,1,0,0,high,standard,3,6,2,2,5,2,4
+U00487,Social Butterfly,D3,4.1,7740937,11407976,studio,any,1,0,0,0,0,1,1,high,standard,5,6,2,4,4,1,4
+U00488,Student,TB,4.9,1988195,5984011,studio,any,0,1,0,0,0,0,0,high,minimal,3,3,2,4,5,1,4
+U00489,Young Professional,D3,8.0,7109319,8541412,studio,female,1,1,0,1,1,0,1,basic,fully_furnished,5,6,3,4,3,3,2
+U00490,Social Butterfly,D1,6.9,5888468,7975348,apartment,male,1,1,0,0,1,0,0,high,standard,4,12,3,2,5,1,5
+U00491,Remote Worker,D7,10.1,6324651,9377472,apartment,female,0,0,0,1,1,0,1,high,standard,1,6,3,3,1,4,2
+U00492,Social Butterfly,HK,11.5,6185126,8394892,studio,any,0,1,0,1,0,0,0,high,standard,3,3,3,4,5,1,5
+U00493,Student,TD,16.8,3356994,7660193,studio,female,0,1,1,0,1,0,0,basic,standard,6,3,1,1,5,2,4
+U00494,Young Professional,PN,14.0,3289101,6931857,shared_room,any,0,0,0,1,1,0,1,basic,fully_furnished,4,6,3,1,4,3,3
+U00495,Remote Worker,BT,1.0,8271153,12418169,apartment,male,0,0,1,1,1,1,1,high,fully_furnished,1,6,3,3,3,5,2
+U00496,Student,TB,6.6,2440405,5804794,studio,any,0,1,1,0,0,0,0,basic,standard,4,6,1,3,4,2,4
+U00497,Young Professional,D3,1.2,7072915,11060655,apartment,female,0,0,1,1,0,0,1,medium,minimal,1,24,4,3,3,4,2
+U00498,Young Professional,D1,9.2,6173405,8149385,apartment,female,1,0,0,1,1,0,1,high,fully_furnished,6,12,3,2,4,3,3
+U00499,Privacy Seeker,CG,10.1,3320350,5510624,shared_room,male,1,0,1,1,1,0,1,basic,minimal,2,6,3,4,4,4,1
+U00500,Young Professional,D1,11.0,4660322,7762235,apartment,any,1,0,0,0,0,0,0,high,standard,3,12,4,4,3,2,3
+U00501,Privacy Seeker,CG,1.2,1086337,3156743,shared_room,male,0,1,1,0,0,0,0,high,standard,2,12,4,5,4,5,1
+U00502,Student,TB,13.7,1029134,2853678,shared_room,any,1,1,0,0,1,0,0,basic,standard,3,3,1,4,1,2,4
+U00503,Student,TB,12.2,3392564,7108074,apartment,male,1,1,0,0,0,0,0,medium,minimal,4,12,1,4,1,2,4
+U00504,Young Professional,PN,14.7,3025943,4461510,shared_room,any,0,1,0,0,0,0,0,medium,standard,4,12,2,3,4,3,3
+U00505,Privacy Seeker,TD,19.2,2199485,4538655,studio,male,1,1,1,0,1,0,0,medium,minimal,1,3,4,1,5,4,1
+U00506,Social Butterfly,D1,2.7,7557711,10273052,apartment,any,0,1,0,1,1,0,1,medium,fully_furnished,3,6,3,3,2,1,4
+U00507,Student,TD,17.2,1651780,6531515,shared_room,any,1,0,0,1,0,0,0,medium,minimal,3,6,2,5,3,1,5
+U00508,Privacy Seeker,TD,12.8,2537154,4716542,studio,any,0,0,1,0,0,0,0,high,standard,1,6,4,3,3,4,1
+U00509,Student,GV,7.5,2427717,6174782,shared_room,any,0,1,0,0,0,0,0,medium,fully_furnished,6,3,2,1,2,1,3
+U00510,Student,TB,15.3,2296199,5344117,studio,female,1,0,0,0,0,0,0,medium,standard,6,6,2,2,5,2,3
+U00511,Remote Worker,D7,1.7,9335272,11187559,apartment,female,0,1,1,0,0,1,1,high,fully_furnished,1,24,3,5,4,5,2
+U00512,Remote Worker,D2,12.6,8053854,11265803,apartment,female,1,1,1,1,1,0,1,high,fully_furnished,2,12,3,4,2,4,2
+U00513,Social Butterfly,D1,11.9,3377640,5045340,studio,female,1,0,1,0,1,0,0,medium,minimal,5,6,2,2,4,1,4
+U00514,Student,TD,7.2,2639985,4271620,studio,male,0,0,1,0,0,0,0,high,minimal,3,3,2,5,3,2,3
+U00515,Privacy Seeker,TD,14.9,1027447,3905892,studio,any,1,0,0,0,1,0,0,basic,standard,2,6,3,3,5,5,1
+U00516,Remote Worker,D2,16.5,9074337,11899524,apartment,male,1,1,1,1,1,0,1,high,standard,1,12,3,2,1,4,2
+U00517,Student,GV,1.4,1431993,2652595,shared_room,male,0,1,0,0,1,0,0,medium,standard,6,3,3,2,3,2,4
+U00518,Student,GV,19.3,1856675,3494271,shared_room,female,1,1,1,0,0,0,0,high,standard,4,3,2,1,1,1,5
+U00519,Young Professional,PN,16.9,5142953,7359542,studio,male,0,1,1,0,1,0,0,high,minimal,4,12,3,5,5,2,3
+U00520,Student,TB,10.0,1403172,5889395,studio,female,1,1,0,0,1,0,0,high,minimal,5,12,2,3,4,2,3
+U00521,Privacy Seeker,TX,9.4,1748364,3762546,studio,any,1,0,1,0,1,0,0,medium,minimal,2,3,4,3,4,5,1
+U00522,Young Professional,PN,18.3,6923376,11631376,studio,male,1,0,1,1,1,0,1,high,minimal,3,3,3,5,4,2,5
+U00523,Remote Worker,D2,2.5,10855266,12457978,apartment,male,0,1,1,0,1,1,0,high,fully_furnished,1,6,3,4,2,4,2
+U00524,Student,TD,5.3,3053953,6843205,shared_room,any,1,1,0,0,0,0,1,medium,fully_furnished,6,6,2,2,3,2,4
+U00525,Young Professional,PN,16.0,6787618,8482629,studio,male,0,1,0,1,0,0,1,medium,fully_furnished,4,12,3,4,5,3,2
+U00526,Young Professional,D1,2.1,3273805,7447878,apartment,any,0,1,0,0,1,0,0,medium,fully_furnished,6,24,3,1,3,3,2
+U00527,Young Professional,PN,14.9,5692186,9071654,apartment,male,0,0,1,1,1,1,1,medium,standard,1,6,4,2,4,4,2
+U00528,Young Professional,D1,6.4,3741883,8336645,studio,male,1,1,0,1,0,0,1,high,fully_furnished,5,3,2,2,2,3,2
+U00529,Social Butterfly,D1,10.5,4914715,6418014,shared_room,male,1,1,1,0,1,0,1,medium,standard,4,6,2,5,2,1,5
+U00530,Student,GV,2.4,3086239,5038743,shared_room,female,1,1,0,0,1,0,1,medium,standard,5,6,2,1,4,1,4
+U00531,Student,TD,18.0,2482108,7179970,apartment,male,1,1,0,0,0,0,0,high,minimal,4,12,2,3,5,2,4
+U00532,Young Professional,PN,6.3,4025599,6965326,studio,male,0,0,0,0,0,0,0,high,minimal,5,12,3,4,2,3,2
+U00533,Privacy Seeker,TD,3.0,3779444,8365449,studio,male,1,0,0,0,1,1,1,high,standard,2,3,4,5,3,5,1
+U00534,Privacy Seeker,TB,4.0,2494263,6043803,shared_room,male,0,1,1,1,1,0,1,medium,standard,2,12,3,5,1,5,1
+U00535,Student,TB,5.0,2028200,6283654,shared_room,any,0,0,0,0,0,0,0,basic,standard,6,6,2,5,1,1,3
+U00536,Privacy Seeker,TD,12.2,1771353,2996866,shared_room,male,1,0,1,0,0,0,0,medium,standard,2,6,2,3,1,5,1
+U00537,Student,TD,14.9,1500059,2945138,shared_room,female,0,1,1,0,0,0,0,high,minimal,4,3,2,4,3,1,5
+U00538,Privacy Seeker,TD,14.4,1226037,5793430,shared_room,female,1,0,1,1,1,0,0,basic,standard,1,12,4,3,4,5,1
+U00539,Student,GV,4.2,3818061,5248749,studio,female,1,0,1,0,0,0,0,high,minimal,5,6,2,2,3,2,3
+U00540,Privacy Seeker,CG,1.7,1444753,3622353,studio,any,1,1,1,0,1,0,0,high,minimal,2,6,4,5,2,4,1
+U00541,Student,TB,10.8,2796826,6126965,studio,female,0,0,1,0,0,0,0,high,minimal,5,6,3,2,2,2,4
+U00542,Student,GV,2.3,2567101,5894985,studio,any,1,0,0,0,0,0,0,high,fully_furnished,4,3,3,1,4,1,4
+U00543,Young Professional,D1,5.4,6094604,10950232,studio,female,1,0,1,0,1,1,1,basic,standard,5,6,3,1,2,2,3
+U00544,Student,TB,17.3,1508423,4665358,shared_room,any,1,1,0,0,0,0,0,basic,minimal,3,12,1,1,4,1,4
+U00545,Social Butterfly,D3,10.8,3023195,6547980,studio,female,1,0,1,0,0,0,0,medium,standard,6,3,3,2,3,2,4
+U00546,Privacy Seeker,TB,15.8,3082199,6278945,studio,male,0,0,1,0,1,0,0,medium,standard,1,6,4,4,2,4,1
+U00547,Student,TD,16.5,2585048,5155345,studio,male,0,0,1,0,1,0,0,basic,minimal,4,6,2,2,1,2,4
+U00548,Privacy Seeker,TB,18.2,1313676,3588950,studio,male,1,1,1,0,1,0,0,medium,minimal,1,6,4,5,5,4,1
+U00549,Student,TB,19.5,2092500,5964337,studio,any,0,1,1,0,1,0,0,basic,minimal,6,6,2,2,4,1,4
+U00550,Student,TD,19.4,1446989,3607056,studio,female,1,0,1,0,1,0,0,medium,minimal,5,12,2,4,1,1,3
+U00551,Young Professional,PN,5.7,7541363,8623337,apartment,any,0,1,0,1,0,1,1,medium,standard,2,12,4,4,3,4,2
+U00552,Remote Worker,D7,2.8,11231668,13482776,studio,any,0,1,1,1,1,1,1,high,minimal,2,3,4,2,4,4,2
+U00553,Student,TD,2.1,1874078,2912459,shared_room,female,1,1,0,0,0,0,0,medium,minimal,5,6,2,4,5,1,4
+U00554,Privacy Seeker,TX,8.5,1108450,3152210,shared_room,any,0,0,0,0,1,0,0,medium,minimal,1,6,4,1,2,5,1
+U00555,Young Professional,D3,11.7,6553088,10836190,studio,any,0,0,0,1,1,1,1,high,fully_furnished,4,6,3,5,3,3,3
+U00556,Student,TD,1.6,1963143,4087969,shared_room,male,1,1,0,0,0,0,0,high,minimal,4,3,3,5,2,1,4
+U00557,Student,TB,7.4,2201311,5032533,studio,male,1,0,1,0,1,0,0,medium,minimal,3,3,2,2,3,2,4
+U00558,Student,TB,9.1,2568932,6367737,shared_room,female,0,0,1,0,1,0,0,high,standard,3,12,1,5,1,2,4
+U00559,Student,TB,9.7,1847064,4390239,studio,any,1,1,1,0,0,0,0,basic,minimal,6,12,2,5,5,1,3
+U00560,Student,GV,2.2,2912937,6843056,studio,male,1,0,1,0,0,0,0,high,minimal,3,12,2,2,3,2,5
+U00561,Privacy Seeker,TX,14.2,1258795,3947706,studio,male,1,1,1,0,0,0,0,high,minimal,1,6,4,3,5,4,1
+U00562,Social Butterfly,HK,14.2,4171218,6276761,studio,female,0,1,0,0,1,0,0,medium,standard,3,3,4,4,5,2,4
+U00563,Student,GV,8.5,2322247,6522733,studio,any,0,1,0,0,1,0,0,medium,standard,4,6,2,4,2,1,5
+U00564,Privacy Seeker,TB,8.0,2134279,5062421,shared_room,any,1,1,1,1,1,0,0,high,standard,1,6,4,2,3,5,1
+U00565,Privacy Seeker,CG,4.3,3231681,4593017,shared_room,female,0,0,1,0,0,0,0,basic,minimal,2,12,2,4,3,5,1
+U00566,Privacy Seeker,CG,6.4,3153016,7933298,studio,any,1,0,0,0,0,0,0,medium,minimal,2,6,3,3,4,5,1
+U00567,Privacy Seeker,TX,3.9,2289337,5780907,shared_room,female,1,0,1,0,0,0,1,high,standard,2,3,4,4,5,4,2
+U00568,Remote Worker,D7,5.0,6290084,8661713,studio,male,0,0,1,1,0,1,1,high,fully_furnished,2,12,4,3,3,5,2
+U00569,Social Butterfly,HK,12.7,6144534,7392767,studio,female,1,1,0,0,0,0,0,high,minimal,6,6,2,2,3,1,4
+U00570,Young Professional,PN,1.3,4276797,7306919,apartment,female,0,1,0,0,0,0,0,basic,standard,2,24,3,5,1,4,2
+U00571,Privacy Seeker,TB,14.7,2803636,4220326,shared_room,male,1,1,0,0,1,0,0,high,minimal,2,12,2,4,4,4,1
+U00572,Young Professional,D1,1.2,4625624,6825737,shared_room,any,1,1,1,0,1,0,1,medium,standard,2,6,3,4,3,4,2
+U00573,Young Professional,D3,14.2,6119319,7601112,studio,male,0,1,0,0,1,0,0,high,standard,5,3,4,2,4,2,3
+U00574,Social Butterfly,D3,9.0,3572133,8337014,apartment,any,0,0,1,1,1,1,1,high,minimal,6,24,2,3,5,1,5
+U00575,Social Butterfly,D3,9.0,5611545,8818071,apartment,female,1,0,0,0,1,1,1,high,standard,4,24,2,4,5,1,4
+U00576,Young Professional,D1,4.8,3284555,5842596,shared_room,female,0,0,0,0,0,0,0,basic,minimal,5,6,3,5,4,3,3
+U00577,Student,TB,11.5,1691947,3246761,shared_room,any,0,0,0,0,0,0,0,high,minimal,3,6,2,4,3,2,5
+U00578,Student,TD,13.7,1494131,4615328,studio,male,0,1,1,0,1,0,0,high,standard,5,12,2,1,2,2,4
+U00579,Privacy Seeker,TX,13.9,3415489,6131653,shared_room,female,0,1,1,1,1,0,0,medium,minimal,2,12,3,2,5,4,1
+U00580,Remote Worker,D2,17.4,10500049,13786240,apartment,female,1,1,0,1,0,1,1,high,fully_furnished,3,6,3,3,2,3,3
+U00581,Remote Worker,BT,14.1,6067030,10690547,apartment,male,0,1,1,1,0,0,1,high,standard,2,12,4,2,2,4,2
+U00582,Privacy Seeker,TB,13.5,1002679,2626918,shared_room,male,0,1,1,0,1,0,0,basic,standard,1,12,4,1,4,5,1
+U00583,Student,GV,13.5,1402360,2756410,shared_room,male,1,0,0,0,0,0,0,medium,minimal,4,12,2,3,5,2,4
+U00584,Student,TB,4.9,2643731,4677225,shared_room,any,0,0,0,0,1,0,0,medium,standard,5,12,2,2,3,2,4
+U00585,Remote Worker,D7,3.1,7833927,10854217,apartment,female,1,0,0,1,1,1,1,high,standard,5,6,4,4,4,3,2
+U00586,Young Professional,D3,7.9,7614105,11076694,studio,female,0,0,1,1,1,0,1,high,minimal,2,6,3,2,5,4,2
+U00587,Privacy Seeker,TB,15.2,3639329,7041942,apartment,any,1,1,1,0,0,0,0,high,minimal,1,12,4,4,4,4,2
+U00588,Remote Worker,D7,2.4,9529314,14128377,apartment,male,1,1,1,1,1,1,0,high,standard,5,6,4,1,3,3,1
+U00589,Student,GV,10.5,2401343,4822562,shared_room,female,1,1,1,0,1,0,0,high,minimal,5,6,3,3,2,1,4
+U00590,Student,TD,19.5,3469577,6608747,studio,male,0,0,0,0,1,0,0,high,minimal,6,3,1,4,2,1,4
+U00591,Young Professional,PN,4.6,7895539,9516253,apartment,female,1,0,0,1,0,0,1,basic,standard,5,24,3,4,4,2,3
+U00592,Social Butterfly,HK,6.3,7470553,9546405,apartment,female,1,0,0,1,1,1,1,medium,standard,5,12,3,4,5,1,5
+U00593,Student,TD,10.2,1127019,3010259,shared_room,female,0,0,0,0,1,0,0,medium,minimal,4,6,2,3,2,2,4
+U00594,Remote Worker,D2,14.6,10855243,13681721,studio,any,1,1,0,1,1,0,1,high,minimal,5,6,4,1,1,3,3
+U00595,Young Professional,PN,7.6,7249627,11701761,studio,any,0,1,0,1,0,1,1,high,fully_furnished,5,12,2,5,5,3,1
+U00596,Young Professional,D1,2.5,7100149,10356725,apartment,male,1,0,0,1,1,0,1,high,fully_furnished,3,12,3,3,3,3,2
+U00597,Privacy Seeker,TB,13.0,1569884,4695529,studio,any,0,1,1,0,1,0,0,medium,minimal,1,6,3,3,1,4,1
+U00598,Young Professional,D1,10.5,3764132,5348130,shared_room,male,0,1,0,1,1,0,0,medium,standard,5,6,3,5,3,3,2
+U00599,Young Professional,D1,19.6,5167168,8079345,apartment,any,0,0,1,1,1,1,1,high,standard,4,6,3,4,5,3,2
+U00600,Privacy Seeker,CG,1.4,3171635,7864403,studio,female,0,1,1,0,1,0,0,medium,minimal,1,12,3,2,4,5,2
+U00601,Young Professional,D1,16.6,6209403,10785595,studio,male,0,1,0,0,1,1,1,medium,standard,2,6,3,4,2,4,3
+U00602,Young Professional,D1,18.8,6422172,7447483,apartment,male,0,1,1,0,1,0,0,high,minimal,1,12,3,4,3,4,3
+U00603,Student,TB,11.2,2912211,4085112,shared_room,any,0,1,0,0,0,0,0,high,minimal,4,12,2,5,3,1,4
+U00604,Privacy Seeker,TD,3.2,1967667,4711616,shared_room,any,0,0,1,0,1,0,0,medium,minimal,2,3,4,2,1,5,1
+U00605,Student,TD,15.0,1120268,3977173,studio,male,1,1,0,0,1,0,0,medium,minimal,4,6,3,1,1,2,4
+U00606,Social Butterfly,D3,3.1,5232795,7292881,studio,female,1,1,0,0,0,0,0,high,minimal,4,12,2,3,1,2,5
+U00607,Remote Worker,BT,19.2,11316046,16305541,apartment,male,1,0,0,0,0,1,1,high,fully_furnished,4,24,4,4,4,3,1
+U00608,Student,TB,1.4,3194560,7227659,apartment,male,1,1,1,0,1,0,0,basic,minimal,3,12,2,4,1,1,5
+U00609,Student,GV,7.1,1698560,3439693,shared_room,any,0,0,0,0,0,0,0,high,minimal,5,12,1,4,4,2,4
+U00610,Young Professional,PN,17.0,3863168,5433637,shared_room,male,0,1,1,0,1,0,1,high,minimal,2,6,3,3,3,4,2
+U00611,Privacy Seeker,TD,4.8,1554939,2583262,shared_room,male,0,0,0,0,0,0,0,medium,minimal,1,6,3,1,1,5,2
+U00612,Student,TD,13.3,3498016,5582108,shared_room,male,0,1,0,0,1,0,1,high,minimal,6,6,1,4,4,1,3
+U00613,Privacy Seeker,CG,2.9,3514546,5559107,studio,any,1,1,1,0,0,0,0,basic,minimal,1,6,3,3,2,5,1
+U00614,Young Professional,D1,15.9,5621274,8251370,studio,any,0,0,1,1,1,1,1,basic,standard,6,12,4,3,4,3,2
+U00615,Privacy Seeker,TB,18.9,2213689,4981801,studio,male,0,1,1,0,1,0,0,high,standard,1,6,3,1,3,4,1
+U00616,Young Professional,PN,12.5,5791471,10184531,studio,any,0,1,0,0,0,1,1,medium,fully_furnished,5,3,3,4,3,3,3
+U00617,Young Professional,D1,10.4,7296735,11064566,studio,any,0,0,0,1,0,1,1,medium,standard,6,6,3,5,1,3,2
+U00618,Remote Worker,D7,17.4,9298843,11627921,apartment,male,1,1,1,1,1,0,1,high,standard,2,12,2,4,5,4,2
+U00619,Privacy Seeker,CG,2.6,1780908,4241595,studio,male,0,1,1,0,1,0,0,medium,standard,1,12,3,1,1,4,1
+U00620,Student,GV,4.3,2693782,5686296,shared_room,male,0,1,1,0,0,0,1,medium,minimal,3,6,2,5,5,1,4
+U00621,Remote Worker,D2,14.7,10186832,14804139,studio,male,1,1,0,0,0,1,1,high,minimal,2,3,3,5,5,4,2
+U00622,Student,GV,1.5,1308370,4641462,shared_room,any,1,0,0,0,0,0,0,medium,minimal,4,12,2,5,1,1,4
+U00623,Student,GV,12.3,1017216,4623364,shared_room,any,1,1,0,0,1,0,0,medium,minimal,6,3,2,3,3,1,5
+U00624,Remote Worker,D2,2.6,7306473,10986806,apartment,female,0,1,1,1,1,0,1,high,fully_furnished,1,6,4,3,2,4,2
+U00625,Young Professional,D1,7.9,5312183,9190675,studio,female,1,0,1,1,1,1,0,high,standard,6,12,3,3,4,2,3
+U00626,Student,TB,18.8,1473162,3490681,shared_room,any,0,0,0,0,1,0,0,medium,minimal,3,6,2,5,3,2,3
+U00627,Social Butterfly,D1,12.0,6911766,11210897,studio,female,1,1,0,1,0,1,1,high,standard,3,12,2,5,3,1,5
+U00628,Student,TB,17.6,1945429,5372560,shared_room,any,1,1,0,1,0,0,0,basic,fully_furnished,6,6,3,2,3,1,4
+U00629,Young Professional,PN,6.7,7516162,10875497,apartment,any,1,1,1,1,1,1,1,high,standard,4,24,4,2,2,3,3
+U00630,Student,TD,13.0,1325182,2482689,shared_room,any,0,1,0,0,1,0,0,high,standard,4,3,2,2,5,2,4
+U00631,Young Professional,PN,9.8,7546494,8595221,apartment,any,1,0,0,1,1,1,1,medium,fully_furnished,3,6,3,5,1,3,2
+U00632,Social Butterfly,D3,9.2,5310445,6452462,shared_room,male,0,0,0,0,1,0,1,basic,standard,6,6,2,5,2,1,4
+U00633,Privacy Seeker,TB,13.4,1152738,2325802,shared_room,male,1,0,1,0,1,0,0,high,standard,1,3,4,2,2,4,1
+U00634,Student,GV,9.0,3425166,6357693,studio,any,0,1,0,0,0,0,0,high,minimal,4,12,2,1,4,1,4
+U00635,Remote Worker,BT,9.3,8499308,10887489,studio,male,1,0,1,1,0,0,1,high,standard,2,12,3,2,4,4,3
+U00636,Young Professional,PN,6.3,6761596,9328826,studio,any,0,1,0,1,0,1,1,medium,minimal,2,6,4,3,3,4,3
+U00637,Social Butterfly,D3,3.9,6054255,9974025,studio,any,1,1,0,1,0,1,1,high,standard,3,6,2,4,4,1,5
+U00638,Student,TD,6.7,1531201,5771469,studio,male,1,1,0,0,0,0,0,medium,standard,3,6,2,3,2,1,4
+U00639,Student,GV,9.0,3089685,5927686,studio,female,0,0,0,0,0,0,0,medium,minimal,4,12,2,3,4,2,5
+U00640,Privacy Seeker,CG,10.0,3842606,6667294,shared_room,male,1,0,1,1,0,0,1,basic,minimal,1,3,3,4,4,4,1
+U00641,Remote Worker,BT,14.1,7558843,11450605,studio,female,0,0,1,1,1,1,0,high,standard,2,12,4,1,1,4,2
+U00642,Social Butterfly,D1,12.9,7141765,10440393,studio,female,0,0,1,0,0,1,1,high,fully_furnished,5,3,2,1,1,1,5
+U00643,Social Butterfly,HK,19.9,4764531,6996420,shared_room,female,0,0,0,1,0,0,1,medium,minimal,6,3,2,3,5,1,4
+U00644,Student,GV,17.4,2089774,6908719,shared_room,female,1,1,1,1,1,0,0,medium,minimal,6,3,2,5,2,1,5
+U00645,Student,TD,17.0,3292503,5876736,studio,female,1,1,0,0,0,0,0,high,fully_furnished,4,12,2,4,4,2,3
+U00646,Young Professional,D3,2.8,7032234,8151862,apartment,male,1,1,0,1,0,1,1,medium,standard,6,12,3,2,3,3,2
+U00647,Student,TB,6.6,3823865,5948526,studio,male,1,1,0,0,1,0,0,high,minimal,3,12,2,5,1,1,4
+U00648,Social Butterfly,HK,11.9,4070313,7956239,studio,male,1,0,1,0,1,0,0,high,minimal,6,12,3,2,1,1,4
+U00649,Young Professional,D1,1.8,5498083,8903906,apartment,female,0,1,0,1,1,1,0,high,minimal,5,12,4,4,5,3,3
+U00650,Privacy Seeker,TX,17.8,2416320,6205318,shared_room,male,0,1,0,0,0,0,1,basic,standard,2,12,3,4,4,5,1
+U00651,Privacy Seeker,TD,16.4,2657752,6556114,shared_room,any,0,1,1,0,0,0,1,medium,minimal,2,3,4,2,1,5,1
+U00652,Young Professional,PN,12.1,5677970,10053339,apartment,female,0,1,1,1,1,0,1,high,minimal,2,24,4,4,5,4,2
+U00653,Remote Worker,D7,2.9,11647890,12990244,studio,male,1,0,1,1,0,1,1,high,fully_furnished,1,6,4,5,3,4,2
+U00654,Privacy Seeker,TX,10.5,3545485,4655786,studio,any,0,1,1,0,0,0,0,medium,standard,2,6,4,1,5,5,1
+U00655,Young Professional,D3,14.3,5653585,8889095,apartment,female,0,1,1,0,0,1,1,high,standard,5,12,3,3,2,3,3
+U00656,Student,TB,13.2,1603110,4375755,shared_room,any,1,0,0,0,0,0,0,high,minimal,6,6,1,2,3,1,4
+U00657,Student,TB,17.3,2447291,5559043,shared_room,female,1,1,1,0,0,0,1,medium,minimal,6,6,1,4,4,2,5
+U00658,Student,GV,17.7,3964876,8404777,studio,female,1,1,0,1,0,1,0,medium,standard,6,12,2,4,5,2,4
+U00659,Student,GV,14.9,2719954,4003997,studio,any,1,1,0,0,0,0,0,high,minimal,6,3,2,5,3,2,4
+U00660,Young Professional,D1,11.2,5228128,7143573,studio,male,0,0,0,0,0,0,0,high,standard,6,3,3,3,3,2,3
+U00661,Student,TD,19.0,2608251,4503307,studio,male,0,0,0,0,1,0,0,medium,standard,5,3,2,1,4,2,5
+U00662,Privacy Seeker,TD,18.0,1177305,4111586,studio,female,1,0,1,0,0,0,0,medium,standard,1,12,4,3,1,5,1
+U00663,Privacy Seeker,TB,7.1,1499668,5302270,studio,any,0,1,1,0,1,0,0,high,minimal,1,3,4,2,4,4,2
+U00664,Student,TD,17.8,2893995,4994670,shared_room,female,0,0,0,0,0,0,0,medium,minimal,6,6,2,4,5,2,5
+U00665,Young Professional,D3,7.4,6197590,8072449,apartment,any,0,0,0,1,0,0,1,medium,minimal,5,24,3,4,4,3,3
+U00666,Remote Worker,D2,10.9,7800007,11853740,studio,any,1,1,1,1,0,1,1,high,fully_furnished,2,12,3,2,2,4,2
+U00667,Student,GV,8.1,2582971,4942743,studio,female,0,1,1,0,1,0,0,basic,minimal,3,3,2,2,1,1,4
+U00668,Privacy Seeker,TX,11.7,2460440,6358778,shared_room,female,1,0,1,1,0,0,1,medium,standard,1,6,4,5,1,5,1
+U00669,Young Professional,D3,13.4,7282456,10445811,apartment,female,1,0,0,0,0,1,1,high,fully_furnished,5,24,3,3,2,3,2
+U00670,Student,TD,17.1,3553721,6109374,studio,male,1,0,1,0,1,0,0,medium,standard,3,3,3,5,5,3,4
+U00671,Student,TB,10.2,3752224,5447828,studio,female,0,0,0,0,0,0,0,medium,fully_furnished,4,6,2,4,2,1,3
+U00672,Student,GV,3.1,2428481,3820172,shared_room,male,0,0,0,0,0,0,0,medium,minimal,6,3,2,3,4,2,4
+U00673,Young Professional,D3,17.6,3239388,5864505,studio,any,0,1,1,0,0,0,0,medium,standard,1,3,3,3,4,4,2
+U00674,Student,GV,1.0,2565579,3964202,studio,female,1,1,0,0,1,0,0,medium,standard,6,3,1,3,4,2,4
+U00675,Remote Worker,D7,18.9,7766660,12005771,studio,female,0,0,1,1,1,0,1,high,minimal,1,6,3,2,3,4,2
+U00676,Social Butterfly,D1,8.2,4593969,9274063,apartment,any,1,0,0,0,0,0,1,high,fully_furnished,6,24,3,3,1,2,5
+U00677,Student,TB,5.8,3834098,4961104,shared_room,male,0,0,1,0,0,0,0,medium,minimal,4,3,2,5,3,2,4
+U00678,Social Butterfly,D3,18.5,7746466,10256048,studio,female,0,0,0,1,1,1,1,medium,fully_furnished,5,6,2,5,1,2,5
+U00679,Young Professional,D1,3.1,5282004,6498039,shared_room,male,1,1,1,1,0,0,1,medium,fully_furnished,1,3,2,3,1,4,3
+U00680,Remote Worker,D2,9.8,8460764,10318324,apartment,any,0,1,1,1,0,0,1,high,standard,1,12,3,5,1,4,1
+U00681,Student,GV,13.9,1751781,5700033,studio,any,1,0,0,0,1,0,0,high,minimal,5,12,2,5,1,2,5
+U00682,Remote Worker,BT,18.9,6908382,8081374,studio,male,0,1,1,1,0,0,1,high,minimal,2,12,4,2,5,5,2
+U00683,Student,GV,14.0,2827059,7163897,apartment,female,1,0,0,0,1,0,0,high,minimal,5,12,2,3,4,3,4
+U00684,Student,TB,1.5,3136148,7122650,studio,female,0,0,1,0,0,0,0,high,standard,6,12,2,5,1,2,4
+U00685,Remote Worker,BT,1.1,6400588,9417453,studio,female,1,0,1,1,0,0,1,high,fully_furnished,2,6,3,2,3,4,2
+U00686,Social Butterfly,D1,7.7,3211253,7724003,apartment,male,1,0,0,0,0,0,0,medium,minimal,6,6,3,5,3,1,4
+U00687,Social Butterfly,D3,10.1,4003670,5749188,shared_room,male,1,1,0,0,0,0,1,basic,standard,4,3,2,1,1,1,4
+U00688,Student,TD,4.5,2256716,5737383,studio,any,1,0,0,0,1,0,0,medium,minimal,6,12,2,1,4,1,4
+U00689,Student,TB,6.2,3061640,5327739,studio,female,1,1,0,0,1,0,0,medium,standard,6,6,2,1,4,1,4
+U00690,Social Butterfly,D3,7.6,4920219,8751625,apartment,any,1,0,0,1,0,0,1,medium,minimal,5,6,3,4,5,1,5
+U00691,Student,TB,14.9,1308920,3911738,studio,male,0,0,0,0,1,0,0,high,standard,4,12,1,4,4,1,4
+U00692,Student,TB,18.6,1477908,6193929,shared_room,female,0,0,0,0,0,0,1,high,minimal,4,6,2,3,4,1,5
+U00693,Remote Worker,D2,11.8,10179378,13554107,studio,any,1,0,1,1,1,0,1,high,minimal,2,3,3,4,4,4,2
+U00694,Social Butterfly,HK,2.0,7340594,10888739,apartment,male,1,0,0,0,0,0,1,high,standard,4,12,3,4,4,1,4
+U00695,Young Professional,D1,4.0,3865929,7404615,studio,any,1,1,1,0,0,0,0,medium,minimal,3,6,3,3,4,3,2
+U00696,Young Professional,PN,19.8,5886850,8426040,studio,male,0,1,1,1,0,1,1,high,standard,5,12,3,5,2,3,3
+U00697,Remote Worker,BT,18.6,10586861,15097713,apartment,male,0,1,0,1,1,0,1,high,standard,2,6,4,2,5,4,2
+U00698,Young Professional,PN,13.0,5630423,7750744,studio,any,1,0,0,0,1,0,0,high,minimal,3,3,4,1,1,3,3
+U00699,Young Professional,PN,2.6,4269770,6095436,studio,male,1,1,0,0,0,0,0,high,standard,6,12,3,2,2,3,3
+U00700,Social Butterfly,D1,19.3,6963955,11951883,studio,male,1,0,0,0,1,1,1,high,standard,3,3,1,4,3,1,5
+U00701,Young Professional,D1,14.2,7951194,12087014,apartment,female,1,1,0,1,0,1,1,high,standard,6,24,3,2,2,2,5
+U00702,Privacy Seeker,TX,19.6,3821073,7481261,apartment,any,1,0,1,0,0,0,0,medium,minimal,1,6,3,5,3,5,1
+U00703,Student,TD,5.9,1487290,6204109,shared_room,female,0,0,0,1,0,0,0,high,standard,4,3,2,1,1,1,4
+U00704,Student,TB,10.0,1390333,2595300,shared_room,male,1,1,0,0,0,0,0,high,minimal,6,6,2,4,4,1,4
+U00705,Student,GV,19.9,3802797,5305257,shared_room,any,0,0,1,1,0,0,1,basic,minimal,6,12,2,5,3,2,4
+U00706,Privacy Seeker,TX,9.4,2100045,6208437,shared_room,male,0,1,1,1,1,0,1,basic,minimal,2,3,3,1,2,5,1
+U00707,Young Professional,D3,10.2,3333121,4771743,studio,male,1,0,1,0,1,0,0,medium,minimal,5,3,2,5,3,2,3
+U00708,Remote Worker,D7,19.1,9713718,12529430,studio,any,1,1,1,1,0,0,1,high,standard,2,12,3,3,5,4,3
+U00709,Student,TB,16.8,3517779,7341813,studio,male,1,1,0,0,0,0,0,high,minimal,6,6,3,5,5,2,3
+U00710,Privacy Seeker,CG,19.4,1389226,5234932,shared_room,female,0,1,1,1,1,0,1,medium,fully_furnished,2,12,4,3,2,5,1
+U00711,Student,TD,6.5,1892624,3074961,shared_room,female,1,0,0,0,0,0,0,high,standard,4,12,2,2,5,2,5
+U00712,Young Professional,D1,17.0,5049424,9083110,apartment,female,0,0,1,1,1,1,0,high,fully_furnished,1,12,3,1,4,4,3
+U00713,Young Professional,D1,11.8,4177102,6968078,studio,male,1,0,0,0,1,0,0,medium,minimal,3,3,2,3,2,2,4
+U00714,Student,TD,19.3,2273595,6487576,shared_room,male,0,1,0,0,1,0,1,high,standard,5,6,3,3,2,2,4
+U00715,Student,TD,2.8,3027154,7157943,apartment,any,0,0,1,0,1,0,0,medium,minimal,5,6,2,5,5,1,4
+U00716,Student,TB,12.7,2260177,5504940,shared_room,female,0,1,0,0,1,0,0,high,minimal,5,6,2,1,1,1,4
+U00717,Privacy Seeker,TB,1.1,3330931,5890650,shared_room,female,0,1,1,1,1,0,1,medium,minimal,1,6,3,3,1,4,1
+U00718,Remote Worker,BT,15.3,6816778,10299955,apartment,male,1,0,1,1,0,0,0,high,minimal,1,24,2,2,1,4,2
+U00719,Student,TB,14.3,1909361,5208782,shared_room,female,0,0,1,0,1,0,1,medium,minimal,3,6,2,2,3,2,4
+U00720,Remote Worker,BT,12.5,7004093,10867861,apartment,any,1,0,1,1,0,0,1,high,fully_furnished,2,24,3,5,5,5,1
+U00721,Privacy Seeker,CG,18.4,1639238,3311458,shared_room,any,1,0,1,0,0,0,0,high,minimal,2,12,4,1,4,5,1
+U00722,Young Professional,D3,17.7,5606297,8248411,apartment,female,0,1,0,0,0,1,1,medium,standard,4,6,3,2,3,3,3
+U00723,Remote Worker,BT,11.2,11185062,14014937,studio,female,1,0,1,0,1,1,1,high,standard,1,3,3,5,3,5,2
+U00724,Student,TB,15.1,3252218,7645716,studio,female,1,0,0,0,0,0,0,medium,minimal,6,6,2,1,2,2,5
+U00725,Young Professional,PN,10.2,4817635,8235888,apartment,male,0,0,1,1,1,0,1,medium,minimal,3,6,3,2,5,3,3
+U00726,Young Professional,D1,3.0,7059491,10610445,apartment,female,0,0,0,1,1,1,1,medium,standard,3,24,2,1,5,3,3
+U00727,Young Professional,D1,8.9,7282207,9747920,studio,any,0,1,0,1,1,0,1,medium,standard,6,3,4,1,3,3,3
+U00728,Student,GV,8.6,1743924,6441823,studio,any,0,0,0,0,1,0,0,high,minimal,6,12,2,3,3,2,4
+U00729,Young Professional,D1,7.6,6973712,8369034,apartment,male,1,1,0,1,1,0,1,high,minimal,4,12,3,3,4,3,3
+U00730,Privacy Seeker,TX,5.7,2912503,6319933,shared_room,any,0,1,0,1,1,0,0,medium,standard,2,6,4,2,2,5,2
+U00731,Young Professional,D3,19.1,3749542,6416950,studio,female,1,1,1,0,1,0,0,high,standard,2,12,3,5,5,4,2
+U00732,Young Professional,D3,10.1,7760272,11073929,studio,any,1,0,0,1,1,1,1,medium,standard,2,12,3,3,4,4,2
+U00733,Remote Worker,BT,19.2,6598398,8627769,apartment,female,0,0,0,1,1,1,1,high,minimal,2,6,4,4,3,4,2
+U00734,Remote Worker,BT,12.6,11456514,13248108,studio,female,0,0,0,1,0,0,1,high,standard,2,12,4,1,4,4,2
+U00735,Young Professional,D3,12.4,6646770,8666574,studio,female,0,0,1,1,0,1,1,medium,fully_furnished,2,12,3,2,5,4,2
+U00736,Remote Worker,D2,19.0,11990839,14676165,studio,male,0,1,1,0,1,0,0,high,standard,2,12,4,5,2,4,3
+U00737,Student,TB,14.0,3228092,6751208,studio,female,1,1,0,0,0,0,0,high,standard,4,3,2,4,5,2,3
+U00738,Remote Worker,D2,8.2,9184602,13776852,studio,female,0,0,1,1,1,0,1,high,minimal,1,6,4,1,4,4,2
+U00739,Student,GV,5.9,1160091,5741000,shared_room,male,0,0,0,1,1,0,0,high,minimal,5,6,1,4,3,2,4
+U00740,Student,TB,14.0,1386550,3704951,shared_room,male,1,1,0,0,1,0,0,medium,standard,5,12,2,3,5,1,5
+U00741,Student,GV,6.3,3022942,6608293,shared_room,female,1,0,0,1,1,0,1,high,minimal,4,6,1,1,3,1,5
+U00742,Young Professional,D1,15.9,7351265,11702922,studio,any,0,1,0,1,1,1,1,medium,fully_furnished,5,3,3,2,5,3,2
+U00743,Privacy Seeker,TX,6.8,3183700,7042291,apartment,female,1,0,1,0,0,0,0,high,minimal,2,12,3,3,2,5,1
+U00744,Young Professional,D1,7.1,5544298,6793060,studio,male,1,1,1,0,0,0,0,medium,minimal,1,6,3,2,4,4,2
+U00745,Young Professional,PN,7.6,6626520,10393718,studio,male,0,0,0,1,0,1,1,high,fully_furnished,3,3,3,1,1,3,2
+U00746,Young Professional,D1,7.0,4803237,9235474,studio,female,1,0,1,1,1,1,1,high,minimal,5,3,4,4,2,3,3
+U00747,Privacy Seeker,TX,19.1,1410018,5886358,studio,female,1,0,0,0,1,0,0,high,standard,2,6,4,3,4,5,1
+U00748,Young Professional,D1,17.6,5738572,8512970,studio,any,0,0,1,1,0,1,1,basic,fully_furnished,1,12,3,1,3,4,3
+U00749,Remote Worker,D7,19.0,11596200,15836438,studio,female,1,1,0,1,0,0,1,high,fully_furnished,6,6,3,4,3,3,2
+U00750,Student,TB,6.1,2932360,4292868,studio,any,1,1,0,0,1,0,0,medium,minimal,5,6,2,3,1,1,4
+U00751,Young Professional,D3,3.9,3259579,7053711,studio,female,0,1,1,0,1,0,0,medium,minimal,1,12,3,5,3,4,3
+U00752,Young Professional,PN,13.5,4457692,5747856,studio,any,1,1,0,0,0,0,0,high,fully_furnished,2,3,3,3,2,4,2
+U00753,Privacy Seeker,TD,2.2,3777314,4807947,shared_room,female,1,1,1,0,0,0,0,medium,standard,2,3,4,4,3,4,1
+U00754,Young Professional,PN,7.2,7304050,12138321,studio,male,0,0,0,0,0,0,1,high,minimal,6,3,3,2,2,3,2
+U00755,Young Professional,D1,18.5,3488645,6107485,studio,female,1,0,0,0,0,0,0,medium,minimal,4,6,3,4,3,3,2
+U00756,Student,TD,13.2,3940331,6190401,studio,male,0,1,0,0,1,0,0,high,fully_furnished,5,3,2,4,5,2,5
+U00757,Student,GV,6.3,3032922,7135764,apartment,male,0,1,0,0,1,0,0,medium,minimal,4,12,3,2,2,2,4
+U00758,Student,TD,7.3,2682125,4098109,shared_room,female,1,0,0,0,0,0,0,high,fully_furnished,4,6,2,5,1,2,4
+U00759,Social Butterfly,D1,7.5,7173440,10405762,studio,any,1,0,0,1,1,0,1,high,standard,6,3,3,1,1,1,4
+U00760,Young Professional,PN,6.2,3207942,7445005,apartment,female,1,1,0,0,1,0,0,high,standard,3,24,3,4,4,3,3
+U00761,Student,GV,20.0,1231100,5080099,shared_room,any,0,0,0,1,1,0,0,high,standard,6,6,1,3,3,1,4
+U00762,Young Professional,D1,4.9,7502001,12074672,apartment,male,1,0,0,1,0,1,0,high,standard,4,12,4,4,2,3,2
+U00763,Remote Worker,BT,3.8,7169819,11418224,studio,any,0,1,1,1,0,0,1,high,minimal,1,3,3,4,5,4,2
+U00764,Student,GV,1.6,3066890,4735691,shared_room,female,1,0,1,0,1,0,0,high,fully_furnished,4,6,2,5,3,2,4
+U00765,Student,TD,9.8,2669589,5622260,studio,any,0,0,0,0,0,0,0,medium,minimal,5,12,2,3,4,2,3
+U00766,Social Butterfly,D1,9.2,4883800,7547173,studio,any,0,0,1,0,0,0,0,high,standard,5,12,2,2,1,2,4
+U00767,Social Butterfly,HK,10.7,3285053,4982941,studio,female,1,0,0,0,0,0,0,medium,minimal,4,6,2,1,4,2,5
+U00768,Social Butterfly,D3,17.8,5305132,7842671,apartment,male,0,0,0,0,1,0,0,high,minimal,5,6,2,2,2,2,5
+U00769,Remote Worker,D7,10.6,8624038,11146266,studio,any,0,1,1,1,0,1,1,high,standard,2,6,3,5,2,4,2
+U00770,Student,TD,7.3,2668910,4175161,shared_room,female,0,0,1,0,1,0,0,high,minimal,5,6,1,3,3,2,4
+U00771,Student,TD,11.3,3008477,4054065,studio,female,1,0,1,0,1,0,0,high,minimal,5,6,3,4,2,2,4
+U00772,Social Butterfly,D3,19.9,5033516,6751068,shared_room,male,0,0,0,0,0,0,1,high,standard,5,3,2,1,1,1,4
+U00773,Young Professional,D1,18.0,5312283,7422565,apartment,male,0,0,0,0,1,0,0,medium,standard,5,24,2,5,1,3,2
+U00774,Privacy Seeker,TB,15.9,3096567,6034294,shared_room,male,1,1,1,1,0,0,1,basic,fully_furnished,2,12,3,2,3,5,1
+U00775,Young Professional,PN,16.6,6916997,9749546,apartment,female,0,1,0,1,0,1,1,medium,fully_furnished,5,24,3,4,5,3,3
+U00776,Remote Worker,D2,7.2,9208214,10442464,apartment,female,1,1,1,1,0,1,1,high,standard,2,12,4,1,1,4,2
+U00777,Young Professional,D1,16.5,4371240,9261664,apartment,any,0,0,0,1,1,1,1,high,standard,4,6,4,3,5,3,3
+U00778,Remote Worker,D7,6.7,7850605,9949165,apartment,female,0,1,1,0,1,0,1,high,fully_furnished,2,6,4,3,1,4,2
+U00779,Remote Worker,D2,19.3,7957266,9013184,studio,female,0,0,1,0,0,1,1,high,standard,2,12,4,3,1,5,2
+U00780,Privacy Seeker,TD,12.8,2738107,7248956,apartment,male,1,0,0,0,0,0,0,medium,minimal,1,6,3,1,5,5,2
+U00781,Social Butterfly,D1,17.4,6943049,10183004,apartment,any,0,1,1,1,1,0,1,high,fully_furnished,3,24,3,4,3,1,4
+U00782,Remote Worker,D7,6.7,8064938,11656931,studio,any,1,1,1,1,0,0,1,high,fully_furnished,1,3,3,4,5,4,3
+U00783,Social Butterfly,HK,16.7,7113795,9679851,studio,female,0,1,1,1,1,1,1,high,minimal,3,3,2,5,3,1,4
+U00784,Student,GV,14.6,3402271,4477820,studio,male,1,0,0,0,0,0,0,high,fully_furnished,4,12,1,3,1,2,4
+U00785,Privacy Seeker,TD,12.2,1062531,3553463,studio,male,1,1,1,0,0,0,0,medium,standard,2,12,4,3,3,5,1
+U00786,Remote Worker,D2,9.6,9861611,12327115,apartment,any,0,1,1,1,0,0,0,high,standard,1,24,4,4,2,4,2
+U00787,Young Professional,D1,10.9,4699850,6927814,shared_room,any,1,0,0,1,0,0,1,high,minimal,4,6,3,5,3,3,3
+U00788,Young Professional,D1,9.5,5489880,8217789,apartment,male,0,0,0,1,0,0,0,medium,minimal,3,12,3,2,5,3,4
+U00789,Social Butterfly,D1,2.6,5768083,9505948,studio,female,0,1,0,0,1,1,1,medium,minimal,4,3,3,4,1,1,4
+U00790,Social Butterfly,D3,1.5,4613694,6173624,shared_room,male,1,0,0,1,0,0,0,basic,standard,3,6,2,4,4,1,5
+U00791,Student,TD,17.0,1741513,3764924,shared_room,female,0,0,0,0,1,0,0,medium,standard,5,12,2,5,2,1,4
+U00792,Remote Worker,D2,4.1,9125376,13471422,studio,any,1,0,0,1,1,0,1,high,standard,6,12,3,1,3,3,2
+U00793,Student,GV,3.8,1693301,3441293,shared_room,any,1,1,0,0,1,0,0,medium,standard,3,3,2,5,3,2,4
+U00794,Student,GV,10.1,2784664,6329458,studio,any,0,1,0,0,1,0,0,high,minimal,6,3,2,5,3,2,5
+U00795,Student,GV,4.7,1129960,5125263,shared_room,any,0,1,0,0,1,0,0,basic,standard,6,3,1,3,4,1,4
+U00796,Young Professional,D3,7.6,6887594,10705254,apartment,male,1,1,0,0,1,1,1,high,standard,4,6,4,3,3,3,3
+U00797,Student,TD,15.7,3057550,5332414,studio,female,0,0,0,0,0,0,0,basic,minimal,5,12,2,4,4,1,4
+U00798,Young Professional,D1,3.5,5406695,8504640,apartment,female,0,0,0,1,1,1,0,medium,standard,5,24,3,2,3,3,2
+U00799,Student,TD,1.2,2004411,5235468,shared_room,male,0,0,1,1,1,0,1,basic,minimal,4,6,2,2,3,2,3
+U00800,Young Professional,PN,19.6,3769646,6871097,studio,male,0,1,0,0,0,0,0,medium,standard,4,3,3,1,5,3,3
+U00801,Remote Worker,BT,13.7,11700811,13972153,studio,male,0,0,1,1,0,1,0,high,fully_furnished,2,3,4,5,4,4,3
+U00802,Social Butterfly,HK,8.4,3825844,6178205,studio,female,1,1,0,0,0,0,0,medium,standard,4,12,3,4,1,1,4
+U00803,Student,TD,12.7,3737153,5637240,shared_room,male,0,0,0,0,1,0,1,medium,fully_furnished,5,6,2,4,5,1,3
+U00804,Social Butterfly,HK,6.2,7166316,9409783,studio,female,0,1,0,1,1,1,1,medium,standard,6,3,2,3,2,1,5
+U00805,Student,TD,16.7,2516867,6405902,shared_room,female,0,1,1,0,0,0,1,medium,fully_furnished,3,6,3,2,1,2,4
+U00806,Student,TD,12.3,3675248,6408766,shared_room,male,0,0,0,1,1,0,0,high,standard,6,3,2,4,2,1,5
+U00807,Remote Worker,D7,13.3,8560693,12355746,apartment,female,0,1,1,1,0,1,1,high,fully_furnished,2,12,4,4,4,4,2
+U00808,Young Professional,D3,16.7,6482798,10963273,apartment,male,0,0,1,1,1,0,1,medium,standard,6,6,3,3,2,3,2
+U00809,Social Butterfly,D3,1.8,7219920,11922145,apartment,any,1,0,0,1,0,0,1,medium,standard,5,24,3,2,3,1,4
+U00810,Social Butterfly,HK,17.5,3230169,6874831,shared_room,female,1,1,0,0,0,0,1,basic,minimal,6,12,3,5,1,1,5
+U00811,Social Butterfly,D1,13.6,3415458,6469457,studio,male,0,0,0,0,0,0,0,medium,minimal,6,3,3,4,3,1,3
+U00812,Privacy Seeker,TB,5.7,2575199,3698136,studio,male,1,1,1,0,0,0,0,high,standard,1,12,3,2,2,5,1
+U00813,Young Professional,D1,13.3,6493331,9069740,apartment,any,1,1,1,1,0,0,1,medium,minimal,2,12,2,4,2,4,3
+U00814,Young Professional,D1,18.9,7826242,8991502,studio,male,0,1,1,0,1,1,1,medium,fully_furnished,5,6,2,4,3,2,3
+U00815,Student,TD,18.4,1083031,4050910,studio,any,0,1,0,0,1,0,0,high,minimal,6,12,2,1,1,1,4
+U00816,Privacy Seeker,CG,11.3,3945066,4979311,studio,any,1,0,1,0,1,0,0,medium,minimal,1,6,3,3,3,5,2
+U00817,Student,TD,12.9,3697808,6622618,studio,female,1,1,1,0,1,0,0,medium,standard,6,3,2,2,4,1,4
+U00818,Student,GV,19.8,1234631,5800761,shared_room,female,1,1,0,1,1,0,0,medium,standard,4,6,3,2,1,1,4
+U00819,Remote Worker,D2,10.3,8718768,13372480,studio,any,1,0,0,1,0,1,1,high,fully_furnished,2,12,4,1,2,4,1
+U00820,Student,TD,17.6,1790224,2944185,shared_room,any,1,0,0,0,0,0,0,medium,minimal,4,12,2,5,2,2,4
+U00821,Social Butterfly,D1,7.5,7023526,11023608,apartment,female,0,1,0,1,1,1,1,high,standard,5,6,3,2,3,1,4
+U00822,Student,TB,8.6,2208160,5012266,shared_room,female,1,1,0,1,1,0,0,basic,fully_furnished,4,6,2,3,2,2,3
+U00823,Privacy Seeker,TB,7.8,3193106,7878813,studio,any,0,0,1,0,0,0,0,medium,minimal,2,6,4,3,2,5,1
+U00824,Student,TD,17.3,1634104,6242432,studio,male,0,0,1,0,0,0,0,high,minimal,5,6,1,5,3,1,3
+U00825,Student,TD,5.7,2867473,7256957,apartment,any,1,0,1,0,0,0,0,high,minimal,5,6,2,2,5,2,4
+U00826,Student,GV,8.8,3592034,7234054,studio,male,1,0,0,0,1,0,0,high,standard,4,6,1,2,3,1,3
+U00827,Student,TB,18.5,2430142,6819140,shared_room,any,0,0,0,0,1,0,1,basic,minimal,5,6,3,5,5,2,3
+U00828,Remote Worker,D7,14.1,6658642,7932696,studio,female,0,1,1,0,1,0,0,high,standard,2,12,4,2,5,4,2
+U00829,Privacy Seeker,TB,16.8,3468800,5911671,studio,male,1,0,1,0,0,0,0,medium,fully_furnished,2,12,4,5,2,4,1
+U00830,Social Butterfly,HK,15.8,6083080,9627979,apartment,female,0,0,0,1,1,1,1,high,fully_furnished,3,12,2,3,2,1,5
+U00831,Social Butterfly,D1,17.4,4477375,8880323,studio,any,0,1,0,1,1,1,1,medium,fully_furnished,4,12,3,5,5,1,5
+U00832,Remote Worker,D2,3.4,8340403,10762552,apartment,male,0,0,0,1,1,1,1,high,minimal,2,24,4,4,1,5,2
+U00833,Social Butterfly,D3,4.3,3780828,7707635,apartment,any,1,1,0,0,1,0,0,high,minimal,3,6,3,1,5,1,3
+U00834,Remote Worker,D2,11.2,8383234,10065809,studio,male,1,1,1,1,0,1,1,high,standard,2,6,4,5,5,4,2
+U00835,Young Professional,D1,5.2,4573940,8487818,apartment,any,0,0,0,1,0,1,1,medium,standard,6,24,3,4,1,3,2
+U00836,Young Professional,PN,19.1,3847678,6101904,shared_room,male,1,0,0,0,1,0,0,high,standard,6,12,2,1,5,3,2
+U00837,Student,GV,5.4,1736947,4542719,studio,female,0,0,0,0,1,0,0,basic,fully_furnished,5,12,1,4,3,2,4
+U00838,Remote Worker,D2,11.0,8139341,11266000,apartment,any,0,1,1,0,1,1,1,high,fully_furnished,2,24,3,4,2,4,2
+U00839,Social Butterfly,HK,12.2,6987900,10723515,studio,female,1,0,0,1,1,0,0,high,standard,6,3,2,2,2,1,4
+U00840,Privacy Seeker,TX,8.6,2781762,4158233,shared_room,any,1,1,1,0,1,0,0,medium,minimal,2,12,4,2,5,4,2
+U00841,Young Professional,PN,5.8,5675117,10460067,apartment,male,0,0,1,1,0,1,1,high,standard,2,12,3,5,1,4,2
+U00842,Social Butterfly,HK,13.6,5728677,9661668,apartment,any,1,0,0,1,0,1,1,high,fully_furnished,6,12,2,4,2,1,5
+U00843,Privacy Seeker,TX,5.6,2834479,7662661,studio,any,0,0,1,0,1,0,0,high,fully_furnished,2,3,3,1,5,4,1
+U00844,Student,TB,12.1,1128126,5360085,studio,female,0,0,1,0,1,0,0,medium,minimal,4,3,3,1,4,1,4
+U00845,Student,GV,6.5,1774739,3886495,studio,any,0,1,0,0,1,0,0,basic,minimal,5,12,3,2,2,1,4
+U00846,Social Butterfly,D3,10.3,7047246,8182495,apartment,any,1,0,0,1,1,1,1,medium,fully_furnished,5,12,2,1,3,1,4
+U00847,Student,TB,14.9,2897420,5182475,shared_room,any,0,0,1,0,1,0,1,medium,minimal,4,6,2,4,4,2,4
+U00848,Young Professional,PN,16.3,5147913,6231999,studio,female,0,1,1,0,0,0,0,medium,minimal,5,3,3,2,3,3,2
+U00849,Remote Worker,BT,7.9,8662235,12613320,studio,any,0,0,1,0,1,1,1,high,standard,1,6,5,2,5,4,2
+U00850,Privacy Seeker,TB,3.3,3912214,7719394,studio,any,0,0,1,0,0,0,0,basic,minimal,1,3,4,5,5,5,1
+U00851,Student,TB,19.9,2347614,3861574,shared_room,female,0,1,0,0,1,0,0,medium,minimal,3,3,2,3,5,2,4
+U00852,Young Professional,PN,1.9,7430113,11490329,apartment,male,0,1,1,1,1,1,1,medium,standard,3,6,3,5,4,3,3
+U00853,Young Professional,D1,1.3,5073405,6832413,shared_room,any,0,1,1,0,1,0,1,medium,standard,1,3,3,2,1,4,3
+U00854,Privacy Seeker,TB,17.2,2410845,4981092,studio,male,0,0,1,0,1,0,0,high,minimal,1,6,4,4,1,5,1
+U00855,Privacy Seeker,TD,6.2,3337901,5742139,studio,male,1,1,1,0,0,0,0,medium,standard,1,3,3,5,1,4,1
+U00856,Young Professional,D3,5.7,7392131,11381768,studio,male,0,0,0,0,1,1,1,basic,minimal,6,6,3,2,4,3,3
+U00857,Young Professional,D1,15.1,6313037,8122583,studio,male,0,0,0,1,0,1,1,basic,minimal,4,3,3,1,4,3,3
+U00858,Remote Worker,D7,17.9,9526749,12039096,studio,male,0,1,1,1,1,0,1,high,standard,1,12,4,4,2,4,3
+U00859,Student,GV,10.6,2181517,6278347,shared_room,any,1,0,0,0,0,0,1,high,minimal,5,6,2,3,1,2,5
+U00860,Young Professional,D1,14.7,7154071,8779677,apartment,any,0,0,1,1,0,1,1,high,fully_furnished,4,12,3,5,3,2,3
+U00861,Young Professional,D1,2.8,3861349,7265113,apartment,female,0,1,0,0,0,0,0,medium,minimal,1,24,4,1,5,4,2
+U00862,Student,TB,6.4,2924284,6553826,studio,any,0,0,0,0,0,0,0,high,standard,3,12,3,5,1,2,4
+U00863,Student,TB,3.5,2531207,7229804,studio,any,1,1,0,0,1,0,0,high,minimal,5,3,2,2,4,1,4
+U00864,Student,TB,3.2,2192917,3655782,shared_room,male,0,0,0,0,0,0,0,high,minimal,3,3,1,4,2,2,4
+U00865,Social Butterfly,D3,5.9,7888910,10247614,apartment,any,0,0,0,0,1,1,1,medium,standard,3,12,3,4,2,1,5
+U00866,Student,TD,7.3,1112482,3833544,studio,male,0,1,0,0,0,0,0,medium,minimal,4,3,2,4,5,2,4
+U00867,Student,TB,17.9,2965831,4985300,studio,male,0,0,1,0,0,0,0,medium,standard,4,6,2,1,3,2,4
+U00868,Young Professional,PN,14.1,5181455,8640697,apartment,female,1,1,0,1,0,0,1,medium,standard,4,12,3,3,3,2,3
+U00869,Social Butterfly,HK,6.4,3657318,7618162,apartment,male,1,0,1,0,0,0,0,high,minimal,5,12,2,2,4,1,5
+U00870,Young Professional,PN,10.9,6213899,9485460,studio,any,1,0,0,1,1,1,0,high,fully_furnished,4,6,4,2,2,3,2
+U00871,Young Professional,D1,14.7,4545377,8218096,apartment,any,0,0,0,1,0,0,1,medium,fully_furnished,4,24,3,2,2,3,3
+U00872,Social Butterfly,D1,18.0,4012027,7143510,studio,male,1,1,0,0,1,0,0,high,standard,5,6,2,2,4,1,4
+U00873,Social Butterfly,HK,19.9,4308273,6745951,studio,any,1,1,1,0,0,0,0,high,minimal,4,12,2,3,1,1,4
+U00874,Social Butterfly,D1,3.3,4318105,6059339,shared_room,male,1,0,0,1,1,0,1,medium,minimal,4,6,2,1,1,1,5
+U00875,Remote Worker,D7,16.8,8933423,13271585,studio,female,1,1,1,1,0,1,0,high,fully_furnished,2,6,4,5,2,4,2
+U00876,Privacy Seeker,TB,15.4,1008177,4140582,studio,female,0,1,1,0,1,0,0,high,standard,2,6,4,3,3,5,1
+U00877,Student,GV,16.1,2267610,4039017,shared_room,female,0,1,1,0,0,0,0,high,minimal,5,6,2,2,4,2,4
+U00878,Student,GV,10.6,3755789,7619846,studio,female,0,1,0,0,0,0,0,high,fully_furnished,5,6,2,4,4,1,3
+U00879,Remote Worker,D2,10.5,7676106,11436725,apartment,male,1,1,1,0,0,1,1,high,fully_furnished,1,24,4,2,3,4,2
+U00880,Student,GV,14.5,2224401,5690475,studio,any,1,0,0,0,1,0,0,high,standard,6,3,2,5,4,2,4
+U00881,Privacy Seeker,TD,19.8,3207722,5341709,shared_room,male,0,1,0,1,1,0,0,medium,minimal,2,3,3,1,3,4,1
+U00882,Young Professional,PN,8.6,3967505,7935803,studio,female,1,0,0,0,0,0,0,high,minimal,3,3,4,3,4,2,4
+U00883,Young Professional,PN,3.4,7445826,11730268,studio,male,0,1,1,1,0,1,0,high,fully_furnished,3,6,3,3,5,3,3
+U00884,Social Butterfly,D3,16.4,4925266,7057988,apartment,male,0,0,0,0,1,0,0,high,minimal,6,24,3,3,4,1,4
+U00885,Young Professional,D1,6.7,3037967,4611735,shared_room,any,1,0,0,0,0,0,0,basic,standard,5,3,3,3,2,2,3
+U00886,Remote Worker,D7,9.9,7691490,11530167,studio,male,0,0,1,1,1,1,1,high,minimal,1,6,3,5,5,4,2
+U00887,Young Professional,D3,11.7,6840513,9012693,apartment,female,1,0,0,1,1,1,1,basic,minimal,3,12,3,1,1,3,2
+U00888,Young Professional,PN,9.2,4709597,7104465,apartment,any,0,0,0,0,1,0,0,medium,minimal,4,6,3,4,2,2,3
+U00889,Privacy Seeker,TX,12.0,2171661,6572170,studio,female,1,0,1,0,0,0,0,medium,minimal,2,3,2,5,3,5,1
+U00890,Student,GV,13.8,2331363,7319789,apartment,female,0,1,1,0,0,0,0,medium,standard,6,24,2,5,2,1,4
+U00891,Student,TD,5.6,3382113,5148492,shared_room,female,0,0,0,1,0,0,1,high,standard,6,6,2,3,2,1,4
+U00892,Remote Worker,D2,7.6,9885593,12542636,studio,any,0,0,0,1,0,0,0,high,standard,1,12,3,3,3,4,2
+U00893,Remote Worker,D7,11.1,8431006,10019997,apartment,any,0,1,1,1,0,0,1,high,standard,2,6,3,5,4,4,3
+U00894,Privacy Seeker,CG,13.6,3673326,8410095,apartment,male,1,0,1,0,1,1,1,high,fully_furnished,1,24,5,1,3,5,1
+U00895,Young Professional,PN,16.9,4611602,5696909,shared_room,male,0,1,1,0,1,0,1,medium,standard,1,3,4,3,1,4,2
+U00896,Student,GV,19.3,1809123,4561951,shared_room,female,1,0,0,0,1,0,0,high,standard,3,12,2,4,1,1,3
+U00897,Young Professional,PN,12.5,7442126,10215510,apartment,any,0,0,1,0,1,1,1,medium,minimal,5,12,3,1,5,3,3
+U00898,Social Butterfly,D1,4.8,3954640,8497093,apartment,any,1,1,0,1,0,1,1,medium,minimal,6,12,3,1,5,1,5
+U00899,Remote Worker,D2,13.0,11335476,16153060,studio,female,1,1,0,1,0,0,1,high,fully_furnished,4,3,4,3,2,3,1
+U00900,Remote Worker,D7,3.8,8789879,12671263,apartment,male,0,1,1,0,1,1,0,high,fully_furnished,2,6,5,3,4,4,2
+U00901,Student,GV,17.2,1899731,4930147,studio,any,1,1,1,0,0,0,0,medium,minimal,6,3,2,3,1,2,4
+U00902,Young Professional,D3,19.3,6687756,10809032,apartment,female,1,1,1,0,0,1,1,medium,minimal,2,12,3,4,3,4,3
+U00903,Young Professional,PN,18.6,4556321,9541315,apartment,female,1,1,0,1,0,1,1,high,minimal,6,12,3,3,1,2,3
+U00904,Social Butterfly,D3,17.3,3135477,5345710,studio,female,1,0,0,0,1,0,0,medium,standard,5,6,2,5,5,1,4
+U00905,Social Butterfly,D1,9.9,4483302,9317439,apartment,any,1,1,0,0,0,1,1,high,fully_furnished,6,6,3,5,2,1,5
+U00906,Social Butterfly,D3,9.7,4707478,5836955,shared_room,male,1,0,1,0,0,0,1,medium,standard,3,12,2,5,4,1,5
+U00907,Remote Worker,D7,4.5,7370982,9531331,studio,male,0,1,1,1,0,1,1,high,minimal,1,12,4,4,3,5,2
+U00908,Social Butterfly,D1,6.1,4249152,7816413,studio,female,1,1,0,0,0,0,0,medium,standard,3,6,2,2,4,1,4
+U00909,Privacy Seeker,TX,16.7,2915021,6587959,studio,male,1,0,1,0,1,0,0,high,minimal,1,6,3,5,4,4,1
+U00910,Remote Worker,D2,18.3,10112929,11631726,studio,female,0,1,1,1,0,1,1,high,minimal,1,6,4,3,1,5,1
+U00911,Student,TD,5.2,3099276,4715909,shared_room,female,0,0,0,0,1,0,0,high,standard,5,12,2,5,5,2,4
+U00912,Young Professional,D1,18.8,3237369,6813010,shared_room,male,1,1,1,1,0,0,1,medium,minimal,3,3,3,1,5,3,2
+U00913,Privacy Seeker,TB,19.1,2503630,5347433,studio,male,0,0,0,0,1,0,0,medium,minimal,2,12,4,3,1,5,1
+U00914,Student,TB,11.9,2656113,4011191,studio,any,0,1,0,0,1,0,0,high,minimal,4,6,2,2,1,1,4
+U00915,Remote Worker,D7,1.4,8197775,9960563,apartment,any,1,0,1,1,0,1,1,high,minimal,2,24,3,5,5,4,3
+U00916,Young Professional,D3,2.0,7454395,10687080,studio,any,0,0,0,0,0,1,1,medium,standard,3,3,2,4,3,3,2
+U00917,Privacy Seeker,TX,18.0,1382968,4472609,studio,any,0,1,1,0,1,0,0,medium,minimal,1,12,3,5,2,4,2
+U00918,Student,TB,10.8,2297988,7151081,studio,male,1,0,0,0,0,0,0,high,standard,3,12,1,3,3,1,4
+U00919,Remote Worker,BT,12.1,11450484,16168910,studio,any,0,0,1,1,0,1,1,high,fully_furnished,1,12,3,5,2,4,2
+U00920,Young Professional,D1,5.4,7171331,10930742,apartment,female,0,0,1,1,1,1,1,medium,standard,2,6,4,1,3,4,2
+U00921,Privacy Seeker,CG,14.0,1280698,3432170,shared_room,any,0,1,0,0,1,0,0,medium,minimal,2,6,4,3,5,4,1
+U00922,Student,TB,15.9,3434510,6077413,studio,female,0,0,0,0,1,0,0,high,minimal,4,3,2,5,5,1,3
+U00923,Remote Worker,BT,6.1,9444233,14291407,apartment,male,0,0,1,1,1,0,1,high,fully_furnished,1,12,3,2,4,4,2
+U00924,Young Professional,PN,2.9,4848238,9260574,studio,male,1,0,0,1,1,1,1,high,fully_furnished,5,3,3,3,2,3,2
+U00925,Young Professional,D3,19.6,5883487,7867522,apartment,any,1,0,1,0,1,0,0,medium,standard,5,12,3,5,2,3,2
+U00926,Privacy Seeker,TX,17.7,1716278,5754053,studio,female,0,0,1,0,0,0,0,high,minimal,2,6,3,1,1,4,1
+U00927,Social Butterfly,HK,3.1,5807925,7946018,apartment,male,0,0,1,0,1,0,0,medium,minimal,5,6,3,3,2,1,5
+U00928,Young Professional,D3,12.6,6269306,8773166,studio,any,1,0,1,1,1,1,1,medium,minimal,1,12,3,2,2,4,3
+U00929,Remote Worker,D2,18.1,8578528,12340954,apartment,female,1,1,1,1,0,1,1,high,standard,5,24,3,3,3,3,2
+U00930,Remote Worker,BT,2.0,10371640,12949545,studio,any,0,0,1,1,0,0,0,high,standard,2,12,4,1,1,4,1
+U00931,Student,GV,18.1,2798469,7139702,apartment,male,1,0,1,0,0,0,0,high,minimal,6,12,2,2,2,1,5
+U00932,Student,TD,12.3,1447022,5459244,shared_room,male,0,1,0,0,0,0,0,medium,standard,6,6,1,4,4,2,4
+U00933,Student,TD,10.6,3166771,7125678,studio,any,0,1,1,0,1,0,0,high,minimal,5,6,1,1,1,2,4
+U00934,Student,GV,8.9,1601433,3478952,shared_room,female,0,1,1,0,0,0,0,high,minimal,3,3,1,2,3,2,4
+U00935,Social Butterfly,D1,5.8,7649582,11074608,apartment,female,0,1,0,1,1,1,1,high,standard,3,6,3,4,5,1,5
+U00936,Social Butterfly,D3,5.5,5324149,6547380,studio,male,1,0,1,0,1,0,0,medium,standard,3,12,2,1,2,1,5
+U00937,Remote Worker,D2,1.3,7739314,10909079,apartment,male,0,0,1,1,0,1,1,high,fully_furnished,2,24,4,2,1,4,1
+U00938,Social Butterfly,D3,7.6,3310312,5519901,shared_room,female,0,0,0,0,1,0,0,medium,fully_furnished,6,12,2,4,4,1,5
+U00939,Young Professional,D1,11.9,6243269,10943821,apartment,male,1,0,0,1,0,0,1,medium,standard,4,12,3,1,5,3,3
+U00940,Privacy Seeker,TB,18.7,3771705,7456769,apartment,female,0,0,1,0,0,0,0,medium,standard,2,12,3,2,1,5,1
+U00941,Social Butterfly,HK,1.9,4716101,8440011,studio,male,1,1,0,1,1,0,1,high,standard,6,12,3,3,4,1,4
+U00942,Remote Worker,D7,12.5,7395173,10997201,apartment,female,0,1,1,1,1,1,0,high,standard,1,6,4,4,2,4,2
+U00943,Privacy Seeker,CG,19.8,3258726,5700473,studio,any,0,1,1,0,0,0,0,basic,minimal,2,3,4,4,3,4,1
+U00944,Student,GV,16.1,3527810,4534474,shared_room,any,1,1,0,0,0,0,0,high,standard,4,12,2,3,3,2,4
+U00945,Young Professional,D1,3.2,3618960,4748797,shared_room,female,1,1,0,0,0,0,0,medium,minimal,6,6,4,4,1,3,2
+U00946,Remote Worker,D7,4.5,8621084,12247261,studio,female,0,0,1,1,1,1,1,high,standard,2,6,3,3,1,5,2
+U00947,Young Professional,PN,19.6,5641733,9407217,apartment,any,0,0,0,1,0,0,1,high,standard,3,6,2,5,4,3,1
+U00948,Social Butterfly,D3,10.6,4027678,8888578,apartment,male,1,1,0,1,0,1,0,high,standard,6,12,2,4,4,1,4
+U00949,Privacy Seeker,TX,7.5,1533623,2865601,shared_room,female,0,0,0,0,1,0,0,medium,minimal,2,6,3,1,3,4,1
+U00950,Remote Worker,D7,7.3,8861772,12008060,studio,female,1,0,1,1,1,0,1,high,fully_furnished,2,3,4,2,5,4,2
+U00951,Student,TB,15.6,3896509,6672756,shared_room,female,1,1,0,0,0,0,1,high,minimal,3,6,2,2,3,1,4
+U00952,Remote Worker,D2,17.9,7488890,8869164,apartment,any,0,0,1,0,1,1,1,high,standard,2,12,4,5,2,4,3
+U00953,Privacy Seeker,TD,12.8,2290622,6221873,studio,female,0,1,0,0,0,0,0,high,fully_furnished,3,6,4,2,5,3,2
+U00954,Young Professional,D3,9.6,3594629,6865209,shared_room,any,0,1,1,0,1,0,0,medium,minimal,6,3,3,3,5,3,3
+U00955,Remote Worker,D7,15.0,8710267,10828686,studio,male,0,1,0,1,1,0,1,high,fully_furnished,5,3,4,2,2,3,1
+U00956,Young Professional,D3,17.4,7156242,8715153,studio,any,1,1,0,0,1,0,1,basic,standard,3,12,3,2,3,3,2
+U00957,Student,GV,16.2,3786437,8444737,apartment,male,1,0,1,1,0,0,1,high,fully_furnished,4,24,2,3,5,2,5
+U00958,Young Professional,PN,13.4,4291913,8271632,apartment,female,1,1,0,1,1,1,1,medium,standard,1,24,3,5,2,4,2
+U00959,Privacy Seeker,TX,17.9,2026550,5385943,studio,any,0,0,0,0,0,0,0,basic,minimal,2,6,3,1,5,4,1
+U00960,Social Butterfly,HK,5.3,6774634,10590868,apartment,any,0,0,0,1,1,0,1,high,fully_furnished,5,12,3,2,3,1,4
+U00961,Privacy Seeker,TD,7.1,1168039,5776855,shared_room,female,0,1,0,1,0,0,0,basic,standard,1,12,3,2,1,5,1
+U00962,Student,TD,14.0,2985500,7681363,apartment,female,0,0,1,0,0,0,0,high,minimal,5,6,2,3,4,1,4
+U00963,Young Professional,D3,14.6,3638300,7352063,studio,any,1,1,0,0,0,0,0,basic,standard,5,6,3,3,5,3,3
+U00964,Student,TB,12.6,2732398,3861604,shared_room,male,0,1,0,0,1,0,0,basic,minimal,3,6,2,4,1,2,4
+U00965,Privacy Seeker,TD,14.0,3664969,4896794,studio,female,0,1,1,0,0,0,0,high,minimal,2,12,3,3,3,5,1
+U00966,Privacy Seeker,CG,7.6,3656377,8129210,studio,male,0,0,1,1,1,0,1,medium,standard,2,12,3,5,3,4,1
+U00967,Young Professional,PN,1.8,6618954,7626931,studio,female,1,1,1,0,0,0,0,basic,minimal,1,12,2,4,4,4,3
+U00968,Student,GV,3.8,1587837,6024633,studio,female,1,1,0,0,0,0,0,high,standard,6,6,2,1,2,2,4
+U00969,Privacy Seeker,TD,10.0,3423373,6091564,studio,female,1,0,0,0,1,0,0,high,minimal,1,6,4,1,2,4,1
+U00970,Student,TB,13.4,2105555,6784979,studio,male,0,1,0,0,1,0,0,high,minimal,3,3,2,4,1,1,3
+U00971,Privacy Seeker,TB,1.6,1550648,2851677,shared_room,male,0,0,1,0,1,0,0,basic,minimal,1,6,4,2,1,4,1
+U00972,Privacy Seeker,CG,8.6,1834930,6578386,studio,any,0,1,1,0,0,0,0,medium,minimal,1,3,5,1,1,4,1
+U00973,Social Butterfly,HK,14.6,4632922,7136489,studio,any,0,0,0,0,1,0,0,high,minimal,6,12,2,5,5,1,5
+U00974,Young Professional,D3,11.2,4484230,8449603,apartment,any,1,0,0,0,0,1,1,high,standard,3,6,1,2,2,3,2
+U00975,Young Professional,D3,3.3,4353505,5424933,studio,male,1,1,0,0,0,0,0,high,fully_furnished,6,6,3,1,5,2,3
+U00976,Student,TB,8.8,3405820,7673680,studio,female,0,1,0,0,0,0,0,high,standard,3,12,2,5,2,1,3
+U00977,Young Professional,D1,19.5,5270033,8286959,apartment,male,0,1,0,1,1,1,1,high,fully_furnished,3,6,3,5,5,3,3
+U00978,Student,TB,4.7,1951877,4116782,shared_room,female,1,1,0,0,0,0,0,medium,minimal,6,3,3,3,1,2,4
+U00979,Social Butterfly,D1,11.0,4128604,8714510,apartment,female,1,0,0,1,1,1,1,medium,fully_furnished,6,6,2,4,5,1,5
+U00980,Remote Worker,BT,13.8,6910602,8766317,apartment,male,0,1,1,1,0,1,1,high,fully_furnished,1,12,4,3,1,5,1
+U00981,Student,GV,8.8,1544055,4110355,studio,any,0,0,1,0,0,0,0,high,standard,4,12,1,4,4,2,5
+U00982,Remote Worker,D2,17.5,10015173,12240798,apartment,male,0,1,1,1,1,1,1,high,fully_furnished,1,12,2,2,4,5,3
+U00983,Remote Worker,BT,6.4,10276510,11392488,studio,male,1,1,1,1,1,0,1,high,standard,1,6,4,3,4,5,2
+U00984,Student,GV,1.1,3930908,8330755,studio,any,1,1,1,1,1,0,1,medium,standard,4,3,3,5,4,1,3
+U00985,Social Butterfly,D3,5.9,5187546,7657792,apartment,any,1,0,1,0,1,0,0,medium,standard,5,6,3,5,3,1,5
+U00986,Social Butterfly,D1,11.6,3999597,8423829,apartment,female,1,0,0,1,1,1,1,medium,standard,6,24,3,1,4,1,5
+U00987,Remote Worker,BT,18.2,6990364,8781844,apartment,male,0,0,1,1,1,0,1,high,standard,1,24,3,1,3,4,2
+U00988,Social Butterfly,HK,14.2,3019049,6732203,studio,male,0,0,0,0,0,0,0,medium,minimal,6,3,2,3,3,2,4
+U00989,Young Professional,PN,1.0,3433199,5676184,studio,female,1,1,1,0,1,0,0,high,fully_furnished,1,12,4,3,3,4,2
+U00990,Young Professional,PN,13.7,7252989,11332321,apartment,male,1,0,1,0,1,0,1,basic,standard,4,12,3,1,4,2,3
+U00991,Social Butterfly,HK,17.3,3358759,6862357,studio,male,1,0,0,0,0,0,0,high,fully_furnished,5,12,2,4,1,1,5
+U00992,Remote Worker,D7,7.3,11616181,15975237,studio,male,0,1,1,0,0,0,1,high,fully_furnished,1,6,3,5,1,4,2
+U00993,Student,TB,4.9,2565666,5924707,shared_room,male,0,1,1,0,1,0,0,medium,minimal,5,12,2,2,3,1,3
+U00994,Social Butterfly,HK,14.6,6077128,8700577,apartment,male,0,0,1,1,1,1,1,medium,standard,3,6,3,3,2,1,4
+U00995,Social Butterfly,D1,5.4,5440629,9642883,apartment,female,1,0,0,1,1,0,1,medium,fully_furnished,3,24,3,4,1,1,5
+U00996,Social Butterfly,D1,19.8,5948068,9636206,apartment,male,1,0,0,1,0,1,1,medium,fully_furnished,5,6,2,1,1,1,4
+U00997,Social Butterfly,D1,6.1,4195674,8397684,studio,male,0,1,0,1,0,1,1,basic,standard,3,3,3,5,5,1,4
+U00998,Student,TD,18.1,3922346,8402471,apartment,female,0,0,0,1,0,1,0,high,minimal,5,24,1,4,4,2,4
+U00999,Student,TD,19.0,3928300,5082830,shared_room,male,1,1,0,1,0,0,1,medium,standard,5,6,2,4,4,1,4
+U01000,Young Professional,D1,10.6,3816154,8730214,apartment,female,0,1,0,1,1,1,1,medium,minimal,5,12,2,1,4,3,2
