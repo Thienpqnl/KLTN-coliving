@@ -1,0 +1,389 @@
+# =====================================================
+# IMPORTS
+# =====================================================
+
+import math
+import random
+
+
+# =====================================================
+# CONSTANTS
+# =====================================================
+
+# Giảm trần điểm tối đa xuống để khó đạt > 90%
+MAX_SIMILARITY = 0.75
+MIN_SIMILARITY = 0.05
+
+
+# =====================================================
+# LOCATION
+# =====================================================
+
+def location_similarity(user_loc, room_loc):
+    if not user_loc or not room_loc:
+        return MIN_SIMILARITY
+    if user_loc == room_loc:
+        return 0.75
+    return 0.15
+
+
+# =====================================================
+# BUDGET
+# =====================================================
+
+def budget_similarity(
+    user_budget_min,
+    user_budget_max,
+    room_price
+):
+    if room_price <= 0:
+        return MIN_SIMILARITY
+
+    # Perfect range match
+    if (
+        user_budget_min
+        <= room_price
+        <= user_budget_max
+    ):
+        # Khớp ngân sách vẫn chỉ được điểm khá, không phải xuất sắc
+        return 0.75
+
+    # Distance from nearest budget bound
+    diff = min(
+        abs(room_price - user_budget_min),
+        abs(room_price - user_budget_max)
+    )
+
+    ratio = diff / room_price
+    similarity = math.exp(-6 * ratio)
+
+    similarity = max(
+        min(similarity, MAX_SIMILARITY),
+        MIN_SIMILARITY
+    )
+
+    return round(similarity, 4)
+
+
+# =====================================================
+# BINARY MATCH
+# =====================================================
+
+def binary_match(a, b):
+    """
+    Match nhị phân: Khớp thì khá tốt, không khớp thì rất tệ.
+    """
+    if a is None or b is None:
+        return 0.2 # Giảm điểm default
+
+    return 0.75 if a == b else 0.1
+
+
+# =====================================================
+# OCCUPANCY
+# =====================================================
+
+def occupancy_ratio(current, maximum):
+    if maximum <= 0:
+        return 0.5
+
+    ratio = current / maximum
+
+    # Phạt nặng hơn khi phòng đông người
+    # Hệ số 0.9 thay vì 0.7: càng đông điểm càng tụt nhanh
+    score = 1 - (ratio * 0.9)
+
+    score = max(
+        min(score, MAX_SIMILARITY),
+        MIN_SIMILARITY
+    )
+
+    return round(score, 4)
+
+
+# =====================================================
+# CLEANLINESS COMPATIBILITY
+# =====================================================
+
+def cleanliness_compatibility(
+    user_priority,
+    room_requirement
+):
+    requirement_map = {
+        "low": 1,
+        "medium": 3,
+        "high": 5
+    }
+
+    room_priority = requirement_map.get(
+        room_requirement.lower(),
+        3
+    )
+
+    diff = abs(user_priority - room_priority)
+    penalty = ((diff / 4.0) ** 3) * 1.5
+    
+    compatibility = 1 - penalty
+
+    compatibility = max(
+        min(compatibility, MAX_SIMILARITY),
+        MIN_SIMILARITY
+    )
+
+    return round(compatibility, 4)
+
+
+# =====================================================
+# SOCIAL COMPATIBILITY
+# =====================================================
+
+def social_compatibility(
+    user_social_priority,
+    room_noise_tolerance,
+    room_guest_policy
+):
+    noise_map = {
+        "low": 1,
+        "medium": 3,
+        "high": 5
+    }
+
+    guest_map = {
+        "rarely": 1,
+        "occasionally": 3,
+        "frequently": 5
+    }
+
+    noise_score = noise_map.get(
+        room_noise_tolerance.lower(),
+        3
+    )
+
+    guest_score = guest_map.get(
+        room_guest_policy.lower(),
+        3
+    )
+
+    room_social = (noise_score + guest_score) / 2
+
+    diff = abs(user_social_priority - room_social)
+
+    # Tương tự cleanliness, dùng bậc 3 và hệ số phạt
+    penalty = ((diff / 4.0) ** 3) * 1.5
+    
+    compatibility = 1 - penalty
+
+    compatibility = max(
+        min(compatibility, MAX_SIMILARITY),
+        MIN_SIMILARITY
+    )
+
+    return round(compatibility, 4)
+
+
+# =====================================================
+# SLEEP COMPATIBILITY
+# =====================================================
+
+def sleep_compatibility(
+    user_archetype,
+    room_sleep_habit
+):
+    archetype_sleep_map = {
+        "Privacy Seeker": 1,
+        "Remote Worker": 2,
+        "Social Butterfly": 5,
+        "Student": 4,
+        "Young Professional": 3
+    }
+
+    sleep_map = {
+        "early": 1,
+        "normal": 3,
+        "late": 5
+    }
+
+    user_sleep = archetype_sleep_map.get(
+        user_archetype,
+        3
+    )
+
+    room_sleep = sleep_map.get(
+        room_sleep_habit.lower(),
+        3
+    )
+
+    diff = abs(user_sleep - room_sleep)
+
+    # Giấc ngủ là yếu tố quan trọng, phạt rất nặng nếu lệch
+    # Diff=2 (ví dụ Early vs Normal) phải bị phạt mạnh
+    penalty = ((diff / 4.0) ** 2.5) * 1.8
+    
+    compatibility = 1 - penalty
+
+    compatibility = max(
+        min(compatibility, MAX_SIMILARITY),
+        MIN_SIMILARITY
+    )
+
+    return round(compatibility, 4)
+
+
+# =====================================================
+# GUEST TOLERANCE
+# =====================================================
+
+def guest_tolerance_compatibility(
+    user_social_priority,
+    room_guest_policy
+):
+    guest_map = {
+        "rarely": 1,
+        "occasionally": 3,
+        "frequently": 5
+    }
+
+    policy_score = guest_map.get(
+        room_guest_policy.lower(),
+        3
+    )
+
+    diff = abs(user_social_priority - policy_score)
+
+    # Phạt nặng
+    penalty = ((diff / 4.0) ** 3) * 1.5
+    
+    compatibility = 1 - penalty
+
+    compatibility = max(
+        min(compatibility, MAX_SIMILARITY),
+        MIN_SIMILARITY
+    )
+
+    return round(compatibility, 4)
+
+
+# =====================================================
+# ROOMMATE CLEANLINESS AVG
+# =====================================================
+
+def roommate_cleanliness_avg(
+    roommate_ids,
+    users_df
+):
+    if not roommate_ids:
+        return 3 # Neutral
+
+    indexed_users = users_df.set_index("user_id")
+
+    cleanliness_values = []
+
+    for roommate_id in roommate_ids:
+        if roommate_id in indexed_users.index:
+            cleanliness_values.append(
+                indexed_users.loc[
+                    roommate_id,
+                    "priority_cleanliness"
+                ]
+            )
+
+    if not cleanliness_values:
+        return 3
+
+    return sum(cleanliness_values) / len(cleanliness_values)
+
+
+# =====================================================
+# ROOMMATE SOCIAL AVG
+# =====================================================
+
+def roommate_social_avg(
+    roommate_ids,
+    users_df
+):
+    if not roommate_ids:
+        return 3 # Neutral
+
+    indexed_users = users_df.set_index("user_id")
+
+    social_values = []
+
+    for roommate_id in roommate_ids:
+        if roommate_id in indexed_users.index:
+            social_values.append(
+                indexed_users.loc[
+                    roommate_id,
+                    "priority_social_environment"
+                ]
+            )
+
+    if not social_values:
+        return 3
+
+    return sum(social_values) / len(social_values)
+
+
+# =====================================================
+# COMPATIBILITY WITH ROOMMATES
+# =====================================================
+
+def compatibility_with_roommates(
+    user_cleanliness,
+    user_social,
+    roommate_ids,
+    users_df
+):
+    if not roommate_ids:
+        return 0.3 # Giảm điểm default nếu không có roommate info
+
+    indexed_users = users_df.set_index("user_id")
+
+    compatibility_scores = []
+
+    for roommate_id in roommate_ids:
+        if roommate_id in indexed_users.index:
+            roommate = indexed_users.loc[roommate_id]
+
+            # -------------------------
+            # CLEANLINESS
+            # -------------------------
+            clean_diff = abs(user_cleanliness - roommate["priority_cleanliness"])
+            # Phạt nặng: bậc 3
+            clean_score = 1 - ((clean_diff / 4.0) ** 3) * 1.5
+
+            # -------------------------
+            # SOCIAL
+            # -------------------------
+            social_diff = abs(user_social - roommate["priority_social_environment"])
+            # Phạt nặng: bậc 3
+            social_score = 1 - ((social_diff / 4.0) ** 3) * 1.5
+
+            # Weighted average
+            avg_compatibility = (clean_score * 0.6 + social_score * 0.4)
+
+            # GIẢM ĐIỂM TỔNG THỂ: Nhân với 0.7 thay vì 0.85
+            # Điều này đảm bảo ngay cả khi match tốt, điểm cũng chỉ quanh 0.5-0.6
+            avg_compatibility *= 0.7
+
+            avg_compatibility = max(
+                min(avg_compatibility, MAX_SIMILARITY),
+                MIN_SIMILARITY
+            )
+
+            compatibility_scores.append(avg_compatibility)
+
+    if not compatibility_scores:
+        return 0.3
+
+    final_score = sum(compatibility_scores) / len(compatibility_scores)
+
+    # Small randomness to avoid duplicates (giữ nguyên nhưng biên độ nhỏ)
+    final_score += random.uniform(-0.01, 0.01)
+
+    # Hard cap ở 0.80 thay vì 0.90
+    final_score = max(
+        min(final_score, 0.80),
+        MIN_SIMILARITY
+    )
+
+    return round(final_score, 4)
