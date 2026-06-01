@@ -1,0 +1,72 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from services.recommend import recommend_rooms
+from services.roommate import match_roommates
+from services.room_user_similarity import get_detailed_compatibility
+
+app = FastAPI(
+    title="Room Recommendation API",
+    description="AI-powered room matching with real feature engineering",
+    version="1.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/recommend-room/{user_id}")
+def recommend(user_id: str, top_k: int = 10):
+    result = recommend_rooms(
+        user_id=user_id,
+        top_k=top_k
+    )
+
+    return result.to_dict(
+        orient="records"
+    )
+
+@app.get("/match-roommates/{user_id}/{roomId}")
+
+def roommate_matching(
+    
+    user_id: str,
+    
+    roomId: str
+):
+    result = match_roommates(
+        
+        user_id=user_id,
+        
+        roomId=roomId
+    )
+
+    return result.to_dict(
+        orient="records"
+    )
+@app.get("/compatibility-detail/{user_id}/{room_id}")
+def get_compatibility_detail(user_id: str, room_id: str):
+    result = get_detailed_compatibility(user_id, room_id)
+    
+    if "error" in result and len(result) <= 2:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=result.get("error"))
+        
+    return result
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "model": "xgboost_retrained_with_real_features"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

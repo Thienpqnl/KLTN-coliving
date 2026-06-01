@@ -96,6 +96,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [preferences, setPreferences] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -122,12 +123,16 @@ export default function ProfilePage() {
       setError('');
 
       try {
-        const [profileRes, bookingsRes] = await Promise.all([
+        const [profileRes, bookingsRes, preferencesRes] = await Promise.all([
           fetch('/api/user/profile', {
             credentials: 'include',
             signal: controller.signal,
           }),
           fetch('/api/user/bookings', {
+            credentials: 'include',
+            signal: controller.signal,
+          }),
+          fetch('/api/preferences', {
             credentials: 'include',
             signal: controller.signal,
           }),
@@ -149,6 +154,11 @@ export default function ProfilePage() {
         if (bookingsRes.ok) {
           const bookingsData = (await bookingsRes.json()) as Booking[];
           setBookings(bookingsData);
+        }
+
+        if (preferencesRes.ok) {
+          const preferencesData = await preferencesRes.json();
+          setPreferences(preferencesData);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -470,6 +480,13 @@ export default function ProfilePage() {
                   Phòng đang ở
                 </a>
                 <a
+                  href="#preferences"
+                  className="flex items-center gap-3 rounded-md px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                >
+                  <span className="material-symbols-outlined text-base">favorite</span>
+                  Sở thích phòng
+                </a>
+                <a
                   href="#security"
                   className="flex items-center gap-3 rounded-md px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
                 >
@@ -727,6 +744,115 @@ export default function ProfilePage() {
                     </Link>
                   </div>
                 )}
+              </section>
+
+              <section
+                id="preferences"
+                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="mb-5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-purple-700">
+                    Sở thích
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold text-slate-950">Sở thích phòng ở</h2>
+                </div>
+
+                <p className="text-sm text-slate-600 mb-6">
+                  Thông tin này giúp chúng tôi gợi ý những phòng phù hợp nhất với bạn.
+                </p>
+
+                {preferences ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 p-6 border border-blue-200">
+                        <p className="text-xs font-bold uppercase tracking-widest text-blue-700 mb-2">Ngân sách</p>
+                        <p className="text-lg font-bold text-slate-900">
+                          {preferences.budgetMinVnd && preferences.budgetMaxVnd 
+                            ? `${parseInt(preferences.budgetMinVnd).toLocaleString('vi-VN')} - ${parseInt(preferences.budgetMaxVnd).toLocaleString('vi-VN')} VND` 
+                            : 'Chưa cập nhật'}
+                        </p>
+                        <p className="text-xs text-blue-600 mt-2">mỗi tháng</p>
+                      </div>
+
+                      <div className="rounded-lg bg-gradient-to-br from-green-50 to-green-100 p-6 border border-green-200">
+                        <p className="text-xs font-bold uppercase tracking-widest text-green-700 mb-2">Khu vực ưa thích</p>
+                        <p className="text-lg font-bold text-slate-900">{preferences.preferredDistrict || 'Không ưu tiên'}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 p-6 border border-purple-200">
+                      <p className="text-xs font-bold uppercase tracking-widest text-purple-700 mb-2">Lối sống</p>
+                      <p className="text-lg font-bold text-slate-900">{preferences.lifestyleArchetype || 'Chưa chọn'}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 p-6 border border-amber-200">
+                        <p className="text-xs font-bold uppercase tracking-widest text-amber-700 mb-3">Độ sạch sẽ</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-amber-500 to-amber-600" style={{width: `${(preferences.priorityCleanliness || 0) * 20}%`}}></div>
+                            </div>
+                          </div>
+                          <span className="text-lg font-bold text-slate-900">{preferences.priorityCleanliness || 0}/5</span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg bg-gradient-to-br from-pink-50 to-pink-100 p-6 border border-pink-200">
+                        <p className="text-xs font-bold uppercase tracking-widest text-pink-700 mb-3">Môi trường xã hội</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <div className="h-2 bg-pink-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-pink-500 to-pink-600" style={{width: `${(preferences.prioritySocialEnvironment || 0) * 20}%`}}></div>
+                            </div>
+                          </div>
+                          <span className="text-lg font-bold text-slate-900">{preferences.prioritySocialEnvironment || 0}/5</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 p-6 border border-slate-200">
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-2">Roommate hút thuốc</p>
+                        <p className="text-base font-semibold text-slate-900">
+                          {preferences.acceptSmokingRoommates ? 'Chấp nhận' : 'Không chấp nhận'}
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 p-6 border border-slate-200">
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-2">Roommate có thú cưng</p>
+                        <p className="text-base font-semibold text-slate-900">
+                          {preferences.acceptPets ? 'Chấp nhận' : 'Không chấp nhận'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <p className="text-slate-600 mb-4">Chưa cập nhật sở thích của bạn</p>
+                    <Link
+                      href="/preferences"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-purple-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-purple-700"
+                    >
+                      Cập nhật ngay
+                    </Link>
+                  </div>
+                )}
+
+                <div className="mt-6 flex gap-3">
+                  <Link
+                    href="/preferences"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-purple-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-purple-700"
+                  >
+                    Cập nhật sở thích
+                  </Link>
+                  <Link
+                    href="/rooms/recommendations"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-purple-300 px-5 py-2.5 text-sm font-bold text-purple-700 transition-colors hover:bg-purple-50"
+                  >
+                    Xem gợi ý
+                  </Link>
+                </div>
               </section>
 
               <section

@@ -17,6 +17,13 @@ interface Room {
   image: string
   status: 'AVAILABLE' | 'OCCUPIED'
   amenityIds: string[]
+  cleanlinessRequired?: 'low' | 'medium' | 'high'
+  noiseTolerance?: 'quiet' | 'moderate' | 'active'
+  guestPolicy?: 'no_guests' | 'occasionally' | 'frequently'
+  preferredSleepHabit?: 'early' | 'normal' | 'late'
+  maxOccupants?: number
+  allowSmoking?: boolean
+  allowPets?: boolean
 }
 
 interface Amenity {
@@ -37,6 +44,13 @@ export function RoomForm() {
     address: '',
     image: '',
     status: 'AVAILABLE' as 'AVAILABLE' | 'OCCUPIED',
+    cleanlinessRequired: 'medium' as 'low' | 'medium' | 'high',
+    noiseTolerance: 'moderate' as 'quiet' | 'moderate' | 'active',
+    guestPolicy: 'occasionally' as 'no_guests' | 'occasionally' | 'frequently',
+    preferredSleepHabit: 'normal' as 'early' | 'normal' | 'late',
+    maxOccupants: '2',
+    allowSmoking: false,
+    allowPets: false,
   })
 
   const [amenities, setAmenities] = useState<Amenity[]>([])
@@ -154,6 +168,13 @@ if (images.length > 0) {
         address: formData.address,
         image: imageUrls,
         amenityIds: selectedAmenities,
+        cleanlinessRequired: formData.cleanlinessRequired,
+        noiseTolerance: formData.noiseTolerance,
+        guestPolicy: formData.guestPolicy,
+        preferredSleepHabit: formData.preferredSleepHabit,
+        maxOccupants: parseInt(formData.maxOccupants),
+        allowSmoking: formData.allowSmoking,
+        allowPets: formData.allowPets,
       }
 
       if (editMode && roomId) {
@@ -295,7 +316,118 @@ if (images.length > 0) {
               </div>
             </div>
 
-            {/* Amenities */}
+            {/* Room Requirements */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-foreground">ROOM REQUIREMENTS & POLICIES</h2>
+              
+              {/* Cleanliness Required */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  CLEANLINESS REQUIRED
+                </label>
+                <select
+                  name="cleanlinessRequired"
+                  value={formData.cleanlinessRequired}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="low">Low - Relaxed</option>
+                  <option value="medium">Medium - Standard</option>
+                  <option value="high">High - Very Clean</option>
+                </select>
+              </div>
+
+              {/* Noise Tolerance */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  NOISE TOLERANCE
+                </label>
+                <select
+                  name="noiseTolerance"
+                  value={formData.noiseTolerance}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="quiet">Quiet - Need silence</option>
+                  <option value="moderate">Moderate - Normal noise</option>
+                  <option value="active">Active - Lively environment</option>
+                </select>
+              </div>
+
+              {/* Guest Policy */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  GUEST POLICY
+                </label>
+                <select
+                  name="guestPolicy"
+                  value={formData.guestPolicy}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="no_guests">No Guests</option>
+                  <option value="occasionally">Occasionally</option>
+                  <option value="frequently">Frequently</option>
+                </select>
+              </div>
+
+              {/* Preferred Sleep Habit */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  PREFERRED SLEEP HABIT
+                </label>
+                <select
+                  name="preferredSleepHabit"
+                  value={formData.preferredSleepHabit}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="early">Early Riser (6-8am)</option>
+                  <option value="normal">Normal Schedule (8-10am)</option>
+                  <option value="late">Night Owl (10pm+)</option>
+                </select>
+              </div>
+
+              {/* Max Occupants */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  MAXIMUM OCCUPANTS
+                </label>
+                <input
+                  type="number"
+                  name="maxOccupants"
+                  value={formData.maxOccupants}
+                  onChange={handleInputChange}
+                  min="1"
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              {/* Smoking & Pets */}
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="allowSmoking"
+                    checked={formData.allowSmoking}
+                    onChange={(e) => setFormData({ ...formData, allowSmoking: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-semibold text-foreground">Allow Smoking</span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="allowPets"
+                    checked={formData.allowPets}
+                    onChange={(e) => setFormData({ ...formData, allowPets: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-semibold text-foreground">Allow Pets</span>
+                </label>
+              </div>
+            </div>
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-foreground">AMENITIES</h2>
               <div className="grid grid-cols-2 gap-3">
