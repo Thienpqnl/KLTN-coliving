@@ -56,10 +56,27 @@ export function Navigation() {
             <>
               {user.role === 'HOST' && (
                 <Link
-                  href="/bookings"
-                  className="px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider text-orange-800 hover:bg-orange-50 transition-all"
+                  href="/host"
+                  className={`px-6 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider transition-all ${
+                    isActive('/host')
+                      ? 'bg-orange-100 text-orange-800'
+                      : 'text-orange-800 hover:bg-orange-50'
+                  }`}
                 >
-                  Booking
+                  Dashboard
+                </Link>
+              )}
+              {user.role !== 'HOST' && (
+                <Link
+                  href="/favorites"
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-label text-xs font-bold uppercase tracking-wider transition-all ${
+                    isActive('/favorites')
+                      ? 'bg-orange-100 text-orange-800'
+                      : 'text-orange-800 hover:bg-orange-50'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base">favorite</span>
+                  Yêu thích
                 </Link>
               )}
               <Link

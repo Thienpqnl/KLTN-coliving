@@ -79,6 +79,79 @@ function RoomCard({ room }: { room: Room }) {
   );
 }
 
+interface PaginationControlsProps {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}
+
+function getPaginationItems(page: number, totalPages: number) {
+  if (totalPages <= 8) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const visiblePages = new Set([1, 2, totalPages, page - 1, page, page + 1]);
+  const pages = Array.from(visiblePages)
+    .filter((item) => item >= 1 && item <= totalPages)
+    .sort((first, second) => first - second);
+
+  return pages.flatMap((item, index) => {
+    const previous = pages[index - 1];
+
+    if (previous && item - previous > 1) {
+      return [`ellipsis-${previous}-${item}`, item];
+    }
+
+    return [item];
+  });
+}
+
+function PaginationControls({ page, totalPages, onPageChange }: PaginationControlsProps) {
+  const paginationItems = getPaginationItems(page, totalPages);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        className="min-h-9 rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 transition-colors hover:border-orange-500 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page === 1}
+        aria-label="Chuyển đến trang trước"
+      >
+        Trang trước
+      </button>
+      {paginationItems.map((item) =>
+        typeof item === 'number' ? (
+          <button
+            key={item}
+            className={`flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-bold transition-colors ${
+              item === page
+                ? 'border-orange-600 bg-orange-600 text-white'
+                : 'border-gray-300 text-gray-700 hover:border-orange-500 hover:text-orange-600'
+            }`}
+            onClick={() => onPageChange(item)}
+            aria-current={item === page ? 'page' : undefined}
+            aria-label={`Chuyển đến trang ${item}`}
+          >
+            {item}
+          </button>
+        ) : (
+          <span key={item} className="flex h-9 min-w-9 items-center justify-center text-sm font-bold text-gray-400">
+            ...
+          </span>
+        ),
+      )}
+      <button
+        className="min-h-9 rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 transition-colors hover:border-orange-500 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page === totalPages}
+        aria-label="Chuyển đến trang sau"
+      >
+        Trang sau
+      </button>
+    </div>
+  );
+}
+
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [total, setTotal] = useState(0);
@@ -88,7 +161,7 @@ export default function RoomsPage() {
   const [priceRange, setPriceRange] = useState([0, 10000000]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const limit = 10;
+  const limit = 12;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   useEffect(() => {
@@ -183,33 +256,30 @@ export default function RoomsPage() {
           <>
             <div className="mb-6 flex items-center justify-between gap-4">
               <h2 className="text-xl font-bold text-gray-900">{total} phòng tìm thấy</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  className="rounded border px-3 py-1 text-sm font-semibold disabled:opacity-50"
-                  onClick={() => setPage((current) => current - 1)}
-                  disabled={page === 1}
-                >
-                  Trang trước
-                </button>
-                <span className="px-2 py-1 text-sm">{page} / {totalPages}</span>
-                <button
-                  className="rounded border px-3 py-1 text-sm font-semibold disabled:opacity-50"
-                  onClick={() => setPage((current) => current + 1)}
-                  disabled={page === totalPages}
-                >
-                  Trang sau
-                </button>
-              </div>
+              <PaginationControls
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
             </div>
 
             {rooms.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {rooms.map((room) => (
-                  <Link key={room.id} href={`/rooms/${room.id}`} className="block">
-                    <RoomCard room={room} />
-                  </Link>
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {rooms.map((room) => (
+                    <Link key={room.id} href={`/rooms/${room.id}`} className="block">
+                      <RoomCard room={room} />
+                    </Link>
+                  ))}
+                </div>
+                <div className="mt-10 flex justify-center">
+                  <PaginationControls
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                  />
+                </div>
+              </>
             ) : (
               <div className="py-20 text-center">
                 <h3 className="mb-2 text-xl font-semibold text-gray-900">Không tìm thấy phòng</h3>

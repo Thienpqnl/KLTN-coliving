@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import {
   Area,
   AreaChart,
@@ -9,37 +10,86 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts"
+import { bookingClientService, Booking } from "@/lib/services/booking-client.service"
 
-const data = [
-  { month: "Jan", revenue: 180, expenses: 120 },
-  { month: "Feb", revenue: 200, expenses: 140 },
-  { month: "Mar", revenue: 220, expenses: 130 },
-  { month: "Apr", revenue: 280, expenses: 150 },
-  { month: "May", revenue: 340, expenses: 160 },
-  { month: "Jun", revenue: 300, expenses: 170 },
-  { month: "Jul", revenue: 360, expenses: 180 },
-  { month: "Aug", revenue: 400, expenses: 190 },
-]
+function bookingRevenue(booking: Booking) {
+  if (booking.totalPrice) return booking.totalPrice
+  if (booking.room?.priceValue) return Number(booking.room.priceValue)
+  return 0
+}
+
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${date.getMonth()}`
+}
 
 export function RevenueChart() {
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const hostBookings = await bookingClientService.getHostAll()
+        setBookings(hostBookings)
+      } catch (error) {
+        console.error("Không thể tải dữ liệu doanh thu:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBookings()
+  }, [])
+
+  const data = useMemo(() => {
+    const now = new Date()
+    const months = Array.from({ length: 8 }, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (7 - index), 1)
+      return {
+        key: monthKey(date),
+        month: date.toLocaleString("en-US", { month: "short" }),
+        revenue: 0,
+        pending: 0,
+      }
+    })
+
+    bookings.forEach((booking) => {
+      const date = new Date(booking.startDate)
+      const entry = months.find((item) => item.key === monthKey(date))
+      if (!entry) return
+
+      const value = bookingRevenue(booking)
+      if (booking.status === "CONFIRMED" || booking.status === "COMPLETED") {
+        entry.revenue += value
+      }
+
+      if (booking.status === "PENDING") {
+        entry.pending += value
+      }
+    })
+
+    return months
+  }, [bookings])
+
   return (
     <div className="bg-card rounded-2xl p-5 shadow-sm border border-border">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="font-semibold text-foreground">Revenue Trends</h3>
+          <h3 className="font-semibold text-foreground">Xu hướng doanh thu</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Comparative growth over the last 8 months
+            Doanh thu đã xác nhận và nguồn doanh thu đang chờ từ các đặt phòng
           </p>
         </div>
-        <select className="text-xs border border-border rounded-lg px-3 py-1.5 bg-secondary text-foreground">
-          <option>Last 8 months</option>
-          <option>Last 6 months</option>
-          <option>Last year</option>
-        </select>
+        <span className="text-xs border border-border rounded-lg px-3 py-1.5 bg-secondary text-foreground">
+          8 tháng gần nhất
+        </span>
       </div>
 
       <div className="h-52">
-        <ResponsiveContainer width="100%" height="100%">
+        {loading ? (
+          <div className="h-full rounded-xl bg-secondary animate-pulse" />
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -80,28 +130,29 @@ export function RevenueChart() {
             />
             <Area
               type="monotone"
-              dataKey="expenses"
+              dataKey="pending"
               stroke="oklch(0.7 0.18 55)"
               strokeWidth={2}
               fill="url(#colorExpenses)"
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
 
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-navy" />
-            <span className="text-xs text-muted-foreground">Net Revenue</span>
+            <span className="text-xs text-muted-foreground">Doanh thu đã xác nhận</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-            <span className="text-xs text-muted-foreground">Expenses</span>
+            <span className="text-xs text-muted-foreground">Doanh thu đang chờ</span>
           </div>
         </div>
         <button className="text-xs text-primary font-medium hover:underline">
-          Full Report
+          Báo cáo đầy đủ
         </button>
       </div>
     </div>
