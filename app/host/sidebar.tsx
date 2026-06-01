@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -14,9 +15,12 @@ import {
   Settings,
   HelpCircle,
   ChevronDown,
+  LogOut,
+  UserRound,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/lib/hooks/useAuth"
 
 interface NavItem {
   label: string
@@ -25,15 +29,27 @@ href: string
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/host" },
-  { label: "Room Management", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
-  { label: "Bookings", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
-  { label: "Transactions", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
-  { label: "Chat", icon: <MessageSquare className="h-4 w-4" />, href: "/chat" },
-  { label: "Analytics", icon: <BarChart3 className="h-4 w-4" />, href: "/analytics" },
+  { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, href: "/host" },
+  { label: "Quản lý phòng", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
+  { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
+  { label: "Giao dịch", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
+  { label: "Tin nhắn", icon: <MessageSquare className="h-4 w-4" />, href: "/chat" },
+  { label: "Phân tích", icon: <BarChart3 className="h-4 w-4" />, href: "/analytics" },
 ]
 export function Sidebar() {
-   const pathname = usePathname()
+  const pathname = usePathname()
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const { user, logout } = useAuth()
+  const displayName = user?.fullName || user?.name || user?.email || "Chủ nhà"
+  const fallback =
+    displayName
+      .split(" ")
+      .filter(Boolean)
+      .slice(-2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "HN"
+
   return (
     <aside className="hidden lg:flex w-56 flex-shrink-0 bg-card border-r border-border flex-col h-screen sticky top-0">
       {/* Logo Section */}
@@ -43,8 +59,8 @@ export function Sidebar() {
             <span className="text-primary-foreground font-bold text-lg">M</span>
           </div>
           <div>
-            <h1 className="font-semibold text-sm text-foreground">Management Portal</h1>
-            <p className="text-xs text-muted-foreground">Port Workspace</p>
+            <h1 className="font-semibold text-sm text-foreground">Cổng chủ nhà</h1>
+            <p className="text-xs text-muted-foreground">Không gian quản lý</p>
           </div>
       
         </Link>
@@ -77,9 +93,11 @@ export function Sidebar() {
 
       {/* Add Room Button */}
       <div className="px-3 pb-3">
-        <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+        <Button asChild className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+          <Link href="/room-management/add-room">
           <Plus className="h-4 w-4" />
-          Add New Room
+          Thêm phòng mới
+          </Link>
         </Button>
       </div>
 
@@ -87,27 +105,51 @@ export function Sidebar() {
       <div className="px-3 pb-2">
         <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
           <Settings className="h-4 w-4" />
-          Settings
+          Cài đặt
         </button>
         <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
           <HelpCircle className="h-4 w-4" />
-          Support
+          Hỗ trợ
         </button>
       </div>
 
       {/* User Section */}
       <div className="p-3 border-t border-border">
-        <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-secondary transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsUserMenuOpen((current) => !current)}
+          className="w-full flex cursor-pointer items-center gap-3 p-2 rounded-lg hover:bg-secondary transition-colors"
+          aria-expanded={isUserMenuOpen}
+        >
           <Avatar className="h-9 w-9">
-            <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face" />
-            <AvatarFallback>JH</AvatarFallback>
+            {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={displayName} />}
+            <AvatarFallback>{fallback}</AvatarFallback>
           </Avatar>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-medium text-foreground">Johan Hearth</p>
-            <p className="text-xs text-muted-foreground">Co-founder</p>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="truncate text-sm font-medium text-foreground">{displayName}</p>
+            <p className="truncate text-xs text-muted-foreground">{user?.email || "Tài khoản chủ nhà"}</p>
           </div>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isUserMenuOpen && "rotate-180")} />
         </button>
+        {isUserMenuOpen && (
+          <div className="mt-2 space-y-1">
+            <Link
+              href="/profile"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <UserRound className="h-4 w-4" />
+              Xem trang cá nhân
+            </Link>
+            <button
+              type="button"
+              onClick={logout}
+              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+            >
+              <LogOut className="h-4 w-4" />
+              Đăng xuất
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   )
