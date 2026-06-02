@@ -9,6 +9,17 @@ export const roomCreateSchema = z.object({
   address: z.string().min(5, "Address must be at least 5 characters"),
   image: z.array(z.string().url()).optional(),
   amenityIds: z.array(z.string()).optional(),
+  // Room Requirements & Policies
+  cleanlinessRequired: z.enum(["low", "medium", "high"]).optional(),
+  noiseTolerance: z.enum(["quiet", "moderate", "active"]).optional(),
+  guestPolicy: z.enum(["no_guests", "occasionally", "frequently"]).optional(),
+  preferredSleepHabit: z.enum(["early", "normal", "late"]).optional(),
+  preferredOccupation: z.string().optional(),
+  curfewPolicy: z.string().optional(),
+  maxOccupants: z.number().int().min(1).optional(),
+  preferredGender: z.string().optional(),
+  allowSmoking: z.boolean().optional(),
+  allowPets: z.boolean().optional(),
 });
 
 export const roomUpdateSchema = roomCreateSchema.partial();
