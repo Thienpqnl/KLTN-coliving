@@ -21,12 +21,12 @@ export default function BookingsPage() {
           <div className="max-w-6xl mx-auto p-4 lg:p-8">
             {/* Header */}
             <header className="mb-8">
-              <p className="text-sm text-muted-foreground mb-1">Management</p>
+            <p className="text-sm text-muted-foreground mb-1">Quản lý</p>
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Bookings Management</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Quản lý đặt phòng</h1>
                   <p className="text-sm text-muted-foreground mt-2 max-w-lg">
-                    Review and curate incoming stay requests. Ensure each resident aligns with the community spirit of{" "}
+                    Theo dõi, xác nhận và xử lý các yêu cầu đặt phòng mới cho{" "}
                     <span className="font-medium text-foreground">The Curated Hearth</span>.
                   </p>
                 </div>

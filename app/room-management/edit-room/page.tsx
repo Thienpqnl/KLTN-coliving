@@ -9,7 +9,7 @@ export default function EditRoomPage() {
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <MobileHeader />
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div>Đang tải...</div>}>
           <RoomForm />
         </Suspense>
       </main>

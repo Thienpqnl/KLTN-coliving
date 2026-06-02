@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Search, AlertCircle } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { bookingClientService, Booking } from '@/lib/services/booking-client.service'
 
 export function BookingsTable() {
@@ -21,10 +19,10 @@ export function BookingsTable() {
   const fetchBookings = async () => {
     try {
       setLoading(true)
-      const res = await bookingClientService.getAll()
+      const res = await bookingClientService.getHostAll()
       setBookings(res)
     } catch (error) {
-      console.error('Failed to fetch bookings:', error)
+      console.error('Không thể tải đặt phòng:', error)
     } finally {
       setLoading(false)
     }
@@ -35,11 +33,11 @@ export function BookingsTable() {
       setActionLoading(bookingId)
       await bookingClientService.approve(bookingId)
       setBookings(prev =>
-        prev.map(b => b.id === bookingId ? { ...b, status: 'approved' } : b)
+        prev.map(b => b.id === bookingId ? { ...b, status: 'CONFIRMED' } : b)
       )
     } catch (error) {
-      console.error('Failed to approve booking:', error)
-      alert('Failed to approve booking')
+      console.error('Không thể xác nhận đặt phòng:', error)
+      alert('Không thể xác nhận đặt phòng')
     } finally {
       setActionLoading(null)
     }
@@ -50,11 +48,11 @@ export function BookingsTable() {
       setActionLoading(bookingId)
       await bookingClientService.reject(bookingId)
       setBookings(prev =>
-        prev.map(b => b.id === bookingId ? { ...b, status: 'rejected' } : b)
+        prev.map(b => b.id === bookingId ? { ...b, status: 'CANCELLED' } : b)
       )
     } catch (error) {
-      console.error('Failed to reject booking:', error)
-      alert('Failed to reject booking')
+      console.error('Không thể từ chối đặt phòng:', error)
+      alert('Không thể từ chối đặt phòng')
     } finally {
       setActionLoading(null)
     }
@@ -62,22 +60,47 @@ export function BookingsTable() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending':
+      case 'PENDING':
         return 'bg-orange-100 text-orange-700'
-      case 'approved':
+      case 'CONFIRMED':
         return 'bg-emerald-100 text-emerald-700'
-      case 'rejected':
+      case 'CANCELLED':
         return 'bg-red-100 text-red-700'
-      case 'completed':
+      case 'COMPLETED':
         return 'bg-blue-100 text-blue-700'
       default:
         return 'bg-gray-100 text-gray-700'
     }
   }
 
-  const filteredBookings = bookings.filter(booking =>
-    booking.id.includes(searchTerm.toLowerCase())
-  )
+  const filteredBookings = bookings.filter((booking) => {
+    const keyword = searchTerm.toLowerCase()
+    return (
+      booking.id.toLowerCase().includes(keyword) ||
+      booking.room?.title.toLowerCase().includes(keyword) ||
+      booking.user?.email?.toLowerCase().includes(keyword) ||
+      booking.user?.fullName?.toLowerCase().includes(keyword) ||
+      booking.user?.name?.toLowerCase().includes(keyword)
+    )
+  })
+
+  const formatPrice = (booking: Booking) => {
+    if (booking.totalPrice) return `${booking.totalPrice.toLocaleString('vi-VN')} đ`
+    if (booking.room?.priceText) return booking.room.priceText
+    if (booking.room?.priceValue) return `${Number(booking.room.priceValue).toLocaleString('vi-VN')} đ`
+    return 'Liên hệ'
+  }
+
+  const formatStatus = (status: Booking['status']) => {
+    const labels = {
+      PENDING: 'Đang chờ',
+      CONFIRMED: 'Đã xác nhận',
+      CANCELLED: 'Đã hủy',
+      COMPLETED: 'Hoàn tất',
+    }
+
+    return labels[status] || status
+  }
 
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage)
   const startIdx = (currentPage - 1) * itemsPerPage
@@ -95,7 +118,7 @@ export function BookingsTable() {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
         <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <p className="text-muted-foreground">No bookings yet</p>
+        <p className="text-muted-foreground">Chưa có đặt phòng</p>
       </div>
     )
   }
@@ -108,7 +131,7 @@ export function BookingsTable() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search bookings..."
+            placeholder="Tìm đặt phòng..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value)
@@ -123,12 +146,12 @@ export function BookingsTable() {
       <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
         {/* Table Header */}
         <div className="grid grid-cols-6 gap-4 px-6 py-3 border-b border-border bg-muted/30">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Room</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Check-in</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Check-out</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Price</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Phòng</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nhận phòng</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Trả phòng</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Giá</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Trạng thái</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Thao tác</div>
         </div>
 
         {/* Table Rows */}
@@ -137,8 +160,8 @@ export function BookingsTable() {
             <div key={booking.id} className="grid grid-cols-6 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors">
               {/* Room ID */}
               <div>
-                <p className="text-sm font-medium text-foreground">Room</p>
-                <p className="text-xs text-muted-foreground">{booking.roomId}</p>
+                <p className="text-sm font-medium text-foreground">{booking.room?.title || 'Phòng'}</p>
+                <p className="text-xs text-muted-foreground">{booking.user?.fullName || booking.user?.name || booking.user?.email || booking.roomId}</p>
               </div>
 
               {/* Check-in */}
@@ -158,20 +181,20 @@ export function BookingsTable() {
               {/* Price */}
               <div>
                 <p className="text-sm font-semibold text-foreground">
-                  ${booking.totalPrice.toFixed(2)}
+                  {formatPrice(booking)}
                 </p>
               </div>
 
               {/* Status */}
               <div>
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}>
-                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                  {formatStatus(booking.status)}
                 </span>
               </div>
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                {booking.status === 'pending' && (
+                {booking.status === 'PENDING' && (
                   <>
                     <button
                       onClick={() => handleApprove(booking.id)}
@@ -181,14 +204,14 @@ export function BookingsTable() {
                       {actionLoading === booking.id ? (
                         <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
                       ) : null}
-                      Approve
+                      Xác nhận
                     </button>
                     <button
                       onClick={() => handleReject(booking.id)}
                       disabled={actionLoading === booking.id}
                       className="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded hover:bg-red-600 transition-colors disabled:opacity-50"
                     >
-                      Reject
+                      Từ chối
                     </button>
                   </>
                 )}
@@ -202,7 +225,7 @@ export function BookingsTable() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            Showing {startIdx + 1}-{Math.min(startIdx + itemsPerPage, filteredBookings.length)} of {filteredBookings.length} bookings
+            Hiển thị {startIdx + 1}-{Math.min(startIdx + itemsPerPage, filteredBookings.length)} trong {filteredBookings.length} đặt phòng
           </p>
           <div className="flex items-center gap-2">
             <button

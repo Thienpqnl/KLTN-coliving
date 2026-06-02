@@ -16,8 +16,8 @@ export function RoomStatCards() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await roomClientService.getAll()
-        const roomsData = ((response as any).rooms || response || []) as Room[];
+        const response = await roomClientService.getAll() as Room[] | { rooms?: Room[] }
+        const roomsData = (Array.isArray(response) ? response : response.rooms || []) as Room[];
         console.log('Fetched rooms for stats:', roomsData)
         const availableRooms = roomsData.filter((r: Room) => r.status === 'AVAILABLE').length
         const occupiedRooms = roomsData.filter((r: Room) => r.status === 'OCCUPIED').length
@@ -30,7 +30,7 @@ export function RoomStatCards() {
           occupancyRate: total > 0 ? Math.round((occupiedRooms / total) * 100) : 0,
         })
       } catch (error) {
-        console.error('Failed to fetch room stats:', error)
+        console.error('Không thể tải thống kê phòng:', error)
       } finally {
         setLoading(false)
       }
@@ -40,24 +40,24 @@ export function RoomStatCards() {
 
   const statCards = [
     {
-      label: 'Active Inventory',
+      label: 'Tổng số phòng',
       value: stats.totalRooms,
-      change: 'Total rooms',
+      change: 'Tất cả phòng',
     },
     {
-      label: 'AVAILABLE',
+      label: 'Còn trống',
       value: stats.availableRooms,
-      change: 'Ready to book',
+      change: 'Sẵn sàng đặt',
     },
     {
-      label: 'OCCUPIED',
+      label: 'Đã thuê',
       value: stats.occupiedRooms,
-      change: 'Currently rented',
+      change: 'Đang có khách',
     },
     {
-      label: 'Occupancy Rate',
+      label: 'Tỷ lệ lấp đầy',
       value: `${stats.occupancyRate}%`,
-      change: 'of total capacity',
+      change: 'trên tổng sức chứa',
     },
   ]
 
