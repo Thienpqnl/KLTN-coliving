@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from "@/lib/hooks/useAuth";
 import { roommateService, type RoommateMatch } from '@/lib/services/roommate.service';
-import { generateRecommendationExplanation } from '@/lib/services/recommendationExplainer';
 import { generateRoommateExplanation } from '@/lib/services/roommateExplainer';
 
 type RoommateExplanation = ReturnType<typeof generateRoommateExplanation>;
@@ -42,7 +41,7 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
         }
 
         // 4. Xử lý dữ liệu hiển thị (generate explanation)
-        const processedData = data.map((match: any) => {
+        const processedData = data.map((match: RoommateMatch) => {
             const explanation = generateRoommateExplanation({
                 compatibility_score: match.compatibility_score,
                 compatibility_reasons: match.compatibility_reasons || []
