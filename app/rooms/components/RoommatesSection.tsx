@@ -22,21 +22,21 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
   useEffect(() => {
     // 2. Kiểm tra điều kiện: Phải có User đăng nhập VÀ có RoomId
     if (!user?.id || !roomId) {
-      console.warn("⚠️ [RoommatesSection] Chưa đăng nhập hoặc thiếu RoomId. User:", user, "RoomId:", roomId);
+      console.warn(" [RoommatesSection] Chưa đăng nhập hoặc thiếu RoomId. User:", user, "RoomId:", roomId);
       setLoading(false); // Stop loading nếu không đủ điều kiện
       return;
     }
 
     const fetchMatches = async () => {
-      console.log("📡 [Fetch] Bắt đầu gọi API matching cho User:", user.id, "và Room:", roomId);
+      console.log("[Fetch] Bắt đầu gọi API matching cho User:", user.id, "và Room:", roomId);
       setLoading(true);
       try {
         // 3. Gọi service với userId thật
         const data = await roommateService.getMatches(user.id, roomId);
-        console.log("✅ [Fetch] Nhận được dữ liệu từ Service:", data);
+        console.log(" [Fetch] Nhận được dữ liệu từ Service:", data);
         
         if (!data || data.length === 0) {
-          console.log("ℹ️ [Data] Dữ liệu rỗng.");
+          console.log(" [Data] Dữ liệu rỗng.");
           setExplainedMatches([]);
           return;
         }
@@ -67,7 +67,7 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
   if (!user) {
     return (
       <div className="rounded-3xl bg-blue-50 p-8 border border-blue-100 text-center">
-        <h3 className="text-xl font-bold mb-2 text-blue-900">🔒 Tính năng dành cho thành viên</h3>
+        <h3 className="text-xl font-bold mb-2 text-blue-900"> Tính năng dành cho thành viên</h3>
         <p className="text-blue-700">Vui lòng đăng nhập để xem danh sách roommate và độ tương thích AI.</p>
       </div>
     );
@@ -82,7 +82,7 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
   if (explainedMatches.length === 0) {
     return (
       <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-100">
-        <h3 className="text-xl font-bold mb-2">👥 Thành viên trong phòng</h3>
+        <h3 className="text-xl font-bold mb-2"> Thành viên trong phòng</h3>
         <p className="text-slate-500">Hiện tại chưa có thành viên nào trong phòng này hoặc dữ liệu đang được cập nhật.</p>
       </div>
     );

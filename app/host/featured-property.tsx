@@ -5,7 +5,6 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { apiClient } from "@/lib/api/client"
 import { bookingClientService, Booking } from "@/lib/services/booking-client.service"
-
 interface HostRoom {
   id: string
   title: string
@@ -17,7 +16,6 @@ interface HostRoom {
   images?: { url: string }[]
   bookings?: Booking[]
 }
-
 function firstImage(room: HostRoom) {
   return room.images?.[0]?.url || (Array.isArray(room.image) ? room.image[0] : room.image) || "https://via.placeholder.com/500x400?text=Phong"
 }
@@ -85,7 +83,6 @@ export function FeaturedProperty() {
 
   const roomBookings = bookings.filter((booking) => booking.roomId === featuredRoom.id)
   const confirmedBookings = roomBookings.filter((booking) => booking.status === "CONFIRMED" || booking.status === "COMPLETED").length
-
   return (
     <div className="bg-navy rounded-2xl overflow-hidden shadow-lg">
       <div className="p-6 pb-4 flex flex-col lg:flex-row gap-6">
@@ -111,7 +108,7 @@ export function FeaturedProperty() {
             </div>
           </div>
           <div className="flex gap-3">
-            <Link href={`/room-management/edit-room?id=${featuredRoom.id}`}>
+            <Link href={`/room-management/tenants/${featuredRoom.id}`}>
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-4 py-2 h-auto">
                 Quản lý phòng
               </Button>

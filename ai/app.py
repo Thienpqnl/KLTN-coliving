@@ -5,18 +5,14 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from services.recommend import recommend_rooms
 from services.roommate import match_roommates
 from services.room_user_similarity import get_detailed_compatibility
-
 app = FastAPI(
     title="Room Recommendation API",
     description="AI-powered room matching with real feature engineering",
     version="1.0"
 )
-
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,18 +35,13 @@ def recommend(user_id: str, top_k: int = 10):
 @app.get("/match-roommates/{user_id}/{roomId}")
 
 def roommate_matching(
-    
     user_id: str,
-    
     roomId: str
 ):
     result = match_roommates(
-        
         user_id=user_id,
-        
         roomId=roomId
     )
-
     return result.to_dict(
         orient="records"
     )

@@ -30,6 +30,9 @@ model User {
   rooms        Room[]
   preference   user_preferences?
   lifestyleProfile user_lifestyle_profiles?
+  favorites    FavoriteRoom[]
+  occupancies  Occupancy[]
+  contracts    Contract[]
   
   @@map("User")
 }
@@ -124,6 +127,8 @@ model Room {
   owner       User?          @relation(fields: [ownerId], references: [id])
   amenities   RoomAmenity[]
   images      RoomImage[]
+  occupancies Occupancy[]
+  contracts   Contract[]
   cleanlinessRequired     String?       
   noiseTolerance          String?       
   guestPolicy             String?       
@@ -135,7 +140,6 @@ model Room {
   preferredGender         String?       
   allowSmoking            Boolean?      @default(false)
   allowPets               Boolean?      @default(false)
-  
   @@map("Room")
 }
 
@@ -284,4 +288,59 @@ enum PaymentStatus {
 enum InvoiceStatus {
   UNSIGNED
   SIGNED
+}
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+model Contract {
+  id               String         @id @default(uuid())
+
+  roomId           String
+  renterId         String
+
+  startDate        DateTime
+  endDate          DateTime
+
+  monthlyRent      Float
+  depositAmount    Float
+
+  renewalCount     Int            @default(0)
+
+  status           ContractStatus @default(ACTIVE)
+
+  terminatedAt     DateTime?
+  terminationReason String?
+
+  notes            String?
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  room             Room           @relation(fields: [roomId], references: [id])
+  renter           User           @relation(fields: [renterId], references: [id])
+}
+model Occupancy {
+  id                   String   @id @default(uuid())
+  roomId               String
+  userId               String
+  joinedAt             DateTime @default(now()) @db.Timestamp(6)
+  status               String   @default("ACTIVE")
+  terminatedAt         DateTime?
+  terminationReason    String?
+  notes                String?
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([roomId], map: "Occupancy_roomId_idx")
+  @@index([userId], map: "Occupancy_userId_idx")
+  @@index([status], map: "Occupancy_status_idx")
+  @@index([terminatedAt], map: "Occupancy_terminatedAt_idx")
+
+  @@unique([roomId, userId], name: "Occupancy_room_user_unique")
+
+  @@map("occupancy")
 }
