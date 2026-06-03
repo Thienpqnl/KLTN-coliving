@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
-import { ApiError } from "@/lib/api-error";
+import { handleApiError } from "@/lib/api-error";
+import { getAuthUser } from "@/lib/auth";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
 
+type AIRoommateMatch = {
+  roommate_id: string;
+  compatibility_score?: number;
+  compatibility_reasons?: string[];
+  [key: string]: unknown;
+};
+
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Không được phép truy cập" },
-        { status: 401 }
-      );
-    }
-
+    const authUser = await getAuthUser(req);
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: authUser.userId },
     });
 
     if (!user) {
@@ -55,10 +55,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const roommates = await response.json();
+    const roommates = (await response.json()) as AIRoommateMatch[];
 
     // Lấy thông tin roommates từ database
-    const roommateIds = roommates.map((r: any) => r.roommate_id);
+    const roommateIds = roommates.map((r) => r.roommate_id);
     const roommateUsers = await prisma.user.findMany({
       where: { id: { in: roommateIds } },
       select: {
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Merge với scores từ AI
-    const result = roommates.map((mate: any) => {
+    const result = roommates.map((mate) => {
       const userInfo = roommateUsers.find((u) => u.id === mate.roommate_id);
       return {
         ...mate,
@@ -82,6 +82,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("[ERROR]", error);
-    return ApiError.handle(error);
+    return handleApiError(error);
   }
 }

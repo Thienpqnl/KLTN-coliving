@@ -1,7 +1,5 @@
 // src/lib/services/roommate.service.ts
 
-const API_URL = process.env.NEXT_PUBLIC_AI_API_URL || 'http://localhost:8000';
-
 export interface RoommateMatch {
   roommate_id: string;
   compatibility_score: number;
@@ -19,15 +17,32 @@ export interface RoommateMatch {
 export const roommateService = {
   async getMatches(userId: string, roomId: string): Promise<RoommateMatch[]> {
     try {
-      const response = await fetch(`${API_URL}/match-roommates/${userId}/${roomId}`);
+      void userId;
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers: HeadersInit = {};
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const params = new URLSearchParams({
+        room_id: roomId,
+      });
+
+      const response = await fetch(`/api/recommendations/roommates?${params.toString()}`, {
+        headers,
+        credentials: 'include',
+      });
       if (!response.ok) {
-        throw new Error('Failed to fetch roommate matches');
+        const payload = await response.json().catch(() => null);
+        console.warn('Không thể tải roommate matches:', payload?.error || payload?.message || response.statusText);
+        return [];
       }
       const data = await response.json();
       console.log('hiển thị data roommate: ' , data)
       return data;
     } catch (error) {
-      console.error('Error fetching roommate matches:', error);
+      console.warn('Không thể kết nối roommate matching:', error);
       return [];
     }
   },
