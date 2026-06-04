@@ -133,7 +133,7 @@ export default function PreferenceQuestionnaire() {
       }
 
       const result = await response.json();
-      alert("✅ Lưu thành công! Đang tìm phòng phù hợp cho bạn...");
+      alert("Lưu thành công! Đang tìm phòng phù hợp cho bạn...");
       router.push("/rooms/recommendations");
     } catch (error: any) {
       alert(`❌ Lỗi: ${error.message}`);

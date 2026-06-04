@@ -10,7 +10,9 @@ from .similarity import (
     sleep_compatibility,
     guest_tolerance_compatibility,
 )
+from .scoring import calculate_xgboost_score
 from .explain import explain_recommendation
+from utils.loader import model as xgb_model
 from utils.loader_supabase import (
     load_users_from_supabase,
     load_rooms_from_supabase,
@@ -184,25 +186,32 @@ def get_detailed_compatibility(user_id: str, room_id: str):
         }
         
         # =====================================================
-        # 5. CALCULATE OVERALL SCORE
+        # 5. CALCULATE OVERALL SCORE (using XGBoost model)
         # =====================================================
-        weights = {
-            "location_similarity": 0.10,
-            "budget_similarity": 0.20,
-            "cleanliness_similarity": 0.15,
-            "social_similarity": 0.10,
-            "sleep_similarity": 0.20,
-            "smoking_match": 0.05,
-            "pet_match": 0.05,
-            "occupancy_ratio": 0.05,
-            "roommate_compatibility": 0.10,
+        # Prepare scores dict with proper feature names for XGBoost
+        xgb_scores = {
+            "location_similarity": location_score,
+            "budget_similarity": budget_score,
+            "smoking_match": smoking_score,
+            "pet_match": pet_score,
+            "sleep_group_similarity": sleep_score,
+            "cleanliness_group_similarity": cleanliness_score,
+            "social_group_similarity": social_score,
+            "guest_group_similarity": guest_score,
+            "sleep_similarity": sleep_score,
+            "cleanliness_similarity": cleanliness_score,
+            "social_similarity": social_score,
+            "guest_similarity": guest_score,
+            "occupancy_ratio": occupancy_score,
         }
         
-        weighted_sum = sum(scores[key] * weight for key, weight in weights.items())
-        total_weight = sum(weights.values())
-        normalized_score = weighted_sum / total_weight if total_weight > 0 else 0
+        # Calculate using XGBoost model for consistency with recommendation
+        overall_score = calculate_xgboost_score(xgb_scores, xgb_model)
         
-        overall_score = normalized_score * 100
+        print(f"\n[COMPATIBILITY] ===== SCORE DETAILS =====")
+        print(f"[COMPATIBILITY] User: {user_id}, Room: {room_id}")
+        print(f"[COMPATIBILITY] XGBoost scores: {xgb_scores}")
+        print(f"[COMPATIBILITY] Overall score: {overall_score}%")
         
         reasons = explain_recommendation(scores)
         

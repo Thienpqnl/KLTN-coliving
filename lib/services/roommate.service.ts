@@ -17,7 +17,6 @@ export interface RoommateMatch {
 export const roommateService = {
   async getMatches(userId: string, roomId: string): Promise<RoommateMatch[]> {
     try {
-      void userId;
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: HeadersInit = {};
 
@@ -29,20 +28,30 @@ export const roommateService = {
         room_id: roomId,
       });
 
-      const response = await fetch(`/api/recommendations/roommates?${params.toString()}`, {
+      const url = `/api/recommendations/roommates?${params.toString()}`;
+      console.log(`🔗 [RoommateService] Calling: ${url}`);
+      console.log(`🔐 [RoommateService] Token: ${token ? 'có' : 'không'}`);
+
+      const response = await fetch(url, {
         headers,
         credentials: 'include',
       });
+      
+      console.log(`📊 [RoommateService] Response status: ${response.status}`);
+      
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        console.warn('Không thể tải roommate matches:', payload?.error || payload?.message || response.statusText);
+        console.error(`❌ [RoommateService] Error response:`, payload);
         return [];
       }
+      
       const data = await response.json();
-      console.log('hiển thị data roommate: ' , data)
-      return data;
+      console.log(`✅ [RoommateService] Data received:`, data);
+      console.log(`📈 [RoommateService] Count: ${Array.isArray(data) ? data.length : 'not an array'}`);
+      
+      return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.warn('Không thể kết nối roommate matching:', error);
+      console.error(`❌ [RoommateService] Network error:`, error);
       return [];
     }
   },

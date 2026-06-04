@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Upsert (cập nhật nếu tồn tại, tạo mới nếu không)
-const preference = await prisma.userPreference.upsert({      where: { userId: user.id },
+const preference = await prisma.user_preferences.upsert({      where: { userId: user.id },
       update: {
         budgetMinVnd: validated.budgetMinVnd || null,
         budgetMaxVnd: validated.budgetMaxVnd || null,

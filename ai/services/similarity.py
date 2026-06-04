@@ -11,13 +11,9 @@ import random
 # =====================================================
 
 # Giảm trần điểm tối đa xuống để khó đạt > 90%
-MAX_SIMILARITY = 0.75
-MIN_SIMILARITY = 0.05
+MAX_SIMILARITY = 0.95
+MIN_SIMILARITY = 0.1
 
-
-# =====================================================
-# LOCATION
-# =====================================================
 
 def location_similarity(user_loc, room_loc):
     if not user_loc or not room_loc:
@@ -25,11 +21,6 @@ def location_similarity(user_loc, room_loc):
     if user_loc == room_loc:
         return 0.75
     return 0.15
-
-
-# =====================================================
-# BUDGET
-# =====================================================
 
 def budget_similarity(
     user_budget_min,
