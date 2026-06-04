@@ -1,14 +1,9 @@
 import pandas as pd
-import random
 
 from utils.loader import (
-
     users_df,
-
     rooms_df,
-
     occupancy_df,
-
     model
 )
 from services.similarity import (
@@ -20,15 +15,16 @@ from services.similarity import (
     social_compatibility,
     sleep_compatibility,
     guest_tolerance_compatibility,
-    roommate_cleanliness_avg,
-    roommate_social_avg,
-    compatibility_with_roommates
 )
+from services.scoring import calculate_xgboost_score
 def recommend_rooms(user_id, top_k=10):
 
     # =================================================
     # GET USER
     # =================================================
+    print(f"\n[RECOMMEND] ===== STARTING RECOMMENDATIONS =====")
+    print(f"[RECOMMEND] User ID: {user_id}, Top K: {top_k}")
+    print(f"[RECOMMEND] Using XGBoost model for scoring")
 
     user = users_df[
         users_df["user_id"] == user_id
@@ -115,10 +111,6 @@ def recommend_rooms(user_id, top_k=10):
                     room["allowPets"]
                 ),
 
-            # =========================================
-            # REAL FEATURE ENGINEERING - PRIORITY GROUPS
-            # =========================================
-
             "sleep_group_similarity":
 
                 sleep_compatibility(
@@ -157,10 +149,6 @@ def recommend_rooms(user_id, top_k=10):
                     room["guestPolicy"]
                 ),
 
-            # =========================================
-            # REAL FEATURE ENGINEERING - ROOMMATE DETAILS
-            # =========================================
-
             "sleep_similarity":
 
                 sleep_compatibility(
@@ -198,11 +186,6 @@ def recommend_rooms(user_id, top_k=10):
 
                     room["guestPolicy"]
                 ),
-
-            # =========================================
-            # OCCUPANCY
-            # =========================================
-
             "occupancy_ratio":
 
                 occupancy_ratio(
@@ -211,11 +194,6 @@ def recommend_rooms(user_id, top_k=10):
 
                     room["maxOccupants"]
                 ),
-
-            # =========================================
-            # META
-            # =========================================
-
             "roomId": room["roomId"],
 
             "districtId": room["districtId"],
@@ -224,61 +202,44 @@ def recommend_rooms(user_id, top_k=10):
         }
 
         rows.append(row)
-
-    # =================================================
-    # DATAFRAME
-    # =================================================
-
     recommend_df = pd.DataFrame(rows)
 
     # =================================================
-    # MODEL FEATURES
+    # CALCULATE SCORES USING XGBOOST MODEL
     # =================================================
-
-    feature_columns = [
-
-        'location_similarity',
-
-        'budget_similarity',
-
-        'smoking_match',
-
-        'pet_match',
-
-        'sleep_group_similarity',
-
-        'cleanliness_group_similarity',
-
-        'social_group_similarity',
-
-        'guest_group_similarity',
-
-        'sleep_similarity',
-
-        'cleanliness_similarity',
-
-        'social_similarity',
-
-        'guest_similarity',
-
-        'occupancy_ratio'
-    ]
-
-    # =================================================
-    # PREDICT
-    # =================================================
-  
-    X = recommend_df[feature_columns]
-    recommend_df["recommendation_score"] = model.predict_proba(X)[:, 1]
-
+    def calculate_row_score(row):
+        """Calculate score for a single room recommendation using XGBoost"""
+        scores = {
+            'location_similarity': row.get('location_similarity', 0.5),
+            'budget_similarity': row.get('budget_similarity', 0.5),
+            'smoking_match': row.get('smoking_match', 0.5),
+            'pet_match': row.get('pet_match', 0.5),
+            'sleep_group_similarity': row.get('sleep_group_similarity', 0.5),
+            'cleanliness_group_similarity': row.get('cleanliness_group_similarity', 0.5),
+            'social_group_similarity': row.get('social_group_similarity', 0.5),
+            'guest_group_similarity': row.get('guest_group_similarity', 0.5),
+            'sleep_similarity': row.get('sleep_similarity', 0.5),
+            'cleanliness_similarity': row.get('cleanliness_similarity', 0.5),
+            'social_similarity': row.get('social_similarity', 0.5),
+            'guest_similarity': row.get('guest_similarity', 0.5),
+            'occupancy_ratio': row.get('occupancy_ratio', 0.5),
+        }
+        # Use XGBoost model to calculate score (0-100)
+        score_percent = calculate_xgboost_score(scores, model)
+        return score_percent / 100.0  # Convert back to 0-1 scale for consistency
+    
+    recommend_df["recommendation_score"] = recommend_df.apply(calculate_row_score, axis=1)
 
     recommend_df = recommend_df.sort_values(
         by="recommendation_score",
         ascending=False
     )
+    
+    # ✅ Lấy top K rooms
     top_k_df = recommend_df.head(top_k).copy()
-    top_k_df["recommendation_score"] = top_k_df["recommendation_score"].apply(
-        lambda x: x * random.uniform(0.75, 0.9)
-    )
-    top_k_df = top_k_df.sort_values(by="recommendation_score", ascending=False)
+    
+    print(f"\n[RECOMMEND] Top {len(top_k_df)} recommendations:")
+    for idx, (_, row) in enumerate(top_k_df.iterrows(), 1):
+        print(f"  {idx}. Room {row['roomId']}: {row['recommendation_score']*100:.2f}%")
+    
     return top_k_df

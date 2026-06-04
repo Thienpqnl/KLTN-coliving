@@ -13,13 +13,18 @@ interface RoommatesSectionProps {
 
 export function RoommatesSection({ roomId }: RoommatesSectionProps) {
   // 1. Lấy thông tin user hiện tại từ Context
-  const { user } = useAuth(); 
+  const { user, isLoading: authLoading } = useAuth(); 
   
   const [explainedMatches, setExplainedMatches] = useState<{ match: RoommateMatch; explanation: RoommateExplanation }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 2. Kiểm tra điều kiện: Phải có User đăng nhập VÀ có RoomId
+    // Nếu đang load auth, đợi
+    if (authLoading) {
+      console.log("⏳ [RoommatesSection] Đang chờ AuthProvider load user...");
+      return;
+    }
+
     if (!user?.id || !roomId) {
       console.warn(" [RoommatesSection] Chưa đăng nhập hoặc thiếu RoomId. User:", user, "RoomId:", roomId);
       setLoading(false); // Stop loading nếu không đủ điều kiện
@@ -58,11 +63,16 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
     };
 
     fetchMatches();
-  }, [user, roomId]); // Dependency array: chạy lại khi user hoặc roomId thay đổi
+  }, [user?.id, roomId, authLoading]); // Dependency array: chạy lại khi user hoặc roomId hoặc authLoading thay đổi
 
   // --- PHẦN RENDER GIAO DIỆN ---
 
-  // Trường hợp 1: Chưa đăng nhập
+  // Trường hợp 1: Đang chờ xác thực người dùng
+  if (authLoading) {
+    return <div className="p-4 text-center text-slate-500 animate-pulse">Đang tải thông tin xác thực...</div>;
+  }
+
+  // Trường hợp 2: Chưa đăng nhập
   if (!user) {
     return (
       <div className="rounded-3xl bg-blue-50 p-8 border border-blue-100 text-center">
@@ -72,12 +82,12 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
     );
   }
 
-  // Trường hợp 2: Đang tải
+  // Trường hợp 3: Đang tải
   if (loading) {
     return <div className="p-4 text-center text-slate-500 animate-pulse">Đang phân tích độ tương thích...</div>;
   }
 
-  // Trường hợp 3: Không có kết quả
+  // Trường hợp 4: Không có kết quả
   if (explainedMatches.length === 0) {
     return (
       <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-100">

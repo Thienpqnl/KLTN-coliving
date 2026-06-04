@@ -35,6 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const storedToken = localStorage.getItem('token');
       setToken(storedToken);
+      
+      console.log('🔍 [AuthContext] fetchUser - Token từ localStorage:', storedToken ? 'có' : 'không');
+      
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
       };
@@ -49,14 +52,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
       });
 
+      console.log('📡 [AuthContext] /api/auth/me response status:', response.status);
+
       if (response.ok) {
         const userData = await response.json();
+        console.log('✅ [AuthContext] User data nhận được:', userData?.id);
         setUser(userData);
       } else {
+        const errorText = await response.text();
+        console.error('❌ [AuthContext] /api/auth/me failed:', response.status, errorText);
         setUser(null);
       }
     } catch (error) {
-      console.error('Failed to fetch user:', error);
+      console.error('❌ [AuthContext] fetchUser error:', error);
       setUser(null);
     } finally {
       setIsLoading(false);
