@@ -23,6 +23,10 @@ export interface Booking {
     priceValue?: number | string | null
     address?: string
   }
+  contract?: {
+    id: string
+    status: string
+  } | null
   createdAt: string
   updatedAt: string
 }

@@ -6,7 +6,6 @@ import { roomService } from '@/lib/services/room.service';
 import { RoommatesSection } from '../components/RoommatesSection';
 import { RoomCompatibility } from './components/RoomCompatibility';
 import { FavoriteButton } from './FavoriteButton';
-import { getAuthUser } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
 type RoomDetail = Awaited<ReturnType<typeof roomService.getById>>;
@@ -445,7 +444,7 @@ console.log(" [Page] RoomID extracted:", roomId);
               )}
             </div>
 
-         
+            <RoomSidebar room={room} />
           </div>
         </section>
       </main>

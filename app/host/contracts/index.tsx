@@ -26,7 +26,11 @@ export function ContractsManagement() {
     setIsLoading(true);
     setError('');
     try {
-      const filters: any = {
+      const filters: {
+        page: number;
+        limit: number;
+        status?: ContractStatus;
+      } = {
         page: currentPage,
         limit: 10,
       };
@@ -122,7 +126,7 @@ setContracts(response.contracts || []);    } catch (err) {
           <button
             key={status}
             onClick={() => {
-              setStatusFilter(status as any);
+              setStatusFilter(status as ContractStatus | 'ALL');
               setCurrentPage(1);
             }}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${

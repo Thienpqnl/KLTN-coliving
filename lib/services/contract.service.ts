@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import { ContractStatus } from "@prisma/client";
+import { ContractStatus, Prisma } from "@prisma/client";
 import { ApiError } from "@/lib/api-error";
 
 export interface CreateContractData {
+  bookingId?: string;
   roomId: string;
   renterId: string;
+  hostId?: string;
   startDate: Date;
   endDate: Date;
   monthlyRent: number;
@@ -33,6 +35,7 @@ export const contractService = {
     status?: ContractStatus;
     roomId?: string;
     renterId?: string;
+    hostId?: string;
     page?: number;
     limit?: number;
   }) {
@@ -40,14 +43,16 @@ export const contractService = {
       status,
       roomId,
       renterId,
+      hostId,
       page = 1,
       limit = 10,
     } = filters || {};
 
-    const where: any = {};
+    const where: Prisma.ContractWhereInput = {};
     if (status) where.status = status;
     if (roomId) where.roomId = roomId;
     if (renterId) where.renterId = renterId;
+    if (hostId) where.hostId = hostId;
 
     const [contracts, total] = await Promise.all([
       prisma.contract.findMany({
@@ -59,6 +64,7 @@ export const contractService = {
               title: true,
               address: true,
               priceValue: true,
+              ownerId: true,
             },
           },
           renter: {
@@ -68,6 +74,21 @@ export const contractService = {
               email: true,
               phone: true,
               avatarUrl: true,
+            },
+          },
+          host: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+          booking: {
+            select: {
+              id: true,
+              status: true,
+              startDate: true,
+              endDate: true,
             },
           },
         },
@@ -102,6 +123,7 @@ export const contractService = {
             district: true,
             currentOccupants: true,
             maxOccupants: true,
+            ownerId: true,
           },
         },
         renter: {
@@ -116,6 +138,21 @@ export const contractService = {
             address: true,
           },
         },
+        host: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        booking: {
+          select: {
+            id: true,
+            status: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
       },
     });
 
@@ -128,9 +165,9 @@ export const contractService = {
 
   // Get contracts for a room
   async getRoomContracts(roomId: string, activeOnly = true) {
-    const where: any = { roomId };
+    const where: Prisma.ContractWhereInput = { roomId };
     if (activeOnly) {
-      where.status = "ACTIVE";
+      where.status = ContractStatus.ACTIVE;
     }
 
     return prisma.contract.findMany({
@@ -180,6 +217,11 @@ export const contractService = {
       throw new ApiError(404, "Phòng không tìm thấy");
     }
 
+    const hostId = data.hostId || room.ownerId;
+    if (!hostId) {
+      throw new ApiError(400, "Phòng chưa có chủ nhà để tạo hợp đồng");
+    }
+
     // Validate renter exists
     const renter = await prisma.user.findUnique({
       where: { id: data.renterId },
@@ -196,9 +238,14 @@ export const contractService = {
     // Check if renter already has active contract for this room
     const existingContract = await prisma.contract.findFirst({
       where: {
-        roomId: data.roomId,
-        renterId: data.renterId,
-        status: "ACTIVE",
+        OR: [
+          {
+            roomId: data.roomId,
+            renterId: data.renterId,
+            status: "ACTIVE",
+          },
+          ...(data.bookingId ? [{ bookingId: data.bookingId }] : []),
+        ],
       },
     });
 
@@ -213,6 +260,8 @@ export const contractService = {
       data: {
         roomId: data.roomId,
         renterId: data.renterId,
+        hostId,
+        bookingId: data.bookingId || null,
         startDate: data.startDate,
         endDate: data.endDate,
         monthlyRent: data.monthlyRent,
@@ -234,6 +283,21 @@ export const contractService = {
             id: true,
             fullName: true,
             email: true,
+          },
+        },
+        host: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        booking: {
+          select: {
+            id: true,
+            status: true,
+            startDate: true,
+            endDate: true,
           },
         },
       },
@@ -258,6 +322,13 @@ export const contractService = {
         joinedAt: data.startDate,
       },
     });
+
+    if (data.bookingId) {
+      await prisma.booking.update({
+        where: { id: data.bookingId },
+        data: { status: "COMPLETED" },
+      });
+    }
 
     return contract;
   },
@@ -396,7 +467,7 @@ export const contractService = {
 
   // Get contract statistics
   async getStats(roomId?: string) {
-    const where: any = {};
+    const where: Prisma.ContractWhereInput = {};
     if (roomId) where.roomId = roomId;
 
     const [total, active, expired, terminated] = await Promise.all([

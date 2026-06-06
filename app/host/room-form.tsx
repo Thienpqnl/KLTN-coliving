@@ -341,94 +341,94 @@ if (images.length > 0) {
             {/* Room Requirements */}
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold text-foreground mb-1">ROOM PREFERENCES & POLICIES</h2>
-                <p className="text-sm text-muted-foreground mb-4">Help us understand what kind of roommates would thrive in your space</p>
+                <h2 className="text-lg font-semibold text-foreground mb-1">SỞ THÍCH & CHÍNH SÁCH PHÒNG</h2>
+                <p className="text-sm text-muted-foreground mb-4">Giúp hệ thống hiểu kiểu người thuê phù hợp với không gian của bạn</p>
               </div>
               
               {/* Cleanliness Required */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  How important is a clean and organized environment?
+                  Môi trường sạch sẽ và ngăn nắp quan trọng như thế nào?
                 </label>
-                <p className="text-xs text-muted-foreground mb-3">This helps match with like-minded residents</p>
+                <p className="text-xs text-muted-foreground mb-3">Thông tin này giúp ghép phòng với người thuê có thói quen tương đồng</p>
                 <select
                   name="cleanlinessRequired"
                   value={formData.cleanlinessRequired}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="low">Relaxed - I'm flexible about tidiness</option>
-                  <option value="medium">Standard - I appreciate a reasonably clean space</option>
-                  <option value="high">Very Important - I maintain a very clean environment</option>
+                  <option value="low">Thoải mái - Linh hoạt về việc gọn gàng</option>
+                  <option value="medium">Tiêu chuẩn - Ưu tiên không gian sạch sẽ vừa phải</option>
+                  <option value="high">Rất quan trọng - Muốn duy trì môi trường thật sạch</option>
                 </select>
               </div>
 
               {/* Noise Tolerance */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  What's your noise comfort level?
+                  Mức độ tiếng ồn có thể chấp nhận là gì?
                 </label>
-                <p className="text-xs text-muted-foreground mb-3">Think about music, conversations, and daily activities</p>
+                <p className="text-xs text-muted-foreground mb-3">Bao gồm âm nhạc, trò chuyện và các sinh hoạt hằng ngày</p>
                 <select
                   name="noiseTolerance"
                   value={formData.noiseTolerance}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="quiet">Quiet - I need a peaceful, silent space</option>
-                  <option value="moderate">Moderate - Normal household noise is fine</option>
-                  <option value="active">Active - I enjoy a lively, vibrant atmosphere</option>
+                  <option value="quiet">Yên tĩnh - Cần không gian yên bình, ít tiếng ồn</option>
+                  <option value="moderate">Vừa phải - Chấp nhận tiếng ồn sinh hoạt bình thường</option>
+                  <option value="active">Sôi động - Phù hợp với không khí náo nhiệt</option>
                 </select>
               </div>
 
               {/* Guest Policy */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  How often do you expect roommates to have visitors?
+                  Bạn muốn người thuê dẫn khách đến thường xuyên như thế nào?
                 </label>
-                <p className="text-xs text-muted-foreground mb-3">This sets expectations for shared spaces</p>
+                <p className="text-xs text-muted-foreground mb-3">Giúp thiết lập kỳ vọng rõ ràng cho không gian chung</p>
                 <select
                   name="guestPolicy"
                   value={formData.guestPolicy}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="no_guests">No Guests - Private space preferred</option>
-                  <option value="occasionally">Occasionally - Friends/family visit sometimes</option>
-                  <option value="frequently">Frequently - Regular visitors are welcome</option>
+                  <option value="no_guests">Không tiếp khách - Ưu tiên không gian riêng tư</option>
+                  <option value="occasionally">Thỉnh thoảng - Bạn bè/gia đình có thể ghé thăm</option>
+                  <option value="frequently">Thường xuyên - Chấp nhận khách ghé thăm đều đặn</option>
                 </select>
               </div>
 
               {/* Preferred Sleep Habit */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  What's your typical sleep schedule?
+                  Lịch sinh hoạt/ngủ nghỉ thường phù hợp với kiểu nào?
                 </label>
-                <p className="text-xs text-muted-foreground mb-3">Helps match with compatible residents</p>
+                <p className="text-xs text-muted-foreground mb-3">Giúp ghép với người thuê có nhịp sinh hoạt tương thích</p>
                 <select
                   name="preferredSleepHabit"
                   value={formData.preferredSleepHabit}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="early">Early Riser (Wake 6-8am)</option>
-                  <option value="normal">Standard Schedule (Wake 8-10am)</option>
-                  <option value="late">Night Owl (Wake 10am+)</option>
+                  <option value="early">Dậy sớm (6-8 giờ sáng)</option>
+                  <option value="normal">Lịch sinh hoạt tiêu chuẩn (8-10 giờ sáng)</option>
+                  <option value="late">Thức khuya (dậy sau 10 giờ sáng)</option>
                 </select>
               </div>
 
               {/* Preferred Occupations */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  What type of residents do you prefer?
+                  Bạn ưu tiên kiểu người thuê nào?
                 </label>
-                <p className="text-xs text-muted-foreground mb-3">e.g., Students, Professionals, Remote workers, etc.</p>
+                <p className="text-xs text-muted-foreground mb-3">Ví dụ: sinh viên, nhân viên văn phòng, người làm việc từ xa...</p>
                 <input
                   type="text"
                   name="preferredOccupation"
                   value={formData.preferredOccupation}
                   onChange={handleInputChange}
-                  placeholder="e.g., University students, Tech professionals, Creative professionals"
+                  placeholder="Ví dụ: sinh viên đại học, nhân viên công nghệ, người làm sáng tạo"
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -436,14 +436,14 @@ if (images.length > 0) {
               {/* Curfew Policy */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  Are there any quiet hours or access restrictions?
+                  Có quy định giờ yên tĩnh hoặc hạn chế ra vào không?
                 </label>
-                <p className="text-xs text-muted-foreground mb-3">Optional - e.g., "Quiet hours 10pm-8am", "No late night guests"</p>
+                <p className="text-xs text-muted-foreground mb-3">Không bắt buộc - ví dụ: giờ yên tĩnh 22h-8h, không tiếp khách khuya</p>
                 <textarea
                   name="curfewPolicy"
                   value={formData.curfewPolicy}
                   onChange={handleInputChange}
-                  placeholder="Describe any house rules or restrictions (optional)"
+                  placeholder="Mô tả nội quy hoặc giới hạn của phòng/nhà (không bắt buộc)"
                   rows={3}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 />
@@ -452,46 +452,46 @@ if (images.length > 0) {
               {/* Max Occupants */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  Maximum number of occupants per room
+                  Số người tối đa trong mỗi phòng
                 </label>
-                <p className="text-xs text-muted-foreground mb-3">How many people should share this room?</p>
+                <p className="text-xs text-muted-foreground mb-3">Phòng này phù hợp cho tối đa bao nhiêu người?</p>
                 <select
                   name="maxOccupants"
                   value={formData.maxOccupants}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="1">1 Person (Single occupancy)</option>
-                  <option value="2">2 People (Double occupancy)</option>
-                  <option value="3">3 People (Triple occupancy)</option>
-                  <option value="4">4+ People (Shared dorm)</option>
+                  <option value="1">1 người (ở đơn)</option>
+                  <option value="2">2 người (ở đôi)</option>
+                  <option value="3">3 người (ở ba)</option>
+                  <option value="4">4+ người (phòng chia sẻ)</option>
                 </select>
               </div>
 
               {/* Preferred Gender */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  Do you have a gender preference for roommates?
+                  Bạn có ưu tiên giới tính người thuê không?
                 </label>
-                <p className="text-xs text-muted-foreground mb-3">Optional - this helps some residents feel more comfortable</p>
+                <p className="text-xs text-muted-foreground mb-3">Không bắt buộc - thông tin này giúp người thuê cảm thấy thoải mái hơn</p>
                 <select
                   name="preferredGender"
                   value={formData.preferredGender}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="">No Preference</option>
-                  <option value="any">Any Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="female_only">Female Only</option>
-                  <option value="male_only">Male Only</option>
+                  <option value="">Không ưu tiên</option>
+                  <option value="any">Bất kỳ giới tính nào</option>
+                  <option value="male">Nam</option>
+                  <option value="female">Nữ</option>
+                  <option value="female_only">Chỉ nữ</option>
+                  <option value="male_only">Chỉ nam</option>
                 </select>
               </div>
 
               {/* Lifestyle Preferences */}
               <div>
-                <p className="text-sm font-semibold text-foreground mb-4">Lifestyle Compatibility</p>
+                <p className="text-sm font-semibold text-foreground mb-4">Mức độ tương thích lối sống</p>
                 <div className="space-y-3">
                   <label className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted transition">
                     <input
@@ -502,8 +502,8 @@ if (images.length > 0) {
                       className="w-5 h-5 rounded border-gray-300 text-primary"
                     />
                     <div>
-                      <span className="font-medium text-foreground">Allow Smoking</span>
-                      <p className="text-xs text-muted-foreground">Roommates can smoke in common areas or their room</p>
+                      <span className="font-medium text-foreground">Cho phép hút thuốc</span>
+                      <p className="text-xs text-muted-foreground">Người thuê có thể hút thuốc ở khu vực được cho phép hoặc trong phòng</p>
                     </div>
                   </label>
 
@@ -516,8 +516,8 @@ if (images.length > 0) {
                       className="w-5 h-5 rounded border-gray-300 text-primary"
                     />
                     <div>
-                      <span className="font-medium text-foreground">Allow Pets</span>
-                      <p className="text-xs text-muted-foreground">Roommates can bring pets into the room</p>
+                      <span className="font-medium text-foreground">Cho phép nuôi thú cưng</span>
+                      <p className="text-xs text-muted-foreground">Người thuê có thể mang thú cưng vào phòng</p>
                     </div>
                   </label>
                 </div>

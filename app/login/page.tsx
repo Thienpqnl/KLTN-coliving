@@ -39,7 +39,13 @@ const handleLogin = async (e: React.FormEvent) => {
       }
 
       await refetch();
-      router.replace('/profile');
+      if (data.user?.role === 'ADMIN') {
+        router.replace('/admin');
+      } else if (data.user?.role === 'HOST') {
+        router.replace('/host');
+      } else {
+        router.replace('/profile');
+      }
     } catch {
       setError('Không thể kết nối đến máy chủ');
     } finally {
