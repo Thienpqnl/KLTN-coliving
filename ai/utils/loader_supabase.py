@@ -309,6 +309,27 @@ def load_occupancy_from_supabase() -> pd.DataFrame:
         print("\n❌ Error loading occupancy:")
         print(str(e))
         return pd.DataFrame(columns=["room_id", "user_id", "status"])
+    
+
+def load_interactions_from_supabase() -> pd.DataFrame:
+    try:
+        print("📥 Loading room interactions from Supabase...")
+        supabase = get_supabase_client()
+        
+        # Gọi kéo dữ liệu từ bảng room_interactions mới tạo
+        response = supabase.table("RoomInteraction").select("userId, roomId, interactionType, interactionValue").execute()
+        
+        df = pd.DataFrame(response.data)
+        
+        # Đồng bộ hóa tên cột viết hoa/thường khớp với mã nguồn Python cũ của bạn nếu cần
+        if not df.empty:
+            df.rename(columns={"userId": "user_id", "roomId": "room_id", "interactionValue": "rating"}, inplace=True)
+            
+        print(f"✓ Interactions loaded: {len(df)} rows")
+        return df
+    except Exception as e:
+        print(f"❌ Error loading interactions: {e}")
+        return pd.DataFrame(columns=["user_id", "room_id", "interactionType", "rating"])    
 def load_model():
 
     print("📥 Loading XGBoost model...")
@@ -339,48 +360,60 @@ def load_model():
     print(f"✓ Model loaded from: {model_path}")
 
     return model
+# 2. Hàm gom tất cả các nguồn dữ liệu lại để chạy một lần duy nhất lúc startup
 def load_all_data():
-
     print("\n" + "=" * 60)
-    print(" LOADING DATA FROM SUPABASE")
+    print(" LOADING DATA FROM SUPABASE FOR PIPELINE")
     print("=" * 60)
 
-    users_df = load_users_from_supabase()
-
-    rooms_df = load_rooms_from_supabase()
-
-    occupancy_df = load_occupancy_from_supabase()
-
-    model = load_model()
+    u_df = load_users_from_supabase()
+    r_df = load_rooms_from_supabase()
+    o_df = load_occupancy_from_supabase()
+    i_df = load_interactions_from_supabase()
+    mdl = load_model()
 
     print("\n" + "=" * 60)
-    print("ALL DATA LOADED SUCCESSFULLY")
+    print("ALL DATA LOADED SUCCESSFULLY TO MEMORY")
     print("=" * 60)
+    return u_df, r_df, o_df,i_df, mdl
 
-    print(f"Users: {len(users_df)}")
-    print(f"Rooms: {len(rooms_df)}")
-    print(f"Occupancy: {len(occupancy_df)}")
+# =====================================================
+# KHỞI TẠO CÁC BIẾN TOÀN CỤC (GLOBAL VARIABLES)
+# Để các file khác (recommend.py, roommate.py) có thể import được trực tiếp
+# =====================================================
 
-    print("=" * 60 + "\n")
+# Initialize variables with empty defaults to ensure they're always defined
+users_df = pd.DataFrame()
+rooms_df = pd.DataFrame()
+occupancy_df = pd.DataFrame()
+interact_df = pd.DataFrame()
+model = None
 
-    return (
-        users_df,
-        rooms_df,
-        occupancy_df,
-        model
-    )
+try:
+    users_df, rooms_df, occupancy_df,interact_df, model = load_all_data()
+except Exception as e:
+    print(f"❌ CRITICAL ERROR DURING DATA INITIALIZATION: {e}")
+    print(f"   Exception type: {type(e).__name__}")
+    import traceback
+    traceback.print_exc()
+    # Dự phòng DataFrame trống nếu Supabase lỗi kết nối lúc khởi động để app không bị sập nguồn hoàn toàn
+    users_df = pd.DataFrame()
+    rooms_df = pd.DataFrame()
+    occupancy_df = pd.DataFrame()
+    interact_df = pd.DataFrame()
+    model = None
 
-if __name__ == "__main__":
-
-    users_df, rooms_df, occupancy_df, model = (
-        load_all_data()
-    )
-
-    print("\n===== USERS =====")
-    print(users_df.head())
-
-    print("\n===== ROOMS =====")
-    print(rooms_df.head())
-
-    print("\n===== OCCUPANCY =====")
-    print(occupancy_df.head())
+__all__ = [
+    'users_df',
+    'rooms_df', 
+    'occupancy_df',
+    'interact_df',
+    'model',
+    'get_supabase_client',
+    'load_users_from_supabase',
+    'load_rooms_from_supabase',
+    'load_occupancy_from_supabase',
+    'load_interactions_from_supabase',
+    'load_model',
+    'load_all_data'
+]

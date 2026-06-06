@@ -11,6 +11,7 @@ from .similarity import (
     guest_tolerance_compatibility,
 )
 from .scoring import calculate_xgboost_score
+
 from .explain import explain_recommendation
 from utils.loader import model as xgb_model
 from utils.loader_supabase import (
@@ -204,13 +205,11 @@ def get_detailed_compatibility(user_id: str, room_id: str):
             "guest_similarity": guest_score,
             "occupancy_ratio": occupancy_score,
         }
-        
-        # Calculate using XGBoost model for consistency with recommendation
         overall_score = calculate_xgboost_score(xgb_scores, xgb_model)
         
         print(f"\n[COMPATIBILITY] ===== SCORE DETAILS =====")
         print(f"[COMPATIBILITY] User: {user_id}, Room: {room_id}")
-        print(f"[COMPATIBILITY] XGBoost scores: {xgb_scores}")
+        print(f"[COMPATIBILITY]  scores: {xgb_scores}")
         print(f"[COMPATIBILITY] Overall score: {overall_score}%")
         
         reasons = explain_recommendation(scores)

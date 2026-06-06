@@ -3,17 +3,24 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  generateRecommendationExplanation,
-  getDetailedExplanation,
-  type RecommendationScores,
-} from "@/lib/services/recommendationExplainer";
+import type { RecommendationScores } from "@/lib/services/recommendationExplainer";
 
 interface Recommendation extends Partial<RecommendationScores> {
   roomId: string;
   recommendation_score: number;
   price: number;
   districtId?: string;
+  status?: string;
+  explanation?: string;
+  positive_reasons?: string[];
+  concerns?: string[];
+  score_breakdown?: {
+    final_score: number;
+    location: number;
+    budget: number;
+    lifestyle_compatibility: number;
+    community_rating: number;
+  };
   roomDetails?: {
     id: string;
     title: string;
@@ -27,7 +34,6 @@ export default function RecommendedRooms() {
   const [rooms, setRooms] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRecommendations();
@@ -115,17 +121,7 @@ export default function RecommendedRooms() {
       {/* Rooms Grid */}
       {rooms.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {rooms.map((room, index) => {
-            const isExpanded = expandedRoom === room.roomId;
-            const explanation = generateRecommendationExplanation(
-              room as Partial<RecommendationScores>,
-              room.recommendation_score * 100
-            );
-            const detailedExplanations = getDetailedExplanation(
-              room as Partial<RecommendationScores>
-            );
-
-            return (
+          {rooms.map((room, index) => (
               <div
                 key={room.roomId}
                 className="group bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-orange-200 shadow-lg hover:shadow-2xl transition-all duration-300"
@@ -191,20 +187,125 @@ export default function RecommendedRooms() {
                     </p>
                   </div>
 
-                  {/* Why Recommended Section */}
-                  {explanation.topReasons.length > 0 && (
-                    <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-100">
-                      <p className="text-xs font-semibold text-blue-900 mb-2">
-                         Lý do gợi ý:
+                  {/* Status Badge */}
+                  {room.status && (
+                    <div className="mb-4 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                      <p className="text-xs font-semibold text-amber-900">
+                        📌 Trạng thái: {room.status}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Full Explanation */}
+                  {room.explanation && (
+                    <div className="bg-indigo-50 rounded-lg p-4 mb-4 border border-indigo-100">
+                      <p className="text-sm text-indigo-900 leading-relaxed">
+                        {room.explanation}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Score Breakdown */}
+                  {room.score_breakdown && (
+                    <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg p-4 mb-4 border border-slate-200">
+                      <p className="text-xs font-semibold text-slate-700 mb-3">
+                        📊 Chi tiết điểm số:
+                      </p>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-600">Vị trí:</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-orange-500"
+                                style={{ width: `${Math.min(room.score_breakdown.location, 100)}%` }}
+                              />
+                            </div>
+                            <span className="font-bold text-slate-700 w-8 text-right">
+                              {room.score_breakdown.location.toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-600">Ngân sách:</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-green-500"
+                                style={{ width: `${Math.min(room.score_breakdown.budget, 100)}%` }}
+                              />
+                            </div>
+                            <span className="font-bold text-slate-700 w-8 text-right">
+                              {room.score_breakdown.budget.toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-600">Lối sống:</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-purple-500"
+                                style={{ width: `${Math.min(room.score_breakdown.lifestyle_compatibility, 100)}%` }}
+                              />
+                            </div>
+                            <span className="font-bold text-slate-700 w-8 text-right">
+                              {room.score_breakdown.lifestyle_compatibility.toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-600">Cộng đồng:</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-blue-500"
+                                style={{ width: `${Math.min(room.score_breakdown.community_rating, 100)}%` }}
+                              />
+                            </div>
+                            <span className="font-bold text-slate-700 w-8 text-right">
+                              {room.score_breakdown.community_rating.toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Positive Reasons */}
+                  {room.positive_reasons && room.positive_reasons.length > 0 && (
+                    <div className="bg-green-50 rounded-lg p-4 mb-4 border border-green-100">
+                      <p className="text-xs font-semibold text-green-900 mb-2">
+                        ✅ Điểm mạnh:
                       </p>
                       <ul className="space-y-1.5">
-                        {explanation.topReasons.map((reason, idx) => (
+                        {room.positive_reasons.map((reason, idx) => (
                           <li
                             key={idx}
-                            className="text-sm text-blue-800 flex items-start gap-2"
+                            className="text-xs text-green-800 flex items-start gap-2"
                           >
-                            <span className="text-blue-600">→</span>
+                            <span className="text-green-600 shrink-0">→</span>
                             <span>{reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Concerns */}
+                  {room.concerns && room.concerns.length > 0 && (
+                    <div className="bg-orange-50 rounded-lg p-4 mb-4 border border-orange-100">
+                      <p className="text-xs font-semibold text-orange-900 mb-2">
+                        ⚠️ Điểm cần lưu ý:
+                      </p>
+                      <ul className="space-y-1.5">
+                        {room.concerns.map((concern, idx) => (
+                          <li
+                            key={idx}
+                            className="text-xs text-orange-800 flex items-start gap-2"
+                          >
+                            <span className="text-orange-600 shrink-0">→</span>
+                            <span>{concern}</span>
                           </li>
                         ))}
                       </ul>
@@ -235,50 +336,6 @@ export default function RecommendedRooms() {
                     </div>
                   )}
 
-                  {/* Expandable Details */}
-                  {detailedExplanations.length > 0 && (
-                    <div className="mb-4 border-t border-slate-200 pt-4">
-                      <button
-                        onClick={() =>
-                          setExpandedRoom(isExpanded ? null : room.roomId)
-                        }
-                        className="w-full flex items-center justify-between text-sm font-semibold text-slate-700 hover:text-orange-600 transition"
-                      >
-                        <span> Chi tiết phù hợp</span>
-                        <span
-                          className={`transition-transform duration-300 ${
-                            isExpanded ? "rotate-180" : ""
-                          }`}
-                        >
-                          ▼
-                        </span>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="mt-3 space-y-2">
-                          {detailedExplanations.map((exp, idx) => (
-                            <div
-                              key={idx}
-                              className="bg-slate-50 rounded p-3 border border-slate-200"
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-medium text-slate-800">
-                                  {exp.emoji} {exp.title}
-                                </span>
-                                <span className="text-xs font-bold text-slate-600 bg-white px-2 py-1 rounded">
-                                  {(exp.score * 100).toFixed(0)}%
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-600">
-                                {exp.description}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 gap-3">
                     <Link
@@ -293,8 +350,7 @@ export default function RecommendedRooms() {
                   </div>
                 </div>
               </div>
-            );
-          })}
+            ))}
         </div>
       ) : (
         <div className="text-center py-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border border-slate-200">

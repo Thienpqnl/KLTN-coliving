@@ -4,8 +4,11 @@
 
 import math
 import random
-
-
+import pandas as pd
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics.pairwise import cosine_similarity
 # =====================================================
 # CONSTANTS
 # =====================================================
@@ -378,3 +381,66 @@ def compatibility_with_roommates(
     )
 
     return round(final_score, 4)
+
+def calculate_cluster_lifestyle_similarity(users_df, current_user_id, target_room_occupants):
+    """
+    Tái hiện Bước 2 & Bước 3 từ PDF:
+    Gom cụm toàn bộ User dựa trên Lifestyle, sau đó tính độ tương đồng Cosine 
+    giữa User hiện tại với các thành viên đang ở trong phòng mục tiêu.
+    """
+    if not target_room_occupants: # Phòng trống
+        return 0.5 # Điểm trung bình mặc định
+
+    # Chọn các cột lối sống giống như trong mô hình phân cụm của PDF
+    lifestyle_cols = [
+        'priority_cleanliness', 
+        'priority_social_environment', 
+        'sleep_habit', # Đảm bảo dạng số hóa (0, 1, 2..)
+        'guest_tolerance'
+    ]
+    
+    # Lọc các cột hợp lệ hiện có trong dataframe của bạn
+    available_cols = [col for col in lifestyle_cols if col in users_df.columns]
+    
+    if len(available_cols) < 2:
+        return 0.5
+
+    # Chuẩn hóa dữ liệu lối sống
+    scaler = MinMaxScaler()
+    X = scaler.fit_transform(users_df[available_cols].fillna(3)) # Điền mặc định mức trung bình (3/5)
+
+    # Bước 2: K-means Clustering (Ví dụ chia làm 4 nhóm lối sống chính)
+    kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+    users_df['cluster_lifestyle'] = kmeans.fit_predict(X)
+
+    # Lấy thông tin cụm và vector của User hiện tại
+    user_idx = users_df[users_df['user_id'] == current_user_id].index
+    if user_idx.empty:
+        return 0.5
+    
+    current_user_cluster = users_df.loc[user_idx[0], 'cluster_lifestyle']
+    current_user_vector = X[user_idx[0]].reshape(1, -1)
+
+    # Bước 3: Tính Cosine Similarity với những người cùng phòng mục tiêu
+    roommate_similarities = []
+    
+    for roommate_id in target_room_occupants:
+        rm_idx = users_df[users_df['user_id'] == roommate_id].index
+        if rm_idx.empty:
+            continue
+            
+        # Thưởng điểm nếu cùng Nhóm Cụm lối sống (K-means)
+        cluster_bonus = 1.2 if users_df.loc[rm_idx[0], 'cluster_lifestyle'] == current_user_cluster else 1.0
+        
+        # Tính độ tương đồng hình học Cosine (Collaborative Filtering tư duy từ PDF)
+        rm_vector = X[rm_idx[0]].reshape(1, -1)
+        sim = cosine_similarity(current_user_vector, rm_vector)[0][0]
+        
+        roommate_similarities.append(sim * cluster_bonus)
+
+    if not roommate_similarities:
+        return 0.4
+
+    # Trả về độ tương đồng trung bình với các bạn cùng phòng (giới hạn trong khoảng 0-1)
+    final_sim = sum(roommate_similarities) / len(roommate_similarities)
+    return float(np.clip(final_sim, 0.0, 1.0))

@@ -95,18 +95,11 @@ def roommate_compatibility(user, roommate):
 def get_roommates(roomId: str) -> list:
     if not roomId:
         return []
-    
     if occupancy_df.empty:
         return []
-
     print(occupancy_df.head(3))
-    
-
     mask = (occupancy_df["room_id"] == roomId) & (occupancy_df["status"] == "ACTIVE")
     roommates = occupancy_df.loc[mask]
-    
-    if not roommates.empty:
-        print(f"[ROOMMATE_DEBUG] Roommate IDs: {roommates['user_id'].tolist()}")
     if roommates.empty:
         return []
 
