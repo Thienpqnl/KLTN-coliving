@@ -41,10 +41,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/recommend-room/{user_id}")
-def recommend(user_id: str, top_k: int = 10):
+@app.get("/recommend-room/{userId}")
+def recommend(userId: str, top_k: int = 10):
     result = recommend_rooms(
-        user_id=user_id,
+        userId=userId,
         top_k=top_k
     )
 
@@ -52,20 +52,20 @@ def recommend(user_id: str, top_k: int = 10):
     # Convert all numpy types and complex objects to native Python types
     return [convert_to_native_types(record) for record in data]
 
-@app.get("/match-roommates/{user_id}/{roomId}")
+@app.get("/match-roommates/{userId}/{roomId}")
 def roommate_matching(
-    user_id: str,
+    userId: str,
     roomId: str
 ):
     result = match_roommates(
-        user_id=user_id,
+        userId=userId,
         roomId=roomId
     )
     data = result.to_dict(orient="records")
     return [convert_to_native_types(record) for record in data]
-@app.get("/compatibility-detail/{user_id}/{room_id}")
-def get_compatibility_detail(user_id: str, room_id: str):
-    result = get_detailed_compatibility(user_id, room_id)
+@app.get("/compatibility-detail/{userId}/{roomId}")
+def get_compatibility_detail(userId: str, roomId: str):
+    result = get_detailed_compatibility(userId, roomId)
     
     if "error" in result and len(result) <= 2:
         from fastapi import HTTPException

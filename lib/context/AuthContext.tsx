@@ -35,9 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const storedToken = localStorage.getItem('token');
       setToken(storedToken);
-      
-      console.log('🔍 [AuthContext] fetchUser - Token từ localStorage:', storedToken ? 'có' : 'không');
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
       };
@@ -52,19 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
       });
 
-      console.log('📡 [AuthContext] /api/auth/me response status:', response.status);
-
       if (response.ok) {
         const userData = await response.json();
-        console.log('✅ [AuthContext] User data nhận được:', userData?.id);
         setUser(userData);
+      } else if (response.status === 401) {
+        setUser(null);
       } else {
         const errorText = await response.text();
-        console.error('❌ [AuthContext] /api/auth/me failed:', response.status, errorText);
+        console.warn('[AuthContext] /api/auth/me failed:', response.status, errorText);
         setUser(null);
       }
     } catch (error) {
-      console.error('❌ [AuthContext] fetchUser error:', error);
+      console.warn('[AuthContext] fetchUser error:', error);
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -73,8 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchUser();
-    // Only fetch on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const logout = async () => {
@@ -98,6 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (token: string) => {
     setIsLoading(true);
     try {
+      localStorage.setItem('token', token);
+      setToken(token);
       await fetchUser();
     } finally {
       setIsLoading(false);

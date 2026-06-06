@@ -268,7 +268,7 @@ def roommate_cleanliness_avg(
     if not roommate_ids:
         return 3 # Neutral
 
-    indexed_users = users_df.set_index("user_id")
+    indexed_users = users_df.set_index("userId")
 
     cleanliness_values = []
 
@@ -298,7 +298,7 @@ def roommate_social_avg(
     if not roommate_ids:
         return 3 # Neutral
 
-    indexed_users = users_df.set_index("user_id")
+    indexed_users = users_df.set_index("userId")
 
     social_values = []
 
@@ -330,7 +330,7 @@ def compatibility_with_roommates(
     if not roommate_ids:
         return 0.3 # Giảm điểm default nếu không có roommate info
 
-    indexed_users = users_df.set_index("user_id")
+    indexed_users = users_df.set_index("userId")
 
     compatibility_scores = []
 
@@ -382,7 +382,7 @@ def compatibility_with_roommates(
 
     return round(final_score, 4)
 
-def calculate_cluster_lifestyle_similarity(users_df, current_user_id, target_room_occupants):
+def calculate_cluster_lifestyle_similarity(users_df, current_userId, target_room_occupants):
     """
     Tái hiện Bước 2 & Bước 3 từ PDF:
     Gom cụm toàn bộ User dựa trên Lifestyle, sau đó tính độ tương đồng Cosine 
@@ -414,18 +414,18 @@ def calculate_cluster_lifestyle_similarity(users_df, current_user_id, target_roo
     users_df['cluster_lifestyle'] = kmeans.fit_predict(X)
 
     # Lấy thông tin cụm và vector của User hiện tại
-    user_idx = users_df[users_df['user_id'] == current_user_id].index
-    if user_idx.empty:
+    userIdx = users_df[users_df['userId'] == current_userId].index
+    if userIdx.empty:
         return 0.5
     
-    current_user_cluster = users_df.loc[user_idx[0], 'cluster_lifestyle']
-    current_user_vector = X[user_idx[0]].reshape(1, -1)
+    current_user_cluster = users_df.loc[userIdx[0], 'cluster_lifestyle']
+    current_user_vector = X[userIdx[0]].reshape(1, -1)
 
     # Bước 3: Tính Cosine Similarity với những người cùng phòng mục tiêu
     roommate_similarities = []
     
     for roommate_id in target_room_occupants:
-        rm_idx = users_df[users_df['user_id'] == roommate_id].index
+        rm_idx = users_df[users_df['userId'] == roommate_id].index
         if rm_idx.empty:
             continue
             
