@@ -9,6 +9,17 @@ export const roomCreateSchema = z.object({
   address: z.string().min(5, "Address must be at least 5 characters"),
   image: z.array(z.string().url()).optional(),
   amenityIds: z.array(z.string()).optional(),
+  // Room Requirements & Policies
+  cleanlinessRequired: z.enum(["low", "medium", "high"]).optional(),
+  noiseTolerance: z.enum(["quiet", "moderate", "active"]).optional(),
+  guestPolicy: z.enum(["no_guests", "occasionally", "frequently"]).optional(),
+  preferredSleepHabit: z.enum(["early", "normal", "late"]).optional(),
+  preferredOccupation: z.string().optional(),
+  curfewPolicy: z.string().optional(),
+  maxOccupants: z.number().int().min(1).optional(),
+  preferredGender: z.string().optional(),
+  allowSmoking: z.boolean().optional(),
+  allowPets: z.boolean().optional(),
 });
 
 export const roomUpdateSchema = roomCreateSchema.partial();
@@ -64,6 +75,35 @@ export const userCreateSchema = z.object({
   role: z.enum(["CUSTOMER", "SERVER", "DELIVER", "ADMIN"]).default("CUSTOMER"),
 });
 
+// Contract Schemas
+export const contractCreateSchema = z.object({
+  roomId: z.string().min(1, "Room ID is required"),
+  renterId: z.string().min(1, "Renter ID is required"),
+  startDate: z.coerce.date("Invalid start date"),
+  endDate: z.coerce.date("Invalid end date"),
+  monthlyRent: z.number().min(0, "Monthly rent must be non-negative"),
+  depositAmount: z.number().min(0, "Deposit amount must be non-negative"),
+  notes: z.string().optional(),
+}).refine((data) => data.endDate > data.startDate, {
+  message: "End date must be after start date",
+  path: ["endDate"],
+});
+
+export const contractUpdateSchema = z.object({
+  endDate: z.coerce.date().optional(),
+  monthlyRent: z.number().min(0).optional(),
+  notes: z.string().optional(),
+});
+
+export const contractRenewSchema = z.object({
+  newEndDate: z.coerce.date("Invalid end date"),
+  newMonthlyRent: z.number().min(0).optional(),
+});
+
+export const contractTerminateSchema = z.object({
+  terminationReason: z.string().min(5, "Termination reason must be at least 5 characters"),
+});
+
 // Type exports
 export type RoomCreate = z.infer<typeof roomCreateSchema>;
 export type RoomUpdate = z.infer<typeof roomUpdateSchema>;
@@ -75,3 +115,7 @@ export type AmenityUpdate = z.infer<typeof amenityUpdateSchema>;
 export type ReviewCreate = z.infer<typeof reviewCreateSchema>;
 export type UserCreate = z.infer<typeof userCreateSchema>;
 export type UserProfileUpdate = z.infer<typeof userProfileUpdateSchema>;
+export type ContractCreate = z.infer<typeof contractCreateSchema>;
+export type ContractUpdate = z.infer<typeof contractUpdateSchema>;
+export type ContractRenew = z.infer<typeof contractRenewSchema>;
+export type ContractTerminate = z.infer<typeof contractTerminateSchema>;

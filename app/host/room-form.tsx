@@ -21,7 +21,10 @@ interface Room {
   noiseTolerance?: 'quiet' | 'moderate' | 'active'
   guestPolicy?: 'no_guests' | 'occasionally' | 'frequently'
   preferredSleepHabit?: 'early' | 'normal' | 'late'
+  preferredOccupation?: string
+  curfewPolicy?: string
   maxOccupants?: number
+  preferredGender?: string
   allowSmoking?: boolean
   allowPets?: boolean
 }
@@ -48,7 +51,10 @@ export function RoomForm() {
     noiseTolerance: 'moderate' as 'quiet' | 'moderate' | 'active',
     guestPolicy: 'occasionally' as 'no_guests' | 'occasionally' | 'frequently',
     preferredSleepHabit: 'normal' as 'early' | 'normal' | 'late',
+    preferredOccupation: '' as string,
+    curfewPolicy: '' as string,
     maxOccupants: '2',
+    preferredGender: '' as string,
     allowSmoking: false,
     allowPets: false,
   })
@@ -185,7 +191,10 @@ if (images.length > 0) {
         noiseTolerance: formData.noiseTolerance,
         guestPolicy: formData.guestPolicy,
         preferredSleepHabit: formData.preferredSleepHabit,
+        preferredOccupation: formData.preferredOccupation,
+        curfewPolicy: formData.curfewPolicy,
         maxOccupants: parseInt(formData.maxOccupants),
+        preferredGender: formData.preferredGender,
         allowSmoking: formData.allowSmoking,
         allowPets: formData.allowPets,
       }
@@ -330,115 +339,188 @@ if (images.length > 0) {
             </div>
 
             {/* Room Requirements */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">ROOM REQUIREMENTS & POLICIES</h2>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-1">ROOM PREFERENCES & POLICIES</h2>
+                <p className="text-sm text-muted-foreground mb-4">Help us understand what kind of roommates would thrive in your space</p>
+              </div>
               
               {/* Cleanliness Required */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  CLEANLINESS REQUIRED
+                  How important is a clean and organized environment?
                 </label>
+                <p className="text-xs text-muted-foreground mb-3">This helps match with like-minded residents</p>
                 <select
                   name="cleanlinessRequired"
                   value={formData.cleanlinessRequired}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="low">Low - Relaxed</option>
-                  <option value="medium">Medium - Standard</option>
-                  <option value="high">High - Very Clean</option>
+                  <option value="low">Relaxed - I'm flexible about tidiness</option>
+                  <option value="medium">Standard - I appreciate a reasonably clean space</option>
+                  <option value="high">Very Important - I maintain a very clean environment</option>
                 </select>
               </div>
 
               {/* Noise Tolerance */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  NOISE TOLERANCE
+                  What's your noise comfort level?
                 </label>
+                <p className="text-xs text-muted-foreground mb-3">Think about music, conversations, and daily activities</p>
                 <select
                   name="noiseTolerance"
                   value={formData.noiseTolerance}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="quiet">Quiet - Need silence</option>
-                  <option value="moderate">Moderate - Normal noise</option>
-                  <option value="active">Active - Lively environment</option>
+                  <option value="quiet">Quiet - I need a peaceful, silent space</option>
+                  <option value="moderate">Moderate - Normal household noise is fine</option>
+                  <option value="active">Active - I enjoy a lively, vibrant atmosphere</option>
                 </select>
               </div>
 
               {/* Guest Policy */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  GUEST POLICY
+                  How often do you expect roommates to have visitors?
                 </label>
+                <p className="text-xs text-muted-foreground mb-3">This sets expectations for shared spaces</p>
                 <select
                   name="guestPolicy"
                   value={formData.guestPolicy}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="no_guests">No Guests</option>
-                  <option value="occasionally">Occasionally</option>
-                  <option value="frequently">Frequently</option>
+                  <option value="no_guests">No Guests - Private space preferred</option>
+                  <option value="occasionally">Occasionally - Friends/family visit sometimes</option>
+                  <option value="frequently">Frequently - Regular visitors are welcome</option>
                 </select>
               </div>
 
               {/* Preferred Sleep Habit */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  PREFERRED SLEEP HABIT
+                  What's your typical sleep schedule?
                 </label>
+                <p className="text-xs text-muted-foreground mb-3">Helps match with compatible residents</p>
                 <select
                   name="preferredSleepHabit"
                   value={formData.preferredSleepHabit}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="early">Early Riser (6-8am)</option>
-                  <option value="normal">Normal Schedule (8-10am)</option>
-                  <option value="late">Night Owl (10pm+)</option>
+                  <option value="early">Early Riser (Wake 6-8am)</option>
+                  <option value="normal">Standard Schedule (Wake 8-10am)</option>
+                  <option value="late">Night Owl (Wake 10am+)</option>
                 </select>
+              </div>
+
+              {/* Preferred Occupations */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  What type of residents do you prefer?
+                </label>
+                <p className="text-xs text-muted-foreground mb-3">e.g., Students, Professionals, Remote workers, etc.</p>
+                <input
+                  type="text"
+                  name="preferredOccupation"
+                  value={formData.preferredOccupation}
+                  onChange={handleInputChange}
+                  placeholder="e.g., University students, Tech professionals, Creative professionals"
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              {/* Curfew Policy */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Are there any quiet hours or access restrictions?
+                </label>
+                <p className="text-xs text-muted-foreground mb-3">Optional - e.g., "Quiet hours 10pm-8am", "No late night guests"</p>
+                <textarea
+                  name="curfewPolicy"
+                  value={formData.curfewPolicy}
+                  onChange={handleInputChange}
+                  placeholder="Describe any house rules or restrictions (optional)"
+                  rows={3}
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                />
               </div>
 
               {/* Max Occupants */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  MAXIMUM OCCUPANTS
+                  Maximum number of occupants per room
                 </label>
-                <input
-                  type="number"
+                <p className="text-xs text-muted-foreground mb-3">How many people should share this room?</p>
+                <select
                   name="maxOccupants"
                   value={formData.maxOccupants}
                   onChange={handleInputChange}
-                  min="1"
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                >
+                  <option value="1">1 Person (Single occupancy)</option>
+                  <option value="2">2 People (Double occupancy)</option>
+                  <option value="3">3 People (Triple occupancy)</option>
+                  <option value="4">4+ People (Shared dorm)</option>
+                </select>
               </div>
 
-              {/* Smoking & Pets */}
-              <div className="grid grid-cols-2 gap-4">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="allowSmoking"
-                    checked={formData.allowSmoking}
-                    onChange={(e) => setFormData({ ...formData, allowSmoking: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-semibold text-foreground">Allow Smoking</span>
+              {/* Preferred Gender */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Do you have a gender preference for roommates?
                 </label>
+                <p className="text-xs text-muted-foreground mb-3">Optional - this helps some residents feel more comfortable</p>
+                <select
+                  name="preferredGender"
+                  value={formData.preferredGender}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">No Preference</option>
+                  <option value="any">Any Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="female_only">Female Only</option>
+                  <option value="male_only">Male Only</option>
+                </select>
+              </div>
 
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="allowPets"
-                    checked={formData.allowPets}
-                    onChange={(e) => setFormData({ ...formData, allowPets: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-semibold text-foreground">Allow Pets</span>
-                </label>
+              {/* Lifestyle Preferences */}
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-4">Lifestyle Compatibility</p>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted transition">
+                    <input
+                      type="checkbox"
+                      name="allowSmoking"
+                      checked={formData.allowSmoking}
+                      onChange={(e) => setFormData({ ...formData, allowSmoking: e.target.checked })}
+                      className="w-5 h-5 rounded border-gray-300 text-primary"
+                    />
+                    <div>
+                      <span className="font-medium text-foreground">Allow Smoking</span>
+                      <p className="text-xs text-muted-foreground">Roommates can smoke in common areas or their room</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted transition">
+                    <input
+                      type="checkbox"
+                      name="allowPets"
+                      checked={formData.allowPets}
+                      onChange={(e) => setFormData({ ...formData, allowPets: e.target.checked })}
+                      className="w-5 h-5 rounded border-gray-300 text-primary"
+                    />
+                    <div>
+                      <span className="font-medium text-foreground">Allow Pets</span>
+                      <p className="text-xs text-muted-foreground">Roommates can bring pets into the room</p>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
             <div className="space-y-4">

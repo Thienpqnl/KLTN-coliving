@@ -262,6 +262,18 @@ getAllByOwnerId: async (ownerId: string) => {
       updateData.areaValue = new Prisma.Decimal(String(data.area).replace(/[^\d.,]/g, "").replace(",", ".") || "0");
     }
     if (data.address) updateData.address = data.address;
+    
+    // Add room requirements & policies
+    if (data.cleanlinessRequired !== undefined) updateData.cleanlinessRequired = data.cleanlinessRequired;
+    if (data.noiseTolerance !== undefined) updateData.noiseTolerance = data.noiseTolerance;
+    if (data.guestPolicy !== undefined) updateData.guestPolicy = data.guestPolicy;
+    if (data.preferredSleepHabit !== undefined) updateData.preferredSleepHabit = data.preferredSleepHabit;
+    if (data.preferredOccupation !== undefined) updateData.preferredOccupation = data.preferredOccupation;
+    if (data.curfewPolicy !== undefined) updateData.curfewPolicy = data.curfewPolicy;
+    if (data.maxOccupants !== undefined) updateData.maxOccupants = data.maxOccupants;
+    if (data.preferredGender !== undefined) updateData.preferredGender = data.preferredGender;
+    if (data.allowSmoking !== undefined) updateData.allowSmoking = data.allowSmoking;
+    if (data.allowPets !== undefined) updateData.allowPets = data.allowPets;
 
     const room = await prisma.room.update({
       where: { id },

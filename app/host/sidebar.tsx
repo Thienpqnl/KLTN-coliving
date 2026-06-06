@@ -31,6 +31,7 @@ href: string
 const navItems: NavItem[] = [
   { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, href: "/host" },
   { label: "Quản lý phòng", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
+  { label: "Hợp đồng", icon: <CalendarCheck className="h-4 w-4" />, href: "/host/contracts" },
   { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
   { label: "Giao dịch", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
   { label: "Tin nhắn", icon: <MessageSquare className="h-4 w-4" />, href: "/chat" },

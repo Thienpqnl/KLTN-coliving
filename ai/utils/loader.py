@@ -20,7 +20,7 @@ if USE_SUPABASE:
     print("📊 MODE: Loading from SUPABASE")
     print("="*60)
     from utils.loader_supabase import load_all_data
-    users_df, rooms_df, occupancy_df, model = load_all_data()
+    users_df, rooms_df, occupancy_df, interact_df ,model = load_all_data()
 else:
     print("="*60)
     users_df = pd.read_csv(
@@ -28,6 +28,9 @@ else:
     )
     rooms_df = pd.read_csv(
         "data/room_requirements.csv"
+    )
+    occupancy_df = pd.read_csv(
+        "data/room_occupancy_dataset.csv"
     )
     occupancy_df = pd.read_csv(
         "data/room_occupancy_dataset.csv"

@@ -24,6 +24,16 @@ export async function POST(request: NextRequest) {
         areaValue: data.area.replace(/[^\d.,]/g, "").replace(",", ".") || null,
         address: data.address,
         ownerId: authUser.userId,
+        cleanlinessRequired: data.cleanlinessRequired,
+        noiseTolerance: data.noiseTolerance,
+        guestPolicy: data.guestPolicy,
+        preferredSleepHabit: data.preferredSleepHabit,
+        preferredOccupation: data.preferredOccupation,
+        curfewPolicy: data.curfewPolicy,
+        maxOccupants: data.maxOccupants,
+        preferredGender: data.preferredGender,
+        allowSmoking: data.allowSmoking,
+        allowPets: data.allowPets,
         images: {
           create: imageArray.map((url, index) => ({
             url,
