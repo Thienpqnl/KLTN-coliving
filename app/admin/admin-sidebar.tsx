@@ -1,18 +1,19 @@
 "use client"
 
+import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { cn } from "@/lib/utils"
 import {
-  LayoutDashboard,
-  Users,
   BarChart3,
   FileText,
-  Settings,
   HelpCircle,
+  LayoutDashboard,
   LogOut,
+  Settings,
+  Users,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { useAuth } from "@/lib/hooks/useAuth"
 
 interface NavItem {
   label: string
@@ -22,42 +23,49 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/admin" },
-  { label: "User Management", icon: <Users className="h-4 w-4" />, href: "/admin/users" },
-  { label: "Reports", icon: <BarChart3 className="h-4 w-4" />, href: "/admin/reports" },
-  { label: "Audit Logs", icon: <FileText className="h-4 w-4" />, href: "/admin/logs" },
+  { label: "Quản lý người dùng", icon: <Users className="h-4 w-4" />, href: "/admin/users" },
+  { label: "Báo cáo", icon: <BarChart3 className="h-4 w-4" />, href: "/admin/reports" },
+  { label: "Nhật ký hệ thống", icon: <FileText className="h-4 w-4" />, href: "/admin/logs" },
 ]
 
 export function AdminSidebar() {
   const pathname = usePathname()
+  const { logout } = useAuth()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    await logout()
+  }
 
   return (
-    <aside className="hidden lg:flex w-56 flex-shrink-0 bg-card border-r border-border flex-col h-screen sticky top-0">
-      {/* Logo Section */}
-      <div className="p-4 border-b border-border">
-        <Link href="/admin" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="h-10 w-10 rounded-xl bg-red-600 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">A</span>
+    <aside className="hidden h-screen w-56 flex-shrink-0 flex-col border-r border-border bg-card lg:flex sticky top-0">
+      <div className="border-b border-border p-4">
+        <Link href="/admin" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600">
+            <span className="text-lg font-bold text-white">A</span>
           </div>
           <div>
-            <h1 className="font-semibold text-sm text-foreground">Admin Panel</h1>
-            <p className="text-xs text-muted-foreground">Management</p>
+            <h1 className="text-sm font-semibold text-foreground">Bảng quản trị</h1>
+            <p className="text-xs text-muted-foreground">Hệ thống</p>
           </div>
         </Link>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-3">
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href
+
             return (
               <li key={item.label}>
                 <Link
                   href={item.href}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                     isActive
-                      ? "bg-red-100 text-red-700 font-medium"
+                      ? "bg-red-100 font-medium text-red-700"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
                 >
@@ -70,23 +78,26 @@ export function AdminSidebar() {
         </ul>
       </nav>
 
-      {/* Bottom Section */}
       <div className="px-3 pb-2">
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
           <Settings className="h-4 w-4" />
-          Settings
+          Cài đặt
         </button>
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
           <HelpCircle className="h-4 w-4" />
-          Support
+          Hỗ trợ
         </button>
       </div>
 
-      {/* User Section */}
-      <div className="p-3 border-t border-border">
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-sm text-muted-foreground hover:text-foreground">
+      <div className="border-t border-border p-3">
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+        >
           <LogOut className="h-4 w-4" />
-          Logout
+          {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
         </button>
       </div>
     </aside>

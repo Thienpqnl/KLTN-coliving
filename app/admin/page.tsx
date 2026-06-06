@@ -46,7 +46,7 @@ export default function AdminDashboard() {
           }),
         ])
 
-        if (!userRes.ok || !roomRes.ok) throw new Error("Failed to fetch stats")
+        if (!userRes.ok || !roomRes.ok) throw new Error("Không thể tải số liệu")
 
         const userData = await userRes.json()
         const roomData = await roomRes.json()
@@ -55,7 +55,7 @@ export default function AdminDashboard() {
         setRoomStats(roomData)
         setError("")
       } catch (err) {
-        setError("Failed to load statistics")
+        setError("Không thể tải thống kê")
         console.error(err)
       } finally {
         setLoading(false)
@@ -90,17 +90,17 @@ export default function AdminDashboard() {
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Users className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold text-foreground">User Statistics</h2>
+          <h2 className="text-xl font-semibold text-foreground">Thống kê người dùng</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {userStats && (
             <>
-              <StatCard label="Total Users" value={userStats.total} color="blue" />
-              <StatCard label="Active Tenants" value={userStats.tenants} color="green" />
-              <StatCard label="Active Landlords" value={userStats.landlords} color="purple" />
-              <StatCard label="Locked" value={userStats.locked} color="orange" />
-              <StatCard label="Deleted" value={userStats.deleted} color="red" />
-              <StatCard label="New This Month" value={userStats.newThisMonth} color="emerald" />
+              <StatCard label="Tổng người dùng" value={userStats.total} color="blue" />
+              <StatCard label="Người thuê hoạt động" value={userStats.tenants} color="green" />
+              <StatCard label="Chủ nhà hoạt động" value={userStats.landlords} color="purple" />
+              <StatCard label="Đã khóa" value={userStats.locked} color="orange" />
+              <StatCard label="Đã xóa" value={userStats.deleted} color="red" />
+              <StatCard label="Mới trong tháng" value={userStats.newThisMonth} color="emerald" />
             </>
           )}
         </div>
@@ -110,16 +110,16 @@ export default function AdminDashboard() {
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Home className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold text-foreground">Room Statistics</h2>
+          <h2 className="text-xl font-semibold text-foreground">Thống kê phòng</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {roomStats && (
             <>
-              <StatCard label="Total Rooms" value={roomStats.total} color="blue" />
-              <StatCard label="Available" value={roomStats.available} color="green" />
-              <StatCard label="Occupied" value={roomStats.occupied} color="purple" />
-              <StatCard label="Pending" value={roomStats.pending} color="yellow" />
-              <StatCard label="Hidden" value={roomStats.hidden} color="gray" />
+              <StatCard label="Tổng phòng" value={roomStats.total} color="blue" />
+              <StatCard label="Còn trống" value={roomStats.available} color="green" />
+              <StatCard label="Đã thuê" value={roomStats.occupied} color="purple" />
+              <StatCard label="Đang chờ" value={roomStats.pending} color="yellow" />
+              <StatCard label="Đang ẩn" value={roomStats.hidden} color="gray" />
             </>
           )}
         </div>
@@ -129,19 +129,19 @@ export default function AdminDashboard() {
       <section>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold text-foreground">Revenue Overview</h2>
+          <h2 className="text-xl font-semibold text-foreground">Tổng quan doanh thu</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {roomStats && (
             <>
               <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-6">
-                <p className="text-sm text-emerald-700 font-medium">Total Revenue</p>
+                <p className="text-sm text-emerald-700 font-medium">Tổng doanh thu</p>
                 <p className="text-4xl font-bold text-emerald-900 mt-3">
                   ${(roomStats.revenue.total / 1000).toFixed(1)}K
                 </p>
               </div>
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6">
-                <p className="text-sm text-blue-700 font-medium">Completed Bookings</p>
+                <p className="text-sm text-blue-700 font-medium">Booking đã hoàn tất</p>
                 <p className="text-4xl font-bold text-blue-900 mt-3">
                   {roomStats.revenue.completedBookings}
                 </p>
@@ -154,15 +154,15 @@ export default function AdminDashboard() {
       {/* Monthly Trend */}
       {userStats && userStats.byMonth.length > 0 && (
         <section>
-          <h2 className="text-xl font-semibold text-foreground mb-4">New Users Trend</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-4">Xu hướng người dùng mới</h2>
           <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-secondary border-b border-border">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Month</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">New Users</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Growth Indicator</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Tháng</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Người dùng mới</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Chỉ báo tăng trưởng</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">

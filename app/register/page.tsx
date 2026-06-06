@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -31,23 +31,23 @@ const router = useRouter();
     const newErrors: Record<string, string> = {};
 
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Vui lòng nhập họ tên';
+      newErrors.fullName = 'Vui lÃ²ng nháº­p há» tÃªn';
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Vui lòng nhập email';
+      newErrors.email = 'Vui lÃ²ng nháº­p email';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email không hợp lệ';
+      newErrors.email = 'Email khÃ´ng há»£p lá»‡';
     }
 
     if (!formData.password) {
-      newErrors.password = 'Vui lòng nhập mật khẩu';
+      newErrors.password = 'Vui lÃ²ng nháº­p máº­t kháº©u';
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
+      newErrors.password = 'Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 8 kÃ½ tá»±';
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu không trùng khớp';
+      newErrors.confirmPassword = 'Máº­t kháº©u khÃ´ng trÃ¹ng khá»›p';
     }
 
     if (!formData.role) {
@@ -55,7 +55,7 @@ const router = useRouter();
     }
 
     if (!formData.terms) {
-      newErrors.terms = 'Vui lòng đồng ý với điều khoản';
+      newErrors.terms = 'Vui lÃ²ng Ä‘á»“ng Ã½ vá»›i Ä‘iá»u khoáº£n';
     }
 
     setErrors(newErrors);
@@ -86,11 +86,11 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     const data = await res.json();
 
     if (!res.ok) {
-      setErrors({ submit: data.message || 'Đăng ký thất bại' });
+      setErrors({ submit: data.message || 'ÄÄƒng kÃ½ tháº¥t báº¡i' });
       return;
     }
 
-    // Lưu token vào localStorage
+    // LÆ°u token vÃ o localStorage
     if (data.token) {
       localStorage.setItem('token', data.token);
     }
@@ -103,8 +103,8 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     } else {
       router.push('/home');
     }
-  } catch (err: any) {
-    setErrors({ submit: err.message || 'Đăng ký thất bại' });
+  } catch {
+    setErrors({ submit: 'Đăng ký thất bại' });
   } finally {
     setIsLoading(false);
   }
@@ -115,37 +115,39 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       <section className="hidden md:flex md:w-1/2 lg:w-3/5 relative bg-blue-100 items-center justify-center p-12 lg:p-24 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
-            alt="Không gian co-living sang trọng"
+            alt="KhÃ´ng gian co-living sang trá»ng"
             className="w-full h-full object-cover"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfAu9icIgC2pau7CZT9KXd6v-pI7ev3PB8iSfvcdcZM2_8tnHhk8KP9e0he4yBOChavTyFeyriLkSAPv_VOCDwNfbb-2RiOi7S19hlx5JAbtM270wa1iIJOR0VMdxPgYLhcwpHxuXXiQtZUPmqWJb-40MxH1oyXpuIT88idIvZPFUbOoc2lp5nHsv4i_oAOtMxTCyaQbYQDcoy0KB9MD8AcJRDx8eQ8VvCticGo4qbR43ywRTHypFldeu4WZCc5DS0cydOzJrFOG8S"
           />
-          <div className="absolute inset-0 bg-orange-600/20 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-slate-950/45"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/55 to-slate-950/20"></div>
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950/70 to-transparent"></div>
         </div>
 
         <div className="relative z-10 w-full max-w-2xl">
           <div className="mb-12">
-            <span className="inline-block px-4 py-1 rounded-full bg-white/60 backdrop-blur-md text-orange-600 font-label text-[10px] tracking-[0.2em] uppercase mb-6">
+            <span className="inline-block px-4 py-1 rounded-full bg-white/95 backdrop-blur-md text-orange-700 font-label text-[10px] tracking-[0.2em] uppercase mb-6 shadow-sm">
               The Curated Hearth
             </span>
-            <h1 className="font-headline text-5xl lg:text-7xl font-extrabold text-white tracking-tighter leading-[0.9] mb-8 drop-shadow-sm">
-              Tìm gia đình <br />
-              <span className="text-orange-200">của bạn</span>
+            <h1 className="font-headline text-5xl lg:text-7xl font-extrabold text-white tracking-tighter leading-[0.9] mb-8 drop-shadow-[0_3px_18px_rgba(0,0,0,0.65)]">
+              TÃ¬m gia Ä‘Ã¬nh <br />
+              <span className="text-orange-200">cá»§a báº¡n</span>
             </h1>
-            <p className="text-white/90 text-lg lg:text-xl font-light leading-relaxed max-w-lg mb-12">
-              Không chỉ là một phòng. Một hệ sinh thái được tuyển chọn được thiết kế cho những câu chuyện chia sẻ, sự phát triển sáng tạo và ấm áp của một lò sưởi hiện đại.
+            <p className="text-white text-lg lg:text-xl font-medium leading-relaxed max-w-lg mb-12 drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)]">
+              KhÃ´ng chá»‰ lÃ  má»™t phÃ²ng. Má»™t há»‡ sinh thÃ¡i Ä‘Æ°á»£c tuyá»ƒn chá»n Ä‘Æ°á»£c thiáº¿t káº¿ cho nhá»¯ng cÃ¢u chuyá»‡n chia sáº», sá»± phÃ¡t triá»ƒn sÃ¡ng táº¡o vÃ  áº¥m Ã¡p cá»§a má»™t lÃ² sÆ°á»Ÿi hiá»‡n Ä‘áº¡i.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white/60 backdrop-blur-md p-6 rounded-xl border border-white/20">
+            <div className="bg-white/90 backdrop-blur-md p-6 rounded-xl border border-white/60 shadow-xl shadow-black/20">
               <span className="material-symbols-outlined text-orange-600 mb-3 block text-3xl">auto_awesome</span>
-              <h3 className="font-headline font-bold text-slate-900">Không gian Tuyển chọn</h3>
-              <p className="text-sm text-slate-700 mt-1">Các môi trường được thiết kế đầy cảm hứng.</p>
+              <h3 className="font-headline font-bold text-slate-900">KhÃ´ng gian Tuyá»ƒn chá»n</h3>
+              <p className="text-sm text-slate-700 mt-1">CÃ¡c mÃ´i trÆ°á»ng Ä‘Æ°á»£c thiáº¿t káº¿ Ä‘áº§y cáº£m há»©ng.</p>
             </div>
-            <div className="bg-white/60 backdrop-blur-md p-6 rounded-xl border border-white/20">
+            <div className="bg-white/90 backdrop-blur-md p-6 rounded-xl border border-white/60 shadow-xl shadow-black/20">
               <span className="material-symbols-outlined text-orange-600 mb-3 block text-3xl">group</span>
-              <h3 className="font-headline font-bold text-slate-900">Kết nối Thực sự</h3>
-              <p className="text-sm text-slate-700 mt-1">Các cộng đồng được kiểm duyệt cẩn thận.</p>
+              <h3 className="font-headline font-bold text-slate-900">Káº¿t ná»‘i Thá»±c sá»±</h3>
+              <p className="text-sm text-slate-700 mt-1">CÃ¡c cá»™ng Ä‘á»“ng Ä‘Æ°á»£c kiá»ƒm duyá»‡t cáº©n tháº­n.</p>
             </div>
           </div>
         </div>
@@ -162,10 +164,10 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         <div className="w-full max-w-md">
           <header className="mb-10">
             <h2 className="font-headline text-3xl font-bold text-slate-900 tracking-tight mb-2">
-              Tạo tài khoản
+              Táº¡o tÃ i khoáº£n
             </h2>
             <p className="text-slate-600 font-light">
-              Tham gia một cộng đồng được xây dựng trên các giá trị chia sẻ.
+              Tham gia má»™t cá»™ng Ä‘á»“ng Ä‘Æ°á»£c xÃ¢y dá»±ng trÃªn cÃ¡c giÃ¡ trá»‹ chia sáº».
             </p>
           </header>
 
@@ -176,7 +178,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
                 htmlFor="fullName"
               >
-                Họ và Tên
+                Há» vÃ  TÃªn
               </label>
               <input
                 className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all placeholder:text-slate-400 outline-none"
@@ -244,12 +246,12 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                   className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
                   htmlFor="password"
                 >
-                  Mật khẩu
+                  Máº­t kháº©u
                 </label>
                 <input
                   className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all outline-none"
                   id="password"
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   type="password"
                   value={formData.password}
                   onChange={handleInputChange}
@@ -265,12 +267,12 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                   className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
                   htmlFor="confirmPassword"
                 >
-                  Xác nhận
+                  XÃ¡c nháº­n
                 </label>
                 <input
                   className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all outline-none"
                   id="confirmPassword"
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   type="password"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
@@ -293,13 +295,13 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 disabled={isLoading}
               />
               <label className="text-xs text-slate-600 leading-relaxed" htmlFor="terms">
-                Tôi đồng ý với{' '}
+                TÃ´i Ä‘á»“ng Ã½ vá»›i{' '}
                 <Link href="#" className="text-orange-600 font-medium hover:underline">
-                  Điều khoản dịch vụ
+                  Äiá»u khoáº£n dá»‹ch vá»¥
                 </Link>{' '}
-                và{' '}
+                vÃ {' '}
                 <Link href="#" className="text-orange-600 font-medium hover:underline">
-                  Chính sách bảo mật
+                  ChÃ­nh sÃ¡ch báº£o máº­t
                 </Link>
                 .
               </label>
@@ -321,7 +323,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               type="submit"
               disabled={isLoading}
             >
-              <span>{isLoading ? 'Đang tạo tài khoản...' : 'Bắt đầu Hành trình'}</span>
+              <span>{isLoading ? 'Äang táº¡o tÃ i khoáº£n...' : 'Báº¯t Ä‘áº§u HÃ nh trÃ¬nh'}</span>
               {!isLoading && <span className="material-symbols-outlined text-sm">arrow_forward</span>}
             </button>
           </form>
@@ -329,9 +331,9 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
           {/* Sign In Link */}
           <div className="mt-8 pt-8 border-t border-slate-200 text-center">
             <p className="text-sm text-slate-600">
-              Đã có tài khoản?{' '}
+              ÄÃ£ cÃ³ tÃ i khoáº£n?{' '}
               <Link href="/login" className="text-orange-600 font-bold ml-1 hover:underline">
-                Đăng nhập
+                ÄÄƒng nháº­p
               </Link>
             </p>
           </div>
@@ -346,9 +348,10 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 
         {/* Footer */}
         <footer className="absolute bottom-8 text-[10px] font-label tracking-widest text-slate-500 uppercase">
-          © 2024 The Curated Hearth. All rights reserved.
+          Â© 2024 The Curated Hearth. All rights reserved.
         </footer>
       </section>
     </main>
   );
 }
+

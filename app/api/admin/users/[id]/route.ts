@@ -24,6 +24,16 @@ export async function PATCH(
     const { action, reason, newRole } = updateUserSchema.parse(body);
     const userId = id;
 
+    if (
+      userId === payload.userId &&
+      (action === "lock" || action === "delete" || action === "update_role")
+    ) {
+      throw new ApiError(
+        400,
+        "Không thể khóa, xóa hoặc thay đổi vai trò của tài khoản admin hiện tại"
+      );
+    }
+
     let result;
 
     switch (action) {
