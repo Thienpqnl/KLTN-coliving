@@ -45,7 +45,7 @@ export default function Reports() {
           }),
         ])
 
-        if (!userRes.ok || !roomRes.ok) throw new Error("Failed to fetch stats")
+        if (!userRes.ok || !roomRes.ok) throw new Error("Không thể tải số liệu")
 
         const userData = await userRes.json()
         const roomData = await roomRes.json()
@@ -53,7 +53,7 @@ export default function Reports() {
         setUserStats(userData)
         setRoomStats(roomData)
       } catch (err) {
-        setError("Failed to load reports")
+        setError("Không thể tải báo cáo")
         console.error(err)
       } finally {
         setLoading(false)
@@ -89,29 +89,29 @@ export default function Reports() {
       <section className="bg-card border border-border rounded-xl shadow-sm p-6">
         <div className="flex items-center gap-2 mb-6">
           <BarChart3 className="h-5 w-5 text-primary" />
-          <h2 className="text-2xl font-bold text-foreground">User Report</h2>
+          <h2 className="text-2xl font-bold text-foreground">Báo cáo người dùng</h2>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {userStats && (
             <>
               <ReportCard
-                label="Total Users"
+                label="Tổng người dùng"
                 value={userStats.total}
                 color="blue"
               />
               <ReportCard
-                label="Active Tenants"
+                label="Người thuê hoạt động"
                 value={userStats.tenants}
                 color="green"
               />
               <ReportCard
-                label="Active Landlords"
+                label="Chủ nhà hoạt động"
                 value={userStats.landlords}
                 color="purple"
               />
               <ReportCard
-                label="Locked Accounts"
+                label="Tài khoản bị khóa"
                 value={userStats.locked}
                 color="orange"
               />
@@ -122,20 +122,20 @@ export default function Reports() {
         {userStats && (
           <>
             <h3 className="text-lg font-semibold text-foreground mb-4">
-              Monthly New Users
+              Người dùng mới theo tháng
             </h3>
             <div className="overflow-x-auto mb-6 bg-secondary rounded-lg">
               <table className="w-full">
                 <thead className="bg-secondary/50 border-b border-border">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Month
+                      Tháng
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      New Users
+                      Người dùng mới
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Trend
+                      Xu hướng
                     </th>
                   </tr>
                 </thead>
@@ -176,33 +176,33 @@ export default function Reports() {
       <section className="bg-card border border-border rounded-xl shadow-sm p-6">
         <div className="flex items-center gap-2 mb-6">
           <BarChart3 className="h-5 w-5 text-primary" />
-          <h2 className="text-2xl font-bold text-foreground">Room Report</h2>
+          <h2 className="text-2xl font-bold text-foreground">Báo cáo phòng</h2>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           {roomStats && (
             <>
               <ReportCard
-                label="Total Rooms"
+                label="Tổng phòng"
                 value={roomStats.total}
                 color="blue"
               />
               <ReportCard
-                label="Available"
+                label="Còn trống"
                 value={roomStats.available}
                 color="green"
               />
               <ReportCard
-                label="Occupied"
+                label="Đã thuê"
                 value={roomStats.occupied}
                 color="purple"
               />
               <ReportCard
-                label="Pending"
+                label="Đang chờ"
                 value={roomStats.pending}
                 color="yellow"
               />
-              <ReportCard label="Hidden" value={roomStats.hidden} />
+              <ReportCard label="Đang ẩn" value={roomStats.hidden} />
             </>
           )}
         </div>
@@ -210,13 +210,13 @@ export default function Reports() {
         {roomStats && (
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6">
-              <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">Total Revenue</p>
+              <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">Tổng doanh thu</p>
               <p className="text-4xl font-bold text-emerald-900 dark:text-emerald-100 mt-3">
                 ${(roomStats.revenue.total / 1000).toFixed(1)}K
               </p>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
-              <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">Completed Bookings</p>
+              <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">Booking đã hoàn tất</p>
               <p className="text-4xl font-bold text-blue-900 dark:text-blue-100 mt-3">
                 {roomStats.revenue.completedBookings}
               </p>
@@ -227,26 +227,26 @@ export default function Reports() {
 
       {/* Summary */}
       <section className="bg-card border border-border rounded-xl shadow-sm p-6">
-        <h2 className="text-2xl font-bold text-foreground mb-6">Summary</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-6">Tổng kết</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {userStats && roomStats && (
             <>
               <div className="border-l-4 border-primary pl-4 py-2">
-                <p className="text-sm text-muted-foreground">User Growth</p>
+                <p className="text-sm text-muted-foreground">Tăng trưởng người dùng</p>
                 <p className="text-3xl font-bold text-foreground mt-2">
                   {userStats.newThisMonth}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">new this month</p>
+                <p className="text-xs text-muted-foreground mt-1">người dùng mới trong tháng</p>
               </div>
               <div className="border-l-4 border-emerald-500 pl-4 py-2">
-                <p className="text-sm text-muted-foreground">Room Utilization</p>
+                <p className="text-sm text-muted-foreground">Tỷ lệ sử dụng phòng</p>
                 <p className="text-3xl font-bold text-foreground mt-2">
                   {((roomStats.occupied / roomStats.total) * 100).toFixed(1)}%
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">occupied</p>
+                <p className="text-xs text-muted-foreground mt-1">đã thuê</p>
               </div>
               <div className="border-l-4 border-purple-500 pl-4 py-2">
-                <p className="text-sm text-muted-foreground">Average Revenue</p>
+                <p className="text-sm text-muted-foreground">Doanh thu trung bình</p>
                 <p className="text-3xl font-bold text-foreground mt-2">
                   $
                   {roomStats.revenue.completedBookings > 0
@@ -256,7 +256,7 @@ export default function Reports() {
                       ).toFixed(0)
                     : "0"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">per booking</p>
+                <p className="text-xs text-muted-foreground mt-1">trên mỗi booking</p>
               </div>
             </>
           )}
