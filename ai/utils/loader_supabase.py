@@ -121,7 +121,7 @@ def load_users_from_supabase() -> pd.DataFrame:
 
         users_df = users_df.rename(columns={
 
-            "id": "user_id",
+            "id": "userId",
 
             "budgetMinVnd": "budget_min_vnd",
 
@@ -291,12 +291,12 @@ def load_occupancy_from_supabase() -> pd.DataFrame:
         occupancy_data = response.data
         if not occupancy_data:
             print(" No occupancy data found")
-            return pd.DataFrame(columns=["room_id", "user_id", "status"])
+            return pd.DataFrame(columns=["roomId", "userId", "status"])
 
         occupancy_df = pd.DataFrame([
             {
-                "room_id": row["roomId"],
-                "user_id": row["userId"],
+                "roomId": row["roomId"],
+                "userId": row["userId"],
                 "status": row.get("status", "ACTIVE") # Default là ACTIVE nếu null
             }
             for row in occupancy_data
@@ -308,7 +308,7 @@ def load_occupancy_from_supabase() -> pd.DataFrame:
     except Exception as e:
         print("\n❌ Error loading occupancy:")
         print(str(e))
-        return pd.DataFrame(columns=["room_id", "user_id", "status"])
+        return pd.DataFrame(columns=["roomId", "userId", "status"])
     
 
 def load_interactions_from_supabase() -> pd.DataFrame:
@@ -323,13 +323,13 @@ def load_interactions_from_supabase() -> pd.DataFrame:
         
         # Đồng bộ hóa tên cột viết hoa/thường khớp với mã nguồn Python cũ của bạn nếu cần
         if not df.empty:
-            df.rename(columns={"userId": "user_id", "roomId": "room_id", "interactionValue": "rating"}, inplace=True)
+            df.rename(columns={"userId": "userId", "roomId": "roomId", "interactionValue": "rating"}, inplace=True)
             
         print(f"✓ Interactions loaded: {len(df)} rows")
         return df
     except Exception as e:
         print(f"❌ Error loading interactions: {e}")
-        return pd.DataFrame(columns=["user_id", "room_id", "interactionType", "rating"])    
+        return pd.DataFrame(columns=["userId", "roomId", "interactionType", "rating"])    
 def load_model():
 
     print("📥 Loading XGBoost model...")

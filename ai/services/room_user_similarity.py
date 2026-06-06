@@ -38,22 +38,22 @@ def convert_to_native_types(obj):
         return convert_to_native_types(obj.to_dict())
     return obj
 
-def get_detailed_compatibility(user_id: str, room_id: str):
+def get_detailed_compatibility(userId: str, roomId: str):
     try:
         # 1. Load Data
         users_df = load_users_from_supabase()
         rooms_df = load_rooms_from_supabase()
         occupancy_df = load_occupancy_from_supabase()
         
-        # LƯU Ý: Sử dụng đúng tên cột 'user_id' và 'roomId' đã được rename trong loader
-        user_row = users_df[users_df['user_id'] == user_id]
-        room_row = rooms_df[rooms_df['roomId'] == room_id]
+        # LƯU Ý: Sử dụng đúng tên cột 'userId' và 'roomId' đã được rename trong loader
+        user_row = users_df[users_df['userId'] == userId]
+        room_row = rooms_df[rooms_df['roomId'] == roomId]
         
         if user_row.empty:
-            return {"error": f"User {user_id} not found"}
+            return {"error": f"User {userId} not found"}
         
         if room_row.empty:
-            return {"error": f"Room {room_id} not found"}
+            return {"error": f"Room {roomId} not found"}
         
         user = user_row.iloc[0]
         room = room_row.iloc[0]
@@ -62,8 +62,8 @@ def get_detailed_compatibility(user_id: str, room_id: str):
         # Lưu ý: Trong loader, maxOccupants giữ nguyên tên, currentOccupants đổi thành current_occupants
         if room.get('current_occupants', 0) >= room.get('maxOccupants', 999):
             return {
-                "user_id": user_id,
-                "room_id": room_id,
+                "userId": userId,
+                "roomId": roomId,
                 "error": "Phòng đã đầy",
                 "overall_score": 0
             }
@@ -124,9 +124,9 @@ def get_detailed_compatibility(user_id: str, room_id: str):
         # =====================================================
         roommate_score = 0.5  # Default
         
-        # Lấy danh sách user_id đang ở phòng này từ bảng occupancy
-        # Lọc occupancy_df theo room_id và status ACTIVE (nếu có)
-        current_roommates_rows = occupancy_df[occupancy_df['room_id'] == room_id]
+        # Lấy danh sách userId đang ở phòng này từ bảng occupancy
+        # Lọc occupancy_df theo roomId và status ACTIVE (nếu có)
+        current_roommates_rows = occupancy_df[occupancy_df['roomId'] == roomId]
         
         # Nếu có người ở
         if not current_roommates_rows.empty:
@@ -137,14 +137,14 @@ def get_detailed_compatibility(user_id: str, room_id: str):
             user_social = user.get('priority_social_environment', 3)
 
             for _, occ_row in current_roommates_rows.iterrows():
-                roommate_id = occ_row['user_id']
+                roommate_id = occ_row['userId']
                 
                 # Bỏ qua nếu trùng với user đang check (trường hợp hiếm)
-                if roommate_id == user_id:
+                if roommate_id == userId:
                     continue
                 
                 # Tìm thông tin roommate trong users_df
-                roommate_row = users_df[users_df['user_id'] == roommate_id]
+                roommate_row = users_df[users_df['userId'] == roommate_id]
                 
                 if not roommate_row.empty:
                     roommate = roommate_row.iloc[0]
@@ -208,14 +208,14 @@ def get_detailed_compatibility(user_id: str, room_id: str):
         overall_score = calculate_xgboost_score(xgb_scores, xgb_model)
         
         print(f"\n[COMPATIBILITY] ===== SCORE DETAILS =====")
-        print(f"[COMPATIBILITY] User: {user_id}, Room: {room_id}")
+        print(f"[COMPATIBILITY] User: {userId}, Room: {roomId}")
         print(f"[COMPATIBILITY]  scores: {xgb_scores}")
         print(f"[COMPATIBILITY] Overall score: {overall_score}%")
         
         reasons = explain_recommendation(scores)
         
         user_info = {
-            "id": user.get('user_id'), # Sửa thành 'user_id'
+            "id": user.get('userId'), # Sửa thành 'userId'
             "name": user.get('fullName'),
             "email": user.get('email'),
             "preferences": {
@@ -231,7 +231,7 @@ def get_detailed_compatibility(user_id: str, room_id: str):
         }
         
         room_info = {
-            "id": room.get('roomId'), # Sửa thành 'roomId'
+            "id": room.get('roomId'), 
             "title": room.get('title'),
             "price": room.get('minimumBudget'),
             "district": room.get('districtId'),
@@ -248,8 +248,8 @@ def get_detailed_compatibility(user_id: str, room_id: str):
         }
         
         result = {
-            "user_id": user_id,
-            "room_id": room_id,
+            "userId": userId,
+            "roomId": roomId,
             "user_info": user_info,
             "room_info": room_info,
             "scores": scores,
@@ -263,6 +263,6 @@ def get_detailed_compatibility(user_id: str, room_id: str):
         traceback.print_exc()
         return {
             "error": f"Error calculating compatibility: {str(e)}",
-            "user_id": user_id,
-            "room_id": room_id
+            "userId": userId,
+            "roomId": roomId
         }

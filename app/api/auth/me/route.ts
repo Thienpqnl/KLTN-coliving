@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
+import { ApiError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
@@ -31,7 +32,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(userData)
   } catch (error) {
-    console.error('Auth/me error:', error)
+    if (!(error instanceof ApiError && error.statusCode === 401)) {
+      console.error('Auth/me error:', error)
+    }
+
     return NextResponse.json(
       { message: 'Unauthorized' },
       { status: 401 }
