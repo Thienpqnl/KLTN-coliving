@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "seed:admin": "node scripts/seed-admin.mjs",
     "import:rooms": "ts-node scripts/import-rooms.ts",
     "import:rooms:cjs": "node scripts/import-rooms-cjs.js"
   },

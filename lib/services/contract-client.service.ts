@@ -4,6 +4,8 @@ export interface ContractData {
   id: string;
   roomId: string;
   renterId: string;
+  hostId: string | null;
+  bookingId: string | null;
   startDate: string;
   endDate: string;
   monthlyRent: number;
@@ -35,14 +37,17 @@ export interface ContractData {
     birthDate?: string;
     address?: string;
   };
+  host?: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
 }
 
 export interface CreateContractPayload {
-  roomId: string;
-  renterId: string;
-  startDate: string;
-  endDate: string;
-  monthlyRent: number;
+  bookingId: string;
+  endDate?: string;
+  monthlyRent?: number;
   depositAmount: number;
   notes?: string;
 }
