@@ -22,18 +22,18 @@ from services.scoring import calculate_xgboost_score
 from services.roommate import get_roommates
 from services.explain import explain_recommendation
 
-def recommend_rooms(user_id, top_k=10):
+def recommend_rooms(userId, top_k=10):
     print(f"\n[RECOMMEND] ===== STARTING RECOMMENDATIONS =====")
-    print(f"[RECOMMEND] User ID: {user_id}, Top K: {top_k}")
+    print(f"[RECOMMEND] User ID: {userId}, Top K: {top_k}")
 
     # 1. Chạy thuật toán Lọc cộng tác bằng cách lấy trực tiếp dữ liệu RAM `interact_df`
-    cf_scores_dict = calculate_collaborative_scores(interact_df, user_id)
+    cf_scores_dict = calculate_collaborative_scores(interact_df, userId)
 
-    if users_df.empty or user_id not in users_df["user_id"].values:
-        print(f"⚠️ User {user_id} không tìm thấy hoặc dữ liệu trống.")
+    if users_df.empty or userId not in users_df["userId"].values:
+        print(f" User {userId} không tìm thấy hoặc dữ liệu trống.")
         return pd.DataFrame()
 
-    user = users_df[users_df["user_id"] == user_id].iloc[0]
+    user = users_df[users_df["userId"] == userId].iloc[0]
     rows = []
 
     # VÒNG LẶP DUYỆT QUA TẤT CẢ CÁC PHÒNG
@@ -46,10 +46,10 @@ def recommend_rooms(user_id, top_k=10):
         if room.get("allowPets") == False and user.get("accept_pets") == True:
             continue
 
-        room_id = room["roomId"]
+        roomId = room["roomId"]
         
         # 2. Lấy điểm Collaborative Filtering tương ứng của phòng (mặc định 0.5 nếu là Cold Start)
-        cf_score = cf_scores_dict.get(room_id, 0.5)
+        cf_score = cf_scores_dict.get(roomId, 0.5)
 
         # Tính toán các chỉ số tương đồng (Feature Engineering)
         row = {
@@ -95,7 +95,7 @@ def recommend_rooms(user_id, top_k=10):
         # Tính toán điểm Heuristic cơ bản
         colab_heuristic_score = sum(row.get(feat, 0.5) * weight for feat, weight in weights.items())
 
-        # 🌟 CÔNG THỨC LAI GHÉP ƯU TIÊN PHÂN TÍCH LUẬN VĂN:
+        # CÔNG THỨC LAI GHÉP ƯU TIÊN PHÂN TÍCH LUẬN VĂN:
         # 80% Điểm Heuristic cốt lõi (từ file Colab) + 20% Điểm Lọc cộng tác hành vi thực tế (cf_score)
         final_score = (colab_heuristic_score * 0.80) + (row.get("cf_score", 0.5) * 0.20)
         

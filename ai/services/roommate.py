@@ -4,19 +4,19 @@
 import pandas as pd
 from utils.loader import users_df, rooms_df, occupancy_df
 
-def match_roommates(user_id, roomId):
+def match_roommates(userId, roomId):
     
-    indexed_users_df = users_df.set_index('user_id')
-    if user_id not in indexed_users_df.index:
+    indexed_users_df = users_df.set_index('userId')
+    if userId not in indexed_users_df.index:
         return pd.DataFrame(columns=["roommate_id", "compatibility_score", "compatibility_reasons"])
-    user = indexed_users_df.loc[user_id]
+    user = indexed_users_df.loc[userId]
     roommate_ids = get_roommates(roomId)
 
 
     rows = []
 
     for roommate_id in roommate_ids:
-        if roommate_id == user_id: continue
+        if roommate_id == userId: continue
         
         roommate = indexed_users_df.loc[roommate_id]
         
@@ -98,9 +98,9 @@ def get_roommates(roomId: str) -> list:
     if occupancy_df.empty:
         return []
     print(occupancy_df.head(3))
-    mask = (occupancy_df["room_id"] == roomId) & (occupancy_df["status"] == "ACTIVE")
+    mask = (occupancy_df["roomId"] == roomId) & (occupancy_df["status"] == "ACTIVE")
     roommates = occupancy_df.loc[mask]
     if roommates.empty:
         return []
 
-    return roommates["user_id"].tolist()
+    return roommates["userId"].tolist()

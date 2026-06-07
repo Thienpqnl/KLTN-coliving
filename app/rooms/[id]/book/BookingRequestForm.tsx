@@ -97,7 +97,6 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
 
       setMessage('Yêu cầu đặt phòng đã được gửi. Quản trị viên sẽ liên hệ để xác nhận chi tiết.');
       setMoveInDate(today);
-      event.currentTarget.reset();
     } catch (err) {
       const fallback = 'Không thể gửi yêu cầu đặt phòng. Vui lòng đăng nhập và thử lại.';
       setError(err instanceof Error ? err.message : fallback);

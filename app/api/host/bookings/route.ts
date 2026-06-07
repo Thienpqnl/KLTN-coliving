@@ -33,6 +33,12 @@ export async function GET(request: NextRequest) {
           },
         },
         invoice: true,
+        contract: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",

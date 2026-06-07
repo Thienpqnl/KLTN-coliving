@@ -32,7 +32,8 @@ model User {
   lifestyleProfile user_lifestyle_profiles?
   favorites        FavoriteRoom[]
   occupancies      Occupancy[]
-  contracts        Contract[]
+  rentedContracts Contract[]               @relation("ContractRenter")
+  hostedContracts Contract[]               @relation("ContractHost")
   roomInteractions RoomInteraction[]
 
   @@map("User")
@@ -202,6 +203,7 @@ model Booking {
   room      Room          @relation(fields: [roomId], references: [id])
   user      User          @relation(fields: [userId], references: [id])
   invoice   Invoice?
+  contract  Contract?
 }
 
 model Invoice {
@@ -307,6 +309,8 @@ model Contract {
 
   roomId   String
   renterId String
+  hostId   String?
+  bookingId String?
 
   startDate DateTime
   endDate   DateTime
@@ -326,8 +330,13 @@ model Contract {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  room   Room @relation(fields: [roomId], references: [id])
-  renter User @relation(fields: [renterId], references: [id])
+  room   Room  @relation(fields: [roomId], references: [id])
+  renter User  @relation("ContractRenter", fields: [renterId], references: [id])
+  host   User? @relation("ContractHost", fields: [hostId], references: [id])
+  booking Booking? @relation(fields: [bookingId], references: [id])
+
+  @@index([hostId])
+  @@unique([bookingId])
 }
 
 model Occupancy {

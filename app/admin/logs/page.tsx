@@ -66,13 +66,13 @@ export default function AuditLogs() {
         headers: { Authorization: `Bearer ${token}` },
       })
 
-      if (!res.ok) throw new Error("Failed to fetch logs")
+      if (!res.ok) throw new Error("Không thể tải nhật ký")
 
       const data: PaginatedResponse = await res.json()
       setLogs(data.data)
       setPagination(data.pagination)
     } catch (err) {
-      setError("Failed to load audit logs")
+      setError("Không thể tải nhật ký hệ thống")
       console.error(err)
     } finally {
       setLoading(false)
@@ -100,6 +100,29 @@ export default function AuditLogs() {
     return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
   }
 
+  const getActionLabel = (action: string) => {
+    const labels: Record<string, string> = {
+      lock_user: "Khóa người dùng",
+      unlock_user: "Mở khóa người dùng",
+      delete_user: "Xóa người dùng",
+      update_user_role: "Cập nhật vai trò",
+      create_user: "Tạo người dùng",
+      update_user: "Cập nhật người dùng",
+    }
+
+    return labels[action] || action.replace(/_/g, " ").toUpperCase()
+  }
+
+  const getTargetTypeLabel = (targetType: string) => {
+    const labels: Record<string, string> = {
+      user: "Người dùng",
+      room: "Phòng",
+      booking: "Booking",
+    }
+
+    return labels[targetType] || targetType
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -114,7 +137,7 @@ export default function AuditLogs() {
       <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          Filter Logs
+          Lọc nhật ký
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <select
@@ -122,20 +145,20 @@ export default function AuditLogs() {
             onChange={(e) => setActionFilter(e.target.value)}
             className="px-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">All Actions</option>
-            <option value="lock_user">Lock User</option>
-            <option value="unlock_user">Unlock User</option>
-            <option value="delete_user">Delete User</option>
-            <option value="update_user_role">Update Role</option>
+            <option value="">Tất cả thao tác</option>
+            <option value="lock_user">Khóa người dùng</option>
+            <option value="unlock_user">Mở khóa người dùng</option>
+            <option value="delete_user">Xóa người dùng</option>
+            <option value="update_user_role">Cập nhật vai trò</option>
           </select>
           <select
             value={targetTypeFilter}
             onChange={(e) => setTargetTypeFilter(e.target.value)}
             className="px-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">All Target Types</option>
-            <option value="user">User</option>
-            <option value="room">Room</option>
+            <option value="">Tất cả đối tượng</option>
+            <option value="user">Người dùng</option>
+            <option value="room">Phòng</option>
             <option value="booking">Booking</option>
           </select>
         </div>
@@ -155,10 +178,10 @@ export default function AuditLogs() {
             <thead className="bg-secondary border-b border-border">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Admin</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Action</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Target</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Description</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Timestamp</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Thao tác</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Đối tượng</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Mô tả</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Thời gian</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -174,7 +197,7 @@ export default function AuditLogs() {
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${getActionBadgeColor(log.action)}`}
                     >
-                      {log.action.replace(/_/g, " ").toUpperCase()}
+                      {getActionLabel(log.action)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -190,7 +213,7 @@ export default function AuditLogs() {
                         </>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          {log.targetType} ({log.targetId})
+                          {getTargetTypeLabel(log.targetType)} ({log.targetId})
                         </p>
                       )}
                     </div>
@@ -199,7 +222,7 @@ export default function AuditLogs() {
                     {log.description || "-"}
                   </td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">
-                    {new Date(log.createdAt).toLocaleString()}
+                    {new Date(log.createdAt).toLocaleString("vi-VN")}
                   </td>
                 </tr>
               ))}
@@ -211,9 +234,9 @@ export default function AuditLogs() {
       {/* Pagination */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <p className="text-sm text-muted-foreground">
-          Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-          {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-          {pagination.total} logs
+          Hiển thị {(pagination.page - 1) * pagination.limit + 1} đến{" "}
+          {Math.min(pagination.page * pagination.limit, pagination.total)} trong tổng số{" "}
+          {pagination.total} nhật ký
         </p>
         <div className="flex gap-2">
           <button
@@ -221,14 +244,14 @@ export default function AuditLogs() {
             disabled={pagination.page === 1}
             className="px-4 py-2 border border-border rounded-lg bg-background hover:bg-secondary transition-colors disabled:opacity-50 text-sm font-medium"
           >
-            Previous
+            Trước
           </button>
           <button
             onClick={() => fetchLogs(pagination.page + 1)}
             disabled={pagination.page === pagination.totalPages}
             className="px-4 py-2 border border-border rounded-lg bg-background hover:bg-secondary transition-colors disabled:opacity-50 text-sm font-medium"
           >
-            Next
+            Sau
           </button>
         </div>
       </div>

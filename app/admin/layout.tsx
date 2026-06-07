@@ -1,35 +1,38 @@
 "use client"
 
+import { usePathname } from "next/navigation"
 import { AdminProtectedRoute } from "@/components/AdminProtectedRoute"
 import { AdminSidebar } from "./admin-sidebar"
 import { AdminMobileHeader } from "./admin-mobile-header"
+
+const pageTitles: Record<string, string> = {
+  "/admin": "Dashboard",
+  "/admin/users": "Quản lý người dùng",
+  "/admin/reports": "Báo cáo hệ thống",
+  "/admin/logs": "Nhật ký hệ thống",
+}
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const pathname = usePathname()
+  const title = pageTitles[pathname] || "Bảng quản trị"
+
   return (
     <AdminProtectedRoute>
       <div className="flex min-h-screen bg-background">
-        {/* Sidebar */}
         <AdminSidebar />
-        
-        {/* Main Content */}
+
         <main className="flex-1 overflow-auto">
-          {/* Mobile Header */}
           <AdminMobileHeader />
-          
-          <div className="max-w-7xl mx-auto p-4 lg:p-8">
-            {/* Header */}
+
+          <div className="mx-auto max-w-7xl p-4 lg:p-8">
             <header className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-              <p className="text-muted-foreground mt-2">
-                Manage users, rooms, and system statistics
-              </p>
+              <h1 className="text-3xl font-bold text-foreground">{title}</h1>
             </header>
 
-            {/* Content */}
             {children}
           </div>
         </main>

@@ -39,7 +39,13 @@ const handleLogin = async (e: React.FormEvent) => {
       }
 
       await refetch();
-      router.replace('/profile');
+      if (data.user?.role === 'ADMIN') {
+        router.replace('/admin');
+      } else if (data.user?.role === 'HOST') {
+        router.replace('/host');
+      } else {
+        router.replace('/profile');
+      }
     } catch {
       setError('Không thể kết nối đến máy chủ');
     } finally {
@@ -58,30 +64,32 @@ const handleLogin = async (e: React.FormEvent) => {
             className="w-full h-full object-cover"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfAu9icIgC2pau7CZT9KXd6v-pI7ev3PB8iSfvcdcZM2_8tnHhk8KP9e0he4yBOChavTyFeyriLkSAPv_VOCDwNfbb-2RiOi7S19hlx5JAbtM270wa1iIJOR0VMdxPgYLhcwpHxuXXiQtZUPmqWJb-40MxH1oyXpuIT88idIvZPFUbOoc2lp5nHsv4i_oAOtMxTCyaQbYQDcoy0KB9MD8AcJRDx8eQ8VvCticGo4qbR43ywRTHypFldeu4WZCc5DS0cydOzJrFOG8S"
           />
-          <div className="absolute inset-0 bg-orange-600/20 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-slate-950/45"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/55 to-slate-950/20"></div>
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950/70 to-transparent"></div>
         </div>
 
         <div className="relative z-10 w-full max-w-2xl">
           <div className="mb-12">
-            <span className="inline-block px-4 py-1 rounded-full bg-white/60 backdrop-blur-md text-orange-600 font-label text-[10px] tracking-[0.2em] uppercase mb-6">
+            <span className="inline-block px-4 py-1 rounded-full bg-white/95 backdrop-blur-md text-orange-700 font-label text-[10px] tracking-[0.2em] uppercase mb-6 shadow-sm">
               The Curated Hearth
             </span>
-            <h1 className="font-headline text-5xl lg:text-7xl font-extrabold text-white tracking-tighter leading-[0.9] mb-8 drop-shadow-sm">
+            <h1 className="font-headline text-5xl lg:text-7xl font-extrabold text-white tracking-tighter leading-[0.9] mb-8 drop-shadow-[0_3px_18px_rgba(0,0,0,0.65)]">
               Chào mừng <br />
               <span className="text-orange-200">Trở lại</span>
             </h1>
-            <p className="text-white/90 text-lg lg:text-xl font-light leading-relaxed max-w-lg mb-12">
+            <p className="text-white text-lg lg:text-xl font-medium leading-relaxed max-w-lg mb-12 drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)]">
               Đăng nhập vào tài khoản của bạn và khám phá lối sống được tuyển chọn đặc biệt cho bạn. Hành trình của bạn tiếp tục ở đây.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white/60 backdrop-blur-md p-6 rounded-xl border border-white/20">
+            <div className="bg-white/90 backdrop-blur-md p-6 rounded-xl border border-white/60 shadow-xl shadow-black/20">
               <span className="material-symbols-outlined text-orange-600 mb-3 block text-3xl">verified_user</span>
               <h3 className="font-headline font-bold text-slate-900">Truy cập An toàn</h3>
               <p className="text-sm text-slate-700 mt-1">Dữ liệu của bạn được mã hóa và bảo vệ.</p>
             </div>
-            <div className="bg-white/60 backdrop-blur-md p-6 rounded-xl border border-white/20">
+            <div className="bg-white/90 backdrop-blur-md p-6 rounded-xl border border-white/60 shadow-xl shadow-black/20">
               <span className="material-symbols-outlined text-orange-600 mb-3 block text-3xl">thumb_up</span>
               <h3 className="font-headline font-bold text-slate-900">Truy cập Nhanh</h3>
               <p className="text-sm text-slate-700 mt-1">Trải nghiệm đăng nhập mượt mà.</p>

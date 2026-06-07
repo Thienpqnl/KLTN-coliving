@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Menu, X, Bell, Settings } from "lucide-react"
+import { Menu, X, Bell } from "lucide-react"
 import Link from "next/link"
 
 export function AdminMobileHeader() {
@@ -9,9 +9,9 @@ export function AdminMobileHeader() {
 
   const menuItems = [
     { label: "Dashboard", href: "/admin" },
-    { label: "User Management", href: "/admin/users" },
-    { label: "Reports", href: "/admin/reports" },
-    { label: "Audit Logs", href: "/admin/logs" },
+    { label: "Quản lý người dùng", href: "/admin/users" },
+    { label: "Báo cáo", href: "/admin/reports" },
+    { label: "Nhật ký hệ thống", href: "/admin/logs" },
   ]
 
   return (
@@ -21,7 +21,7 @@ export function AdminMobileHeader() {
           <div className="h-8 w-8 rounded-lg bg-red-600 flex items-center justify-center">
             <span className="text-white font-bold text-sm">A</span>
           </div>
-          <h1 className="font-semibold text-foreground">Admin Panel</h1>
+          <h1 className="font-semibold text-foreground">Bảng quản trị</h1>
         </div>
         
         <div className="flex items-center gap-2">
