@@ -5,9 +5,11 @@ export interface Room {
   id: string
   title: string
   description: string
-  price: number
+  priceValue: number
   address: string
-  image: string
+image?: string
+    latitude?: number
+  longitude?: number
   status: 'AVAILABLE' | 'OCCUPIED'
   amenityIds: string[]
   createdAt: string
@@ -17,9 +19,9 @@ export interface Room {
 export interface CreateRoomPayload {
   title: string
   description: string
-  price: number
+  priceValue: number
   address: string
-  image?: string
+  images?: string
   status?: 'AVAILABLE' | 'OCCUPIED'
   amenityIds?: string[]
 }
@@ -75,5 +77,8 @@ export const roomClientService = {
   // Get room bookings
   getBookings: async (id: string) => {
     return apiClient.get(`/rooms/${id}/bookings`)
+  },
+  getMapRooms: async (): Promise<Room[]> => {
+    return apiClient.get<Room[]>('/rooms/map')
   },
 }

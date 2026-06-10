@@ -1,20 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
-
+import {
+  roomClientService,
+  Room,
+} from '@/lib/services/room-client.service'
+import RoomsMap from '../components/GoogleRoomMap';
 export default function HomePage() {
   const [location, setLocation] = useState('');
   const [moveInDate, setMoveInDate] = useState('');
   const [roomType, setRoomType] = useState('Suite Riêng tư');
-
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [selectedRoom, setSelectedRoom] =
+    useState<Room | null>(null)
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Search:', { location, moveInDate, roomType });
   };
+    useEffect(() => {
+      const loadRooms =
+        async () => {
 
+          try {
+            const data =
+              await roomClientService
+                .getMapRooms()
+            setRooms(data)
+          } catch (error) {
+            console.error(error)
+          }
+        }
+
+      loadRooms()
+
+    }, [])
   const handleNewsletterSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log('Newsletter signup');
@@ -114,7 +136,235 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+{/* Map Section */}
+<section className="py-20 bg-slate-50">
+  <div className="max-w-7xl mx-auto px-8">
 
+    <div className="text-center mb-12">
+      <span
+        className="
+          inline-block
+          px-4
+          py-1
+          rounded-full
+          bg-orange-100
+          text-orange-700
+          text-xs
+          font-bold
+          tracking-wider
+          uppercase
+          mb-4
+        "
+      >
+        Khám phá trên bản đồ
+      </span>
+
+      <h2
+        className="
+          text-4xl
+          font-bold
+          tracking-tight
+          text-slate-900
+          mb-3
+        "
+      >
+        Tìm phòng theo vị trí
+      </h2>
+
+      <p
+        className="
+          text-slate-600
+          max-w-2xl
+          mx-auto
+        "
+      >
+        Chọn một vị trí trên bản đồ để xem nhanh
+        thông tin phòng phù hợp với nhu cầu của bạn.
+      </p>
+    </div>
+
+    <div
+      className="
+        grid
+        lg:grid-cols-12
+        gap-6
+      "
+    >
+
+      {/* MAP */}
+      <div
+        className="
+          lg:col-span-8
+          rounded-3xl
+          overflow-hidden
+          shadow-xl
+          border
+          bg-white
+        "
+      >
+
+        <RoomsMap
+          rooms={rooms}
+          onSelectRoom={setSelectedRoom}
+        />
+
+      </div>
+
+      {/* SIDEBAR */}
+      <div
+        className="
+          lg:col-span-4
+        "
+      >
+
+        {selectedRoom ? (
+
+          <div
+            className="
+              sticky
+              top-24
+              rounded-3xl
+              overflow-hidden
+              bg-white
+              border
+              shadow-xl
+            "
+          >
+
+            <img
+              src={
+                selectedRoom.image ||
+                "/images/no-image.jpg"
+              }
+              alt={selectedRoom.title}
+              className="
+                h-64
+                w-full
+                object-cover
+              "
+            />
+
+            <div className="p-6">
+
+              <h3
+                className="
+                  text-2xl
+                  font-bold
+                  text-slate-900
+                "
+              >
+                {selectedRoom.title}
+              </h3>
+
+              <p
+                className="
+                  mt-3
+                  text-orange-600
+                  text-xl
+                  font-bold
+                "
+              >
+                {Number(
+                  selectedRoom.priceValue
+                ).toLocaleString("vi-VN")}
+                đ
+              </p>
+
+              <p
+                className="
+                  mt-4
+                  text-slate-600
+                  leading-relaxed
+                "
+              >
+                {selectedRoom.address}
+              </p>
+
+              <Link
+                href={`/rooms/${selectedRoom.id}`}
+                className="
+                  mt-6
+                  flex
+                  items-center
+                  justify-center
+                  rounded-xl
+                  bg-orange-500
+                  py-3
+                  text-white
+                  font-semibold
+                  hover:bg-orange-600
+                  transition-colors
+                "
+              >
+                Xem chi tiết
+              </Link>
+
+            </div>
+
+          </div>
+
+        ) : (
+
+          <div
+            className="
+              h-full
+              min-h-[600px]
+              rounded-3xl
+              border
+              bg-white
+              shadow-xl
+              flex
+              flex-col
+              items-center
+              justify-center
+              text-center
+              p-8
+            "
+          >
+
+            <div
+              className="
+                w-20
+                h-20
+                rounded-full
+                bg-orange-100
+                flex
+                items-center
+                justify-center
+                mb-5
+              "
+            >
+              <span className="material-symbols-outlined text-4xl text-orange-600">
+                location_on
+              </span>
+            </div>
+
+            <h3
+              className="
+                text-xl
+                font-bold
+                text-slate-900
+                mb-2
+              "
+            >
+              Chưa chọn phòng
+            </h3>
+
+            <p className="text-slate-500">
+              Hãy nhấn vào một marker trên bản đồ để
+              xem thông tin chi tiết.
+            </p>
+
+          </div>
+
+        )}
+
+      </div>
+
+    </div>
+
+  </div>
+</section>
         {/* Featured Listings (Bento Grid Style) */}
         <section className="py-24 bg-white">
           <div className="max-w-7xl mx-auto px-8">

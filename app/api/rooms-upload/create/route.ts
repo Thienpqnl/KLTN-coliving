@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
         areaText: data.area,
         areaValue: data.area.replace(/[^\d.,]/g, "").replace(",", ".") || null,
         address: data.address,
+        latitude: data.latitude,
+        longitude: data.longitude,
         ownerId: authUser.userId,
         cleanlinessRequired: data.cleanlinessRequired,
         noiseTolerance: data.noiseTolerance,

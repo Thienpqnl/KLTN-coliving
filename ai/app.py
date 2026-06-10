@@ -11,7 +11,7 @@ from fastapi.encoders import jsonable_encoder
 from services.recommend import recommend_rooms
 from services.roommate import match_roommates
 from services.room_user_similarity import get_detailed_compatibility
-
+from services.landlord_scoring import evaluate_user_for_landlord
 def convert_to_native_types(obj):
     """Convert numpy types and complex objects to native Python types for JSON serialization"""
     if isinstance(obj, (np.integer, np.int64, np.int32)):
@@ -75,6 +75,15 @@ def get_compatibility_detail(userId: str, roomId: str):
 @app.get("/health")
 def health_check():
     return {"status": "ok", "model": "xgboost_retrained_with_real_features"}
+@app.get("/landlord/evaluate-applicant/{userId}/{roomId}")
+def landlord_evaluate_applicant(userId: str, roomId: str):
+    """
+    API dành riêng cho chủ nhà: Xem điểm tương thích của một người dùng 
+    vừa gửi yêu cầu thuê phòng gửi tới phòng của họ.
+    """
+    result = evaluate_user_for_landlord(userId=userId, roomId=roomId)
+    return result
+
 
 if __name__ == "__main__":
     import uvicorn

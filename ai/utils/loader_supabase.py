@@ -86,7 +86,10 @@ def load_users_from_supabase() -> pd.DataFrame:
                 right_on="userId",
                 how="left"
             )
-
+        users_df.drop(columns=["userId"], inplace=True)
+        users_df.rename(columns={
+            "id": "userId"
+        }, inplace=True)
         users_df["budgetMinVnd"] = users_df[
             "budgetMinVnd"
         ].fillna(3000000)
@@ -192,7 +195,7 @@ def load_rooms_from_supabase() -> pd.DataFrame:
         rooms_data = response.data
 
         if not rooms_data:
-            print("⚠️ No rooms found")
+            print(" No rooms found")
             rooms_data = []
 
         rows = []

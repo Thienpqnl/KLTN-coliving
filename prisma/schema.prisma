@@ -22,19 +22,21 @@ model User {
   role             Role                     @default(CUSTOMER)
   status           UserStatus               @default(ACTIVE)
   updatedAt        DateTime                 @updatedAt
+  latitude         Float?
+  longitude        Float?
   adminActions     AdminLog[]               @relation("AdminAction")
   affectedLogs     AdminLog[]               @relation("AffectedUser")
   bookings         Booking[]
+  hostedContracts  Contract[]               @relation("ContractHost")
+  rentedContracts  Contract[]               @relation("ContractRenter")
+  favorites        FavoriteRoom[]
   invoices         Invoice[]
   reviews          Review[]
   rooms            Room[]
-  preference       user_preferences?
-  lifestyleProfile user_lifestyle_profiles?
-  favorites        FavoriteRoom[]
+  RoomInteraction  RoomInteraction[]
   occupancies      Occupancy[]
-  rentedContracts Contract[]               @relation("ContractRenter")
-  hostedContracts Contract[]               @relation("ContractHost")
-  roomInteractions RoomInteraction[]
+  lifestyleProfile user_lifestyle_profiles?
+  preference       user_preferences?
 
   @@map("User")
 }
@@ -42,7 +44,6 @@ model User {
 model user_preferences {
   id                        String   @id @default(uuid())
   userId                    String   @unique
-  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   budgetMinVnd              BigInt?
   budgetMaxVnd              BigInt?
   preferredDistrict         String?
@@ -53,99 +54,76 @@ model user_preferences {
   acceptPets                Boolean? @default(false)
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("user_preferences")
 }
 
 model user_lifestyle_profiles {
-  id String @id @default(uuid())
-
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  smoking      SmokingType?
-  pets         Boolean?
-  petTolerance Boolean?
-
-  sleepTime  SleepTime?
-  wakeupTime Int?
-
-  cleanliness    Int?
-  noiseTolerance Int?
-  sociability    Int?
-  privacyLevel   Int?
-
-  guestsFrequency GuestFrequency?
-
+  id               String          @id @default(uuid())
+  userId           String          @unique
+  smoking          SmokingType?
+  pets             Boolean?
+  petTolerance     Boolean?
+  sleepTime        SleepTime?
+  wakeupTime       Int?
+  cleanliness      Int?
+  noiseTolerance   Int?
+  sociability      Int?
+  privacyLevel     Int?
+  guestsFrequency  GuestFrequency?
   cookingFrequency Int?
-
-  budget BigInt?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  budget           BigInt?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_lifestyle_profiles")
 }
 
-enum SmokingType {
-  NO
-  OCCASIONALLY
-  YES
-}
-
-enum SleepTime {
-  BEFORE_10PM
-  BETWEEN_10_12
-  AFTER_12
-}
-
-enum GuestFrequency {
-  NEVER
-  SOMETIMES
-  OFTEN
-}
-
 model Room {
   id                  String            @id @default(uuid())
-  roomId              String?
   title               String
   description         String
   address             String
+  city                String?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
-  ownerId             String?
-  status              RoomStatus        @default(AVAILABLE)
+  allowPets           Boolean?          @default(false)
+  allowSmoking        Boolean?          @default(false)
   areaText            String?
   areaValue           Decimal?          @db.Decimal(10, 2)
-  city                String?
+  cleanlinessRequired String?
+  curfewPolicy        String?
+  currentOccupants    Int?              @default(0)
   district            String?
   districtId          String?
+  expired_date        String?
+  guestPolicy         String?
+  maxOccupants        Int?              @default(1)
+  noiseTolerance      String?
+  ownerId             String?
+  posted_date         String?
+  preferredGender     String?
+  preferredOccupation String?
+  preferredSleepHabit String?
   priceText           String?
   priceValue          BigInt?
+  roomId              String?
   sourceUrl           String?
-  posted_date         String?
-  expired_date        String?
+  status              RoomStatus        @default(AVAILABLE)
+  latitude            Float?
+  longitude           Float?
   bookings            Booking[]
+  contracts           Contract[]
   favoritedBy         FavoriteRoom[]
   reviews             Review[]
   owner               User?             @relation(fields: [ownerId], references: [id])
   amenities           RoomAmenity[]
   images              RoomImage[]
+  RoomInteraction     RoomInteraction[]
   occupancies         Occupancy[]
-  contracts           Contract[]
-  cleanlinessRequired String?
-  noiseTolerance      String?
-  guestPolicy         String?
-  preferredSleepHabit String?
-  preferredOccupation String?
-  curfewPolicy        String?
-  maxOccupants        Int?              @default(1)
-  currentOccupants    Int?              @default(0)
-  preferredGender     String?
-  allowSmoking        Boolean?          @default(false)
-  allowPets           Boolean?          @default(false)
-  roomInteractions    RoomInteraction[]
 
   @@map("Room")
 }
@@ -202,8 +180,8 @@ model Booking {
   updatedAt DateTime      @updatedAt
   room      Room          @relation(fields: [roomId], references: [id])
   user      User          @relation(fields: [userId], references: [id])
+  contract  Contract[]
   invoice   Invoice?
-  contract  Contract?
 }
 
 model Invoice {
@@ -259,6 +237,86 @@ model AdminLog {
   targetUser   User?    @relation("AffectedUser", fields: [targetUserId], references: [id], onDelete: Cascade)
 }
 
+model Contract {
+  id                String         @id @default(uuid())
+  roomId            String
+  renterId          String
+
+  startDate         DateTime
+  endDate           DateTime
+
+  monthlyRent       Float
+  depositAmount     Float
+  renewalCount      Int            @default(0)
+  status            ContractStatus @default(ACTIVE)
+  terminatedAt      DateTime?
+  terminationReason String?
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  hostId            String
+  bookingId         String?
+  booking           Booking?       @relation(fields: [bookingId], references: [id])
+  host              User?          @relation("ContractHost", fields: [hostId], references: [id])
+  renter            User           @relation("ContractRenter", fields: [renterId], references: [id])
+  room              Room           @relation(fields: [roomId], references: [id])
+
+  @@index([hostId])
+}
+
+model Occupancy {
+  id                String    @id @default(uuid())
+  roomId            String
+  userId            String
+  joinedAt          DateTime  @default(now()) @db.Timestamp(6)
+  status            String    @default("ACTIVE")
+  terminatedAt      DateTime?
+  terminationReason String?
+  notes             String?
+  room              Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId], name: "Occupancy_room_user_unique")
+  @@index([roomId], map: "Occupancy_roomId_idx")
+  @@index([userId], map: "Occupancy_userId_idx")
+  @@index([status], map: "Occupancy_status_idx")
+  @@index([terminatedAt], map: "Occupancy_terminatedAt_idx")
+  @@map("occupancy")
+}
+
+model RoomInteraction {
+  id               String          @id
+  userId           String
+  roomId           String
+  interactionType  InteractionType
+  interactionValue Float           @default(1.0)
+  durationSeconds  Int?            @default(0)
+  createdAt        DateTime        @default(now())
+  Room             Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  User             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([userId])
+}
+
+enum SmokingType {
+  NO
+  OCCASIONALLY
+  YES
+}
+
+enum SleepTime {
+  BEFORE_10PM
+  BETWEEN_10_12
+  AFTER_12
+}
+
+enum GuestFrequency {
+  NEVER
+  SOMETIMES
+  OFTEN
+}
+
 enum Role {
   CUSTOMER
   SERVER
@@ -304,84 +362,10 @@ enum ContractStatus {
   TERMINATED
 }
 
-model Contract {
-  id String @id @default(uuid())
-
-  roomId   String
-  renterId String
-  hostId   String?
-  bookingId String?
-
-  startDate DateTime
-  endDate   DateTime
-
-  monthlyRent   Float
-  depositAmount Float
-
-  renewalCount Int @default(0)
-
-  status ContractStatus @default(ACTIVE)
-
-  terminatedAt      DateTime?
-  terminationReason String?
-
-  notes String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  room   Room  @relation(fields: [roomId], references: [id])
-  renter User  @relation("ContractRenter", fields: [renterId], references: [id])
-  host   User? @relation("ContractHost", fields: [hostId], references: [id])
-  booking Booking? @relation(fields: [bookingId], references: [id])
-
-  @@index([hostId])
-  @@unique([bookingId])
-}
-
-model Occupancy {
-  id                String    @id @default(uuid())
-  roomId            String
-  userId            String
-  joinedAt          DateTime  @default(now()) @db.Timestamp(6)
-  status            String    @default("ACTIVE")
-  terminatedAt      DateTime?
-  terminationReason String?
-  notes             String?
-
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@unique([roomId, userId], name: "Occupancy_room_user_unique")
-  @@index([roomId], map: "Occupancy_roomId_idx")
-  @@index([userId], map: "Occupancy_userId_idx")
-  @@index([status], map: "Occupancy_status_idx")
-  @@index([terminatedAt], map: "Occupancy_terminatedAt_idx")
-  @@map("occupancy")
-}
-
 enum InteractionType {
-  VIEW // Người dùng bấm vào xem chi tiết phòng (Trọng số: 1)
-  CLICK // Người dùng click vào ảnh/tiện ích (Trọng số: 2)
-  FAVORITE // Người dùng thêm vào danh sách yêu thích (Trọng số: 3)
-  BOOKING_REQ // Người dùng gửi yêu cầu đặt phòng (Trọng số: 4)
-  CONTRACT // Người dùng đã ký hợp đồng thành công (Trọng số: 5)
-}
-
-model RoomInteraction {
-  id               String          @id @default(uuid())
-  userId           String
-  roomId           String
-  interactionType  InteractionType
-  interactionValue Float           @default(1.0) // Điểm số hóa để nạp trực tiếp vào AI pipeline
-  durationSeconds  Int?            @default(0) // Thời gian ở lại trang (áp dụng cho VIEW)
-  createdAt        DateTime        @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([roomId])
-  @@index([interactionType])
-  @@map("room_interactions")
+  VIEW
+  CLICK
+  FAVORITE
+  BOOKING_REQ
+  CONTRACT
 }

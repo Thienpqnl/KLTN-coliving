@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Search, AlertCircle } from 'lucide-react'
 import { bookingClientService, Booking } from '@/lib/services/booking-client.service'
+import { LandlordEvaluationModal } from '@/components/LandlordEvaluationModal'
 
 export function BookingsTable() {
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -10,6 +11,8 @@ export function BookingsTable() {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
+  const [evaluationOpen, setEvaluationOpen] = useState(false)
   const itemsPerPage = 5
 
   useEffect(() => {
@@ -145,19 +148,20 @@ export function BookingsTable() {
       {/* Table */}
       <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
         {/* Table Header */}
-        <div className="grid grid-cols-6 gap-4 px-6 py-3 border-b border-border bg-muted/30">
+        <div className="grid grid-cols-7 gap-4 px-6 py-3 border-b border-border bg-muted/30">
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Phòng</div>
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nhận phòng</div>
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Trả phòng</div>
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Giá</div>
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Trạng thái</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Đánh giá</div>
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Thao tác</div>
         </div>
 
         {/* Table Rows */}
         <div className="divide-y divide-border">
           {displayedBookings.map((booking) => (
-            <div key={booking.id} className="grid grid-cols-6 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors">
+            <div key={booking.id} className="grid grid-cols-7 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors">
               {/* Room ID */}
               <div>
                 <p className="text-sm font-medium text-foreground">{booking.room?.title || 'Phòng'}</p>
@@ -190,6 +194,19 @@ export function BookingsTable() {
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}>
                   {formatStatus(booking.status)}
                 </span>
+              </div>
+
+              {/* Evaluation */}
+              <div>
+                <button
+                  onClick={() => {
+                    setSelectedBookingId(booking.id)
+                    setEvaluationOpen(true)
+                  }}
+                  className="px-3 py-1.5 bg-blue-500 text-white text-xs font-semibold rounded hover:bg-blue-600 transition-colors"
+                >
+                  Xem
+                </button>
               </div>
 
               {/* Actions */}
@@ -259,6 +276,18 @@ export function BookingsTable() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Evaluation Modal */}
+      {selectedBookingId && (
+        <LandlordEvaluationModal
+          isOpen={evaluationOpen}
+          onClose={() => {
+            setEvaluationOpen(false)
+            setSelectedBookingId(null)
+          }}
+          bookingId={selectedBookingId}
+        />
       )}
     </div>
   )
