@@ -79,6 +79,10 @@ export const roomService = {
         areaValue: data.area ? new Prisma.Decimal(String(data.area).replace(/[^\d.,]/g, "").replace(",", ".") || "0") : null,
         address: data.address,
         ownerId: data.ownerId,
+
+        latitude: data.latitude,
+
+        longitude: data.longitude,
         images: {
           create: imageArray.map((url, index) => ({
             url,
@@ -262,6 +266,8 @@ getAllByOwnerId: async (ownerId: string) => {
       updateData.areaValue = new Prisma.Decimal(String(data.area).replace(/[^\d.,]/g, "").replace(",", ".") || "0");
     }
     if (data.address) updateData.address = data.address;
+    if (data.latitude !== undefined) updateData.latitude = data.latitude;
+    if (data.longitude !== undefined) updateData.longitude = data.longitude;
     
     // Add room requirements & policies
     if (data.cleanlinessRequired !== undefined) updateData.cleanlinessRequired = data.cleanlinessRequired;

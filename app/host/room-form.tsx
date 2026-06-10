@@ -5,7 +5,8 @@ import { X, Upload, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { apiClient } from '@/lib/api/client'
-import { uploadImage } from "@/lib/upload";
+import { uploadImage } from "@/lib/upload"
+import { MapPicker } from '@/app/components/MapPicker'
 interface Room {
   id: string
   title: string
@@ -17,6 +18,9 @@ interface Room {
   images?: { url: string }[]
   status: 'AVAILABLE' | 'OCCUPIED'
   amenityIds: string[]
+  amenities?: Array<{ amenity?: { id: string; name: string } | null }>
+  latitude?: number
+  longitude?: number
   cleanlinessRequired?: 'low' | 'medium' | 'high'
   noiseTolerance?: 'quiet' | 'moderate' | 'active'
   guestPolicy?: 'no_guests' | 'occasionally' | 'frequently'
@@ -38,13 +42,14 @@ export function RoomForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const roomId = searchParams.get('id')
-  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '1.00',
     area: '',
     address: '',
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
     image: '',
     status: 'AVAILABLE' as 'AVAILABLE' | 'OCCUPIED',
     cleanlinessRequired: 'medium' as 'low' | 'medium' | 'high',
@@ -99,7 +104,7 @@ useEffect(() => {
             ...(res.images?.map((image) => image.url) || []),
             ...(Array.isArray(res.image) ? res.image : res.image ? [res.image] : []),
           ].filter(Boolean)
-          const amenityIds = res.amenityIds || res.amenities?.map((item) => item.amenity?.id).filter((id): id is string => Boolean(id)) || []
+          const amenityIds = res.amenityIds || (res.amenities?.map((item: any) => item.amenity?.id).filter((id: any): id is string => Boolean(id)) ?? [])
 
           setFormData({
             title: res.title,
@@ -109,6 +114,18 @@ useEffect(() => {
             address: res.address,
             image: roomImages[0] || '',
             status: res.status,
+            latitude: res.latitude,
+            longitude: res.longitude,
+            cleanlinessRequired: (res.cleanlinessRequired as 'low' | 'medium' | 'high') || 'medium',
+            noiseTolerance: (res.noiseTolerance as 'quiet' | 'moderate' | 'active') || 'moderate',
+            guestPolicy: (res.guestPolicy as 'no_guests' | 'occasionally' | 'frequently') || 'occasionally',
+            preferredSleepHabit: (res.preferredSleepHabit as 'early' | 'normal' | 'late') || 'normal',
+            preferredOccupation: res.preferredOccupation || '',
+            curfewPolicy: res.curfewPolicy || '',
+            maxOccupants: res.maxOccupants?.toString() || '2',
+            preferredGender: res.preferredGender || '',
+            allowSmoking: res.allowSmoking || false,
+            allowPets: res.allowPets || false,
           })
           setExistingImageUrls(Array.from(new Set(roomImages)))
           setSelectedAmenities(amenityIds)
@@ -185,6 +202,8 @@ if (images.length > 0) {
         price: parseFloat(formData.price),
         area: formData.area,
         address: formData.address,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
         image: imageUrls,
         amenityIds: selectedAmenities,
         cleanlinessRequired: formData.cleanlinessRequired,
@@ -315,9 +334,21 @@ if (images.length > 0) {
                   name="address"
                   value={formData.address}
                   onChange={handleInputChange}
-                  placeholder="Nhập địa chỉ phòng"
+                  placeholder="Nhập hoặc chọn địa chỉ từ bản đồ"
                   required
                   className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <MapPicker
+                  onLocationSelect={(lat, lng, address) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      latitude: lat,
+                      longitude: lng,
+                      address: address
+                    }))
+                  }}
+                  initialLat={formData.latitude}
+                  initialLng={formData.longitude}
                 />
               </div>
 

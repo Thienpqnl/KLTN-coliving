@@ -44,8 +44,8 @@ if (token) {
 }
   const response = await fetch(`${this.baseUrl}${endpoint}`, {
     ...options,
-    headers, // Fetch API chấp nhận đối tượng Headers này
-    credentials: "include", // 🔥 Gửi & nhận cookies
+    headers, 
+    credentials: "include",
   });
   console.log('response status:', response.status);
   // Xử lý response như cũ...

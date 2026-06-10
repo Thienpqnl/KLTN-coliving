@@ -7,6 +7,18 @@ export const roomCreateSchema = z.object({
   price: z.number().positive("Price must be positive"),
   area: z.string().min(1, "Area must be provided"),
   address: z.string().min(5, "Address must be at least 5 characters"),
+  latitude: z
+    .number()
+    .min(-90)
+    .max(90)
+    .nullable()
+    .optional(),
+  longitude: z
+    .number()
+    .min(-180)
+    .max(180)
+    .nullable()
+    .optional(),
   image: z.array(z.string().url()).optional(),
   amenityIds: z.array(z.string()).optional(),
   // Room Requirements & Policies

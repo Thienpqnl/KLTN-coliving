@@ -7,7 +7,7 @@ import { RoommatesSection } from '../components/RoommatesSection';
 import { RoomCompatibility } from './components/RoomCompatibility';
 import { FavoriteButton } from './FavoriteButton';
 import { cookies } from 'next/headers';
-
+import RoomMapView from "@/components/maps/RoomMapView";
 type RoomDetail = Awaited<ReturnType<typeof roomService.getById>>;
 type RoomAmenityItem = {
   amenity?: {
@@ -418,16 +418,30 @@ console.log(" [Page] RoomID extracted:", roomId);
 
               <div className="space-y-6">
                 <h3 className="text-2xl font-bold tracking-tight">Vị trí</h3>
-                <div className="relative h-[400px] w-full overflow-hidden rounded-[2rem] bg-slate-200">
-                  <div className="absolute inset-0 bg-[linear-gradient(45deg,#e2e8f0_25%,transparent_25%),linear-gradient(-45deg,#e2e8f0_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#e2e8f0_75%),linear-gradient(-45deg,transparent_75%,#e2e8f0_75%)] bg-[length:48px_48px] bg-[position:0_0,0_24px,24px_-24px,-24px_0] opacity-70" />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-800 shadow-2xl">
-                      <span className="material-symbols-outlined text-white">home</span>
+                  <div className="overflow-hidden rounded-[2rem] border border-slate-200">
+                    <div className="p-6 bg-white">
+                      <div className="flex items-start gap-3">
+                        <span className="material-symbols-outlined text-orange-600">
+                          location_on
+                        </span>
+
+                        <div>
+                          <h4 className="font-semibold text-slate-900">
+                            Địa chỉ phòng
+                          </h4>
+
+                          <p className="text-slate-600">
+                            {room.address}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <p className="max-w-xl text-lg font-bold text-slate-950">{room.address}</p>
-                    <p className="mt-2 text-sm text-slate-500">{location}</p>
+
+                    <RoomMapView
+                      latitude={room.latitude}
+                      longitude={room.longitude}
+                    />
                   </div>
-                </div>
               </div>
 
               {/* Hiển thị phần tương đồng sau vị trí */}
