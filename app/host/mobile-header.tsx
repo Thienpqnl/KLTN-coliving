@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   Menu,
@@ -11,6 +12,7 @@ import {
   CalendarCheck,
   Receipt,
   MessageSquare,
+  Star,
   BarChart3,
   Plus,
   Settings,
@@ -24,15 +26,18 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/hooks/useAuth"
 
 const navItems = [
-  { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, active: true },
-  { label: "Quản lý phòng", icon: <BedDouble className="h-4 w-4" /> },
-  { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" /> },
-  { label: "Giao dịch", icon: <Receipt className="h-4 w-4" /> },
-  { label: "Tin nhắn", icon: <MessageSquare className="h-4 w-4" /> },
-  { label: "Phân tích", icon: <BarChart3 className="h-4 w-4" /> },
+  { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, href: "/host" },
+  { label: "Quản lý phòng", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
+  { label: "Hợp đồng", icon: <CalendarCheck className="h-4 w-4" />, href: "/host/contracts" },
+  { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
+  { label: "Đánh giá", icon: <Star className="h-4 w-4" />, href: "/host/reviews" },
+  { label: "Giao dịch", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
+  { label: "Tin nhắn", icon: <MessageSquare className="h-4 w-4" />, href: "/chat" },
+  { label: "Phân tích", icon: <BarChart3 className="h-4 w-4" />, href: "/analytics" },
 ]
 
 export function MobileHeader() {
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const { user, logout } = useAuth()
@@ -48,8 +53,7 @@ export function MobileHeader() {
 
   return (
     <div className="lg:hidden">
-      {/* Mobile Top Bar */}
-      <div className="flex items-center  justify-between p-4 border-b border-border bg-card">
+      <div className="flex items-center justify-between p-4 border-b border-border bg-card">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold">M</span>
@@ -68,14 +72,12 @@ export function MobileHeader() {
         </button>
       </div>
 
-      {/* Mobile Menu Overlay */}
       {isOpen && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={() => setIsOpen(false)}>
           <div
             className="fixed inset-y-0 left-0 w-72 bg-card border-r border-border shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
-            {/* Logo */}
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
@@ -95,39 +97,40 @@ export function MobileHeader() {
               </button>
             </div>
 
-            {/* Navigation */}
             <nav className="flex-1 p-3">
               <ul className="space-y-1">
-                {navItems.map((item) => (
-                  <li key={item.label}>
-                    <button
-                      onClick={() => setIsOpen(false)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
-                        item.active
-                          ? "bg-sidebar-accent text-accent font-medium"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      )}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </button>
-                  </li>
-                ))}
+                {navItems.map((item) => {
+                  const isActive = pathname === item.href
+                  return (
+                    <li key={item.label}>
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
+                          isActive
+                            ? "bg-sidebar-accent text-accent font-medium"
+                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        )}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>
             </nav>
 
-            {/* Add Room Button */}
             <div className="px-3 pb-3">
               <Button asChild className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
                 <Link href="/room-management/add-room" onClick={() => setIsOpen(false)}>
-                <Plus className="h-4 w-4" />
-                Thêm phòng mới
+                  <Plus className="h-4 w-4" />
+                  Thêm phòng mới
                 </Link>
               </Button>
             </div>
 
-            {/* Bottom Section */}
             <div className="px-3 pb-2">
               <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
                 <Settings className="h-4 w-4" />
@@ -139,7 +142,6 @@ export function MobileHeader() {
               </button>
             </div>
 
-            {/* User Section */}
             <div className="p-3 border-t border-border">
               <button
                 type="button"

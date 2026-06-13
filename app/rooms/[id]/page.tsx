@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer';
 import { roomService } from '@/lib/services/room.service';
 import { RoommatesSection } from '../components/RoommatesSection';
 import { RoomCompatibility } from './components/RoomCompatibility';
+import { RoomReviews } from './components/RoomReviews';
 import { FavoriteButton } from './FavoriteButton';
 import { cookies } from 'next/headers';
 import RoomMapView from "@/components/maps/RoomMapView";
@@ -454,6 +455,12 @@ console.log(" [Page] RoomID extracted:", roomId);
                     roomId={roomId} 
                     isUserLoggedIn={isUserLoggedIn}
                   />
+                </section>
+              )}
+
+              {roomId && (
+                <section className="mt-12">
+                  <RoomReviews roomId={roomId} />
                 </section>
               )}
             </div>

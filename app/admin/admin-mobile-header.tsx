@@ -10,6 +10,7 @@ export function AdminMobileHeader() {
   const menuItems = [
     { label: "Dashboard", href: "/admin" },
     { label: "Quản lý người dùng", href: "/admin/users" },
+    { label: "Quản lý đánh giá", href: "/admin/reviews" },
     { label: "Báo cáo", href: "/admin/reports" },
     { label: "Nhật ký hệ thống", href: "/admin/logs" },
   ]
@@ -25,12 +26,13 @@ export function AdminMobileHeader() {
         </div>
         
         <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-secondary rounded-lg transition-colors">
+          <button className="p-2 hover:bg-secondary rounded-lg transition-colors" aria-label="Thông báo">
             <Bell className="h-4 w-4 text-muted-foreground" />
           </button>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 hover:bg-secondary rounded-lg transition-colors"
+            aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"}
           >
             {mobileMenuOpen ? (
               <X className="h-5 w-5 text-muted-foreground" />
@@ -41,7 +43,6 @@ export function AdminMobileHeader() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <nav className="px-4 py-3 bg-secondary border-t border-border">
           <ul className="space-y-2">

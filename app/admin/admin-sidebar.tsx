@@ -9,6 +9,7 @@ import {
   HelpCircle,
   LayoutDashboard,
   LogOut,
+  MessageSquareText,
   Settings,
   Users,
 } from "lucide-react"
@@ -24,6 +25,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/admin" },
   { label: "Quản lý người dùng", icon: <Users className="h-4 w-4" />, href: "/admin/users" },
+  { label: "Quản lý đánh giá", icon: <MessageSquareText className="h-4 w-4" />, href: "/admin/reviews" },
   { label: "Báo cáo", icon: <BarChart3 className="h-4 w-4" />, href: "/admin/reports" },
   { label: "Nhật ký hệ thống", icon: <FileText className="h-4 w-4" />, href: "/admin/logs" },
 ]

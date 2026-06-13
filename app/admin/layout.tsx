@@ -8,6 +8,7 @@ import { AdminMobileHeader } from "./admin-mobile-header"
 const pageTitles: Record<string, string> = {
   "/admin": "Dashboard",
   "/admin/users": "Quản lý người dùng",
+  "/admin/reviews": "Quản lý đánh giá",
   "/admin/reports": "Báo cáo hệ thống",
   "/admin/logs": "Nhật ký hệ thống",
 }
