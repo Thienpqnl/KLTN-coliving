@@ -1,6 +1,7 @@
 import { prisma } from "../prisma";
 import { ReviewCreate } from "../validation";
 import { ApiError } from "../api-error";
+import type { Prisma } from "@prisma/client";
 
 const eligibleBookingStatuses = ["CONFIRMED", "COMPLETED"] as const;
 const eligibleContractStatuses = ["ACTIVE", "EXPIRED", "TERMINATED"] as const;
@@ -274,6 +275,188 @@ export const reviewService = {
         ratingDistribution,
       },
     };
+  },
+
+  getForAdmin: async (filters?: {
+    page?: number;
+    limit?: number;
+    status?: "VISIBLE" | "HIDDEN" | "DELETED";
+    rating?: number;
+    search?: string;
+  }) => {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ReviewWhereInput = {};
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.rating) {
+      where.rating = filters.rating;
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        { comment: { contains: filters.search, mode: "insensitive" } },
+        { user: { name: { contains: filters.search, mode: "insensitive" } } },
+        { user: { fullName: { contains: filters.search, mode: "insensitive" } } },
+        { user: { email: { contains: filters.search, mode: "insensitive" } } },
+        { room: { title: { contains: filters.search, mode: "insensitive" } } },
+        { room: { address: { contains: filters.search, mode: "insensitive" } } },
+      ];
+    }
+
+    const [reviews, total, visible, hidden, deleted, allVisibleReviews] = await Promise.all([
+      prisma.review.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              fullName: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+          room: {
+            select: {
+              id: true,
+              title: true,
+              address: true,
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                  fullName: true,
+                  email: true,
+                },
+              },
+              images: {
+                orderBy: {
+                  sortOrder: "asc",
+                },
+                take: 1,
+                select: {
+                  url: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.review.count({ where }),
+      prisma.review.count({ where: { status: "VISIBLE" } }),
+      prisma.review.count({ where: { status: "HIDDEN" } }),
+      prisma.review.count({ where: { status: "DELETED" } }),
+      prisma.review.findMany({
+        where: { status: "VISIBLE" },
+        select: { rating: true },
+      }),
+    ]);
+
+    const averageRating = allVisibleReviews.length
+      ? Math.round((allVisibleReviews.reduce((sum, review) => sum + review.rating, 0) / allVisibleReviews.length) * 10) / 10
+      : 0;
+
+    return {
+      data: reviews.map((review) => ({
+        ...review,
+        room: {
+          ...review.room,
+          image: review.room.images[0]?.url || null,
+        },
+      })),
+      stats: {
+        total: visible + hidden + deleted,
+        visible,
+        hidden,
+        deleted,
+        averageRating,
+      },
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  },
+
+  updateStatusByAdmin: async (
+    reviewId: string,
+    adminId: string,
+    status: "VISIBLE" | "HIDDEN" | "DELETED",
+    reason?: string
+  ) => {
+    const review = await prisma.review.findUnique({
+      where: { id: reviewId },
+      include: {
+        room: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (!review) {
+      throw new ApiError(404, "Không tìm thấy đánh giá");
+    }
+
+    const oldStatus = review.status;
+    const updated = await prisma.review.update({
+      where: { id: reviewId },
+      data: { status },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+        room: {
+          select: {
+            id: true,
+            title: true,
+            address: true,
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    await prisma.adminLog.create({
+      data: {
+        adminId,
+        action: "moderate_review",
+        targetUserId: review.userId,
+        targetId: reviewId,
+        targetType: "review",
+        oldValue: JSON.stringify({ status: oldStatus }),
+        newValue: JSON.stringify({ status }),
+        description: reason || `Đổi trạng thái đánh giá phòng "${review.room.title}" thành ${status}`,
+      },
+    });
+
+    return updated;
   },
 
   // Update review
