@@ -207,6 +207,75 @@ export const reviewService = {
     }));
   },
 
+  getByHost: async (hostId: string) => {
+    const reviews = await prisma.review.findMany({
+      where: {
+        status: "VISIBLE",
+        room: {
+          ownerId: hostId,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+        room: {
+          select: {
+            id: true,
+            title: true,
+            address: true,
+            priceText: true,
+            priceValue: true,
+            images: {
+              orderBy: {
+                sortOrder: "asc",
+              },
+              take: 1,
+              select: {
+                url: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const totalReviews = reviews.length;
+    const averageRating = totalReviews
+      ? Math.round((reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews) * 10) / 10
+      : 0;
+    const reviewedRooms = new Set(reviews.map((review) => review.roomId)).size;
+    const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => ({
+      rating,
+      count: reviews.filter((review) => review.rating === rating).length,
+    }));
+
+    return {
+      reviews: reviews.map((review) => ({
+        ...review,
+        room: {
+          ...review.room,
+          image: review.room.images[0]?.url || null,
+        },
+      })),
+      stats: {
+        totalReviews,
+        averageRating,
+        reviewedRooms,
+        ratingDistribution,
+      },
+    };
+  },
+
   // Update review
   update: async (id: string, userId: string, rating?: number, comment?: string) => {
     const review = await reviewService.getById(id);

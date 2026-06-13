@@ -10,6 +10,7 @@ import {
   CalendarCheck,
   Receipt,
   MessageSquare,
+  Star,
   BarChart3,
   Plus,
   Settings,
@@ -25,7 +26,7 @@ import { useAuth } from "@/lib/hooks/useAuth"
 interface NavItem {
   label: string
   icon: React.ReactNode
-href: string
+  href: string
 }
 
 const navItems: NavItem[] = [
@@ -33,10 +34,12 @@ const navItems: NavItem[] = [
   { label: "Quản lý phòng", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
   { label: "Hợp đồng", icon: <CalendarCheck className="h-4 w-4" />, href: "/host/contracts" },
   { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
+  { label: "Đánh giá", icon: <Star className="h-4 w-4" />, href: "/host/reviews" },
   { label: "Giao dịch", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
   { label: "Tin nhắn", icon: <MessageSquare className="h-4 w-4" />, href: "/chat" },
   { label: "Phân tích", icon: <BarChart3 className="h-4 w-4" />, href: "/analytics" },
 ]
+
 export function Sidebar() {
   const pathname = usePathname()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
@@ -53,7 +56,6 @@ export function Sidebar() {
 
   return (
     <aside className="hidden lg:flex w-56 flex-shrink-0 bg-card border-r border-border flex-col h-screen sticky top-0">
-      {/* Logo Section */}
       <div className="p-4 border-b border-border">
         <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
@@ -63,14 +65,12 @@ export function Sidebar() {
             <h1 className="font-semibold text-sm text-foreground">Cổng chủ nhà</h1>
             <p className="text-xs text-muted-foreground">Không gian quản lý</p>
           </div>
-      
         </Link>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-3">
         <ul className="space-y-1">
-               {navItems.map((item) => {
+          {navItems.map((item) => {
             const isActive = pathname === item.href
             return (
               <li key={item.label}>
@@ -92,17 +92,15 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Add Room Button */}
       <div className="px-3 pb-3">
         <Button asChild className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
           <Link href="/room-management/add-room">
-          <Plus className="h-4 w-4" />
-          Thêm phòng mới
+            <Plus className="h-4 w-4" />
+            Thêm phòng mới
           </Link>
         </Button>
       </div>
 
-      {/* Bottom Section */}
       <div className="px-3 pb-2">
         <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
           <Settings className="h-4 w-4" />
@@ -114,7 +112,6 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* User Section */}
       <div className="p-3 border-t border-border">
         <button
           type="button"
