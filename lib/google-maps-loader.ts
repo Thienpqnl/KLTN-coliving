@@ -1,15 +1,37 @@
 // lib/google-maps-loader.ts
-import { Loader } from '@googlemaps/js-api-loader'
+import { importLibrary, setOptions } from '@googlemaps/js-api-loader'
 
-let loaderInstance: Loader | null = null
+let isConfigured = false
+let librariesPromise: Promise<{
+  maps: google.maps.MapsLibrary
+  marker: google.maps.MarkerLibrary
+}> | null = null
 
-export function getGoogleMapsLoader(): Loader {
-  if (!loaderInstance) {
-    loaderInstance = new Loader({
-      apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-      version: 'weekly',
-      libraries: ['marker'], // ️ Bắt buộc phải có cho Advanced Markers
-    })
+function configureGoogleMaps() {
+  if (isConfigured) return
+
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+  if (!apiKey) {
+    throw new Error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is missing')
   }
-  return loaderInstance
+
+  setOptions({
+    key: apiKey,
+    v: 'weekly',
+    libraries: ['marker'],
+  })
+
+  isConfigured = true
+}
+
+export function loadGoogleMapsLibraries() {
+  configureGoogleMaps()
+
+  librariesPromise ??= Promise.all([
+    importLibrary('maps'),
+    importLibrary('marker'),
+  ]).then(([maps, marker]) => ({ maps, marker }))
+
+  return librariesPromise
 }
