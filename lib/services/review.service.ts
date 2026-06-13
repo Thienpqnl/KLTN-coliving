@@ -2,35 +2,116 @@ import { prisma } from "../prisma";
 import { ReviewCreate } from "../validation";
 import { ApiError } from "../api-error";
 
+const eligibleBookingStatuses = ["CONFIRMED", "COMPLETED"] as const;
+const eligibleContractStatuses = ["ACTIVE", "EXPIRED", "TERMINATED"] as const;
+
 export const reviewService = {
-  // Create review
-  create: async (userId: string, data: ReviewCreate) => {
-    // Check if user has booked reviewService room
-    const booking = await prisma.booking.findFirst({
-      where: {
-        userId,
-        roomId: data.roomId,
-        status: "COMPLETED",
-      },
+  canUserReviewRoom: async (userId: string, roomId: string) => {
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+      select: { id: true, ownerId: true },
     });
 
-    if (!booking) {
-      throw new ApiError(
-        400,
-        "You can only review rooms you have completed bookings for"
-      );
+    if (!room) {
+      throw new ApiError(404, "Không tìm thấy phòng");
     }
 
-    // Check if user already reviewed reviewService room
-    const existingReview = await prisma.review.findFirst({
+    if (room.ownerId === userId) {
+      return {
+        canReview: false,
+        reason: "Chủ nhà không thể đánh giá phòng của chính mình",
+      };
+    }
+
+    const [eligibleBooking, eligibleContract, existingReview] = await Promise.all([
+      prisma.booking.findFirst({
+        where: {
+          userId,
+          roomId,
+          status: { in: [...eligibleBookingStatuses] },
+        },
+        select: { id: true },
+      }),
+      prisma.contract.findFirst({
+        where: {
+          renterId: userId,
+          roomId,
+          status: { in: [...eligibleContractStatuses] },
+        },
+        select: { id: true },
+      }),
+      prisma.review.findUnique({
+        where: {
+          roomId_userId: {
+            roomId,
+            userId,
+          },
+        },
+        select: { id: true, status: true },
+      }),
+    ]);
+
+    if (existingReview && existingReview.status !== "DELETED") {
+      return {
+        canReview: false,
+        reason: "Bạn đã đánh giá phòng này rồi",
+        existingReviewId: existingReview.id,
+      };
+    }
+
+    if (!eligibleBooking && !eligibleContract) {
+      return {
+        canReview: false,
+        reason: "Bạn cần có đặt phòng đã xác nhận hoặc hợp đồng thuê phòng hợp lệ để đánh giá",
+      };
+    }
+
+    return {
+      canReview: true,
+      reason: null,
+    };
+  },
+
+  // Create review
+  create: async (userId: string, data: ReviewCreate) => {
+    const eligibility = await reviewService.canUserReviewRoom(userId, data.roomId);
+
+    if (!eligibility.canReview) {
+      throw new ApiError(400, eligibility.reason || "Bạn chưa đủ điều kiện đánh giá phòng này");
+    }
+
+    const deletedReview = await prisma.review.findUnique({
       where: {
-        userId,
-        roomId: data.roomId,
+        roomId_userId: {
+          roomId: data.roomId,
+          userId,
+        },
       },
+      select: { id: true, status: true },
     });
 
-    if (existingReview) {
-      throw new ApiError(400, "You have already reviewed reviewService room");
+    const includeUser = {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          fullName: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    };
+
+    if (deletedReview?.status === "DELETED") {
+      return prisma.review.update({
+        where: { id: deletedReview.id },
+        data: {
+          rating: data.rating,
+          comment: data.comment,
+          status: "VISIBLE",
+        },
+        include: includeUser,
+      });
     }
 
     const review = await prisma.review.create({
@@ -41,13 +122,7 @@ export const reviewService = {
         comment: data.comment,
       },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        ...includeUser,
       },
     });
 
@@ -79,12 +154,14 @@ export const reviewService = {
   // Get reviews by room
   getByRoom: async (roomId: string) => {
     const reviews = await prisma.review.findMany({
-      where: { roomId },
+      where: { roomId, status: "VISIBLE" },
       include: {
         user: {
           select: {
             id: true,
             name: true,
+            fullName: true,
+            avatarUrl: true,
           },
         },
       },
@@ -99,7 +176,7 @@ export const reviewService = {
   // Get user reviews
   getByUser: async (userId: string) => {
     const reviews = await prisma.review.findMany({
-      where: { userId },
+      where: { userId, status: { not: "DELETED" } },
       include: {
         room: {
           select: {
@@ -143,13 +220,16 @@ export const reviewService = {
       data: {
         ...(rating !== undefined && { rating }),
         ...(comment !== undefined && { comment }),
+        status: "VISIBLE",
       },
       include: {
         user: {
           select: {
             id: true,
             name: true,
+            fullName: true,
             email: true,
+            avatarUrl: true,
           },
         },
       },
@@ -166,8 +246,9 @@ export const reviewService = {
       throw new ApiError(403, "Access denied");
     }
 
-    await prisma.review.delete({
+    await prisma.review.update({
       where: { id },
+      data: { status: "DELETED" },
     });
 
     return { message: "Review deleted" };
@@ -176,7 +257,7 @@ export const reviewService = {
   // Get room average rating
   getRoomAverageRating: async (roomId: string) => {
     const reviews = await prisma.review.findMany({
-      where: { roomId },
+      where: { roomId, status: "VISIBLE" },
     });
 
     if (reviews.length === 0) {
