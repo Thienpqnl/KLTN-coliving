@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Loader } from '@googlemaps/js-api-loader'
-import { MapPin, Loader2 } from 'lucide-react'
+import { loadGoogleMapsLibraries } from '@/lib/google-maps-loader'
+import { Loader2, MapPin } from 'lucide-react'
 
 interface MapPickerProps {
   onLocationSelect: (lat: number, lng: number, address: string) => void
@@ -13,10 +13,8 @@ interface MapPickerProps {
 export function MapPicker({ onLocationSelect, initialLat, initialLng }: MapPickerProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
-  
-  // Thay đổi type ref để chứa AdvancedMarkerElement
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
-  
+
   const [isLoading, setIsLoading] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<{
     lat: number
@@ -27,36 +25,24 @@ export function MapPicker({ onLocationSelect, initialLat, initialLng }: MapPicke
   useEffect(() => {
     if (!mapContainer.current) return
 
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-    
-    if (!apiKey) {
-      console.error('Google Maps API key not found')
-      return
-    }
+    let cancelled = false
 
-    const loader = new Loader({
-      apiKey: apiKey,
-      version: 'weekly',
-      // Quan trọng: Phải khai báo libraries để dùng được Advanced Markers
-      libraries: ['marker'], 
-    })
+    loadGoogleMapsLibraries().then(({ maps, marker: markerLibrary }) => {
+      if (cancelled || !mapContainer.current) return
 
-    loader.load().then(() => {
       const defaultLng = initialLng || 106.660172
       const defaultLat = initialLat || 10.762622
 
-      const map = new google.maps.Map(mapContainer.current!, {
+      const map = new maps.Map(mapContainer.current, {
         center: { lat: defaultLat, lng: defaultLng },
         zoom: 14,
         clickableIcons: false,
-        mapId: "272573a64e10d24bf46100e2", 
+        mapId: '272573a64e10d24bf46100e2',
       })
 
       mapRef.current = map
 
-      // Hàm helper để tạo marker màu cam tùy chỉnh
       const createOrangeMarker = (lat: number, lng: number) => {
-        // Tạo element HTML cho marker
         const pinElement = document.createElement('div')
         pinElement.innerHTML = `
           <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -64,20 +50,18 @@ export function MapPicker({ onLocationSelect, initialLat, initialLng }: MapPicke
             <circle cx="15" cy="15" r="6" fill="white"/>
           </svg>
         `
-        
-        return new google.maps.marker.AdvancedMarkerElement({
+
+        return new markerLibrary.AdvancedMarkerElement({
           position: { lat, lng },
-          map: map,
-          content: pinElement, // Gán HTML custom vào đây
+          map,
+          content: pinElement,
         })
       }
 
-      // Thêm marker ban đầu nếu có
       if (initialLat && initialLng) {
         markerRef.current = createOrangeMarker(initialLat, initialLng)
       }
 
-      // Xử lý click trên bản đồ
       map.addListener('click', async (e: google.maps.MapMouseEvent) => {
         if (!e.latLng) return
 
@@ -86,18 +70,14 @@ export function MapPicker({ onLocationSelect, initialLat, initialLng }: MapPicke
 
         setIsLoading(true)
         try {
-          const response = await fetch(
-            `/api/reverse-geocode?lat=${lat}&lng=${lng}`
-          )
+          const response = await fetch(`/api/reverse-geocode?lat=${lat}&lng=${lng}`)
           const data = await response.json()
           const address = data.address || 'Không tìm thấy địa chỉ'
 
-          // Xóa marker cũ bằng cách set map = null
           if (markerRef.current) {
             markerRef.current.map = null
           }
 
-          // Tạo marker mới
           markerRef.current = createOrangeMarker(lat, lng)
 
           setSelectedLocation({ lat, lng, address })
@@ -108,9 +88,12 @@ export function MapPicker({ onLocationSelect, initialLat, initialLng }: MapPicke
           setIsLoading(false)
         }
       })
+    }).catch((error) => {
+      console.error('Lỗi tải Google Maps:', error)
     })
 
     return () => {
+      cancelled = true
       if (markerRef.current) {
         markerRef.current.map = null
       }
@@ -138,7 +121,7 @@ export function MapPicker({ onLocationSelect, initialLat, initialLng }: MapPicke
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-xs font-semibold text-blue-900 mb-2">Vị trí đã chọn:</p>
           <p className="text-sm text-blue-800">
-             {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+            {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
           </p>
           <p className="text-sm text-blue-800 mt-1">
             {selectedLocation.address}

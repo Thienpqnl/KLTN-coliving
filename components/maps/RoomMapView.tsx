@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
+import { loadGoogleMapsLibraries } from "@/lib/google-maps-loader";
 
 interface RoomMapViewProps {
   latitude?: number | null;
@@ -14,7 +14,7 @@ export default function RoomMapView({
 }: RoomMapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -25,42 +25,44 @@ export default function RoomMapView({
       return;
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      console.error('[RoomMapView] Google Maps API key not found');
-      return;
-    }
+    let cancelled = false;
 
-    const loader = new Loader({
-      apiKey: apiKey,
-      version: 'weekly',
-    });
+    loadGoogleMapsLibraries().then(({ maps, marker: markerLibrary }) => {
+      if (cancelled || !mapContainer.current) return;
 
-    loader.load().then(() => {
-      const map = new google.maps.Map(mapContainer.current!, {
+      const map = new maps.Map(mapContainer.current, {
         center: { lat: latitude, lng: longitude },
         zoom: 15,
         disableDefaultUI: true,
         draggable: false,
         scrollwheel: false,
         disableDoubleClickZoom: true,
+        mapId: "272573a64e10d24bf46100e2",
       });
 
       mapRef.current = map;
 
-      // Add marker
-      markerRef.current = new google.maps.Marker({
+      const pinElement = document.createElement("div");
+      pinElement.innerHTML = `
+        <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 0C6.71573 0 0 6.71573 0 15C0 26.25 15 40 15 40C15 40 30 26.25 30 15C30 6.71573 23.2843 0 15 0Z" fill="#f97316"/>
+          <circle cx="15" cy="15" r="6" fill="white"/>
+        </svg>
+      `;
+
+      markerRef.current = new markerLibrary.AdvancedMarkerElement({
         position: { lat: latitude, lng: longitude },
         map: map,
-        icon: {
-          url: 'http://maps.google.com/mapfiles/ms/icons/orange-dot.png',
-        },
+        content: pinElement,
       });
+    }).catch((error) => {
+      console.error("[RoomMapView] Failed to load Google Maps:", error);
     });
 
     return () => {
+      cancelled = true;
       if (markerRef.current) {
-        markerRef.current.setMap(null);
+        markerRef.current.map = null;
       }
       mapRef.current = null;
     };

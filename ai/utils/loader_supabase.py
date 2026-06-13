@@ -78,6 +78,22 @@ def load_users_from_supabase() -> pd.DataFrame:
         preferences_df = pd.DataFrame(
             preferences_response.data
         )
+        if users_df.empty:
+            return pd.DataFrame(columns=[
+                "userId",
+                "email",
+                "fullName",
+                "role",
+                "budget_min_vnd",
+                "budget_max_vnd",
+                "preferred_location_district_id",
+                "lifestyle_archetype",
+                "priority_cleanliness",
+                "priority_social_environment",
+                "accept_smoking_roommates",
+                "accept_pets",
+            ])
+
         if not preferences_df.empty:
 
             users_df = users_df.merge(
@@ -86,10 +102,14 @@ def load_users_from_supabase() -> pd.DataFrame:
                 right_on="userId",
                 how="left"
             )
-        users_df.drop(columns=["userId"], inplace=True)
-        users_df.rename(columns={
-            "id": "userId"
-        }, inplace=True)
+
+        if "id_x" in users_df.columns:
+            users_df.drop(columns=["userId"], inplace=True, errors="ignore")
+            users_df.rename(columns={"id_x": "userId"}, inplace=True)
+        elif "id" in users_df.columns:
+            users_df.rename(columns={"id": "userId"}, inplace=True)
+
+        users_df.drop(columns=["id_y"], inplace=True, errors="ignore")
         users_df["budgetMinVnd"] = users_df[
             "budgetMinVnd"
         ].fillna(3000000)

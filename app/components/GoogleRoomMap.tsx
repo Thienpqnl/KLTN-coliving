@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { getGoogleMapsLoader } from '@/lib/google-maps-loader'
+import { loadGoogleMapsLibraries } from '@/lib/google-maps-loader'
 import { Room } from '@/lib/services/room-client.service'
 
 interface Props {
@@ -22,10 +22,12 @@ export default function RoomsMap({
     if (!mapContainer.current) return
 
     // Sử dụng singleton loader thay vì new Loader()
-    const loader = getGoogleMapsLoader()
+    let cancelled = false
 
-    loader.load().then(() => {
-      const map = new google.maps.Map(mapContainer.current!, {
+    loadGoogleMapsLibraries().then(({ maps, marker: markerLibrary }) => {
+      if (cancelled || !mapContainer.current) return
+
+      const map = new maps.Map(mapContainer.current, {
         center: { lat: 10.85, lng: 106.809 },
         zoom: 12,
         // Map ID bắt buộc cho Advanced Markers
@@ -49,7 +51,7 @@ export default function RoomsMap({
             </div>
           `
 
-          const marker = new google.maps.marker.AdvancedMarkerElement({
+          const marker = new markerLibrary.AdvancedMarkerElement({
             position: { lat: room.latitude, lng: room.longitude },
             map: map,
             content: pinElement, // Gán cái div chứa giá tiền vào đây
@@ -67,6 +69,7 @@ export default function RoomsMap({
     })
 
     return () => {
+      cancelled = true
       markersRef.current.forEach(marker => { marker.map = null })
       markersRef.current = []
     }
