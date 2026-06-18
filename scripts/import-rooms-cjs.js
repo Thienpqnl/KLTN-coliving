@@ -9,6 +9,7 @@ const path = require('path');
 
 const prisma = new PrismaClient();
 const shouldReset = process.argv.includes('--reset');
+const fileArg = process.argv.find((arg) => arg.startsWith('--file='));
 
 function cleanRow(row) {
   return Object.fromEntries(
@@ -51,6 +52,14 @@ function parseDecimalString(value) {
   return match ? match[0] : null;
 }
 
+function parseFloatValue(value) {
+  const normalized = nullableText(value);
+  if (!normalized) return null;
+
+  const parsed = Number.parseFloat(normalized.replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function splitPipe(value) {
   return Array.from(
     new Set(
@@ -78,6 +87,26 @@ async function importRoom(row) {
     return { status: 'skipped', reason: 'missing title' };
   }
 
+  const amenities = splitPipe(row.amenities);
+  const images = getImageUrls(row.images);
+  const roomData = {
+    title,
+    description: nullableText(row.description) || title,
+    priceText: nullableText(row.price_text),
+    priceValue: parseBigInt(row.price_value),
+    areaText: nullableText(row.area_text),
+    areaValue: parseDecimalString(row.area_value),
+    address: nullableText(row.address) || '',
+    district: nullableText(row.district),
+    city: nullableText(row.city),
+    roomId: nullableText(row.post_id),
+    posted_date: nullableText(row.posted_date),
+    expired_date: nullableText(row.expired_date),
+    latitude: parseFloatValue(row.latitude),
+    longitude: parseFloatValue(row.longitude),
+    sourceUrl,
+  };
+
   if (sourceUrl) {
     const existingRoom = await prisma.room.findFirst({
       where: { sourceUrl },
@@ -85,25 +114,45 @@ async function importRoom(row) {
     });
 
     if (existingRoom) {
-      return { status: 'skipped', reason: 'already imported' };
+      await prisma.$transaction([
+        prisma.roomImage.deleteMany({ where: { roomId: existingRoom.id } }),
+        prisma.roomAmenity.deleteMany({ where: { roomId: existingRoom.id } }),
+        prisma.room.update({
+          where: { id: existingRoom.id },
+          data: {
+            ...roomData,
+            amenities: {
+              create: amenities.map((name) => ({
+                amenity: {
+                  connectOrCreate: {
+                    where: { name },
+                    create: { name },
+                  },
+                },
+              })),
+            },
+            images: {
+              create: images.map((url, index) => ({
+                url,
+                alt: title,
+                sortOrder: index,
+              })),
+            },
+          },
+        }),
+      ]);
+
+      return {
+        status: 'updated',
+        amenityCount: amenities.length,
+        imageCount: images.length,
+      };
     }
   }
 
-  const amenities = splitPipe(row.amenities);
-  const images = getImageUrls(row.images);
-
   await prisma.room.create({
     data: {
-      title,
-      description: nullableText(row.description) || title,
-      priceText: nullableText(row.price_text),
-      priceValue: parseBigInt(row.price_value),
-      areaText: nullableText(row.area_text),
-      areaValue: parseDecimalString(row.area_value),
-      address: nullableText(row.address) || '',
-      district: nullableText(row.district),
-      city: nullableText(row.city),
-      sourceUrl,
+      ...roomData,
       amenities: {
         create: amenities.map((name) => ({
           amenity: {
@@ -132,7 +181,10 @@ async function importRoom(row) {
 }
 
 async function main() {
-  const csvPath = path.join(process.cwd(), 'phongtro123_data.csv');
+  const csvFile = fileArg ? fileArg.slice('--file='.length) : 'phongtro123_update.csv';
+  const csvPath = path.isAbsolute(csvFile)
+    ? csvFile
+    : path.join(process.cwd(), csvFile);
 
   if (!fs.existsSync(csvPath)) {
     throw new Error(`File not found: ${csvPath}`);
@@ -143,6 +195,14 @@ async function main() {
   if (shouldReset) {
     console.log('Resetting room data...');
     await prisma.$transaction([
+      prisma.payment.deleteMany(),
+      prisma.invoice.deleteMany(),
+      prisma.contract.deleteMany(),
+      prisma.booking.deleteMany(),
+      prisma.review.deleteMany(),
+      prisma.favoriteRoom.deleteMany(),
+      prisma.occupancy.deleteMany(),
+      prisma.roomInteraction.deleteMany(),
       prisma.roomImage.deleteMany(),
       prisma.roomAmenity.deleteMany(),
       prisma.room.deleteMany(),
@@ -156,6 +216,7 @@ async function main() {
   console.log(`Found ${rows.length} rows`);
 
   let imported = 0;
+  let updated = 0;
   let skipped = 0;
   let failed = 0;
   let roomImages = 0;
@@ -167,6 +228,10 @@ async function main() {
 
       if (result.status === 'imported') {
         imported += 1;
+        roomImages += result.imageCount;
+        roomAmenities += result.amenityCount;
+      } else if (result.status === 'updated') {
+        updated += 1;
         roomImages += result.imageCount;
         roomAmenities += result.amenityCount;
       } else {
@@ -188,6 +253,7 @@ async function main() {
   console.log('');
   console.log('Import summary');
   console.log(`Rooms imported: ${imported}`);
+  console.log(`Rooms updated: ${updated}`);
   console.log(`Rooms skipped: ${skipped}`);
   console.log(`Rows failed: ${failed}`);
   console.log(`RoomImage rows created: ${roomImages}`);

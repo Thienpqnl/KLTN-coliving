@@ -25,6 +25,18 @@ function getImageUrls(room: RoomDetail) {
   return Array.from(new Set([...fromImages, ...fromAlias])).filter(Boolean);
 }
 
+function getGoogleMapsUrl(room: RoomDetail) {
+  if (typeof room.latitude === 'number' && typeof room.longitude === 'number') {
+    return `https://www.google.com/maps/search/?api=1&query=${room.latitude},${room.longitude}`;
+  }
+
+  if (room.address) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(room.address)}`;
+  }
+
+  return null;
+}
+
 function AmenityIcon({ name }: { name: string }) {
   const lowerName = name.toLowerCase();
   let icon = 'home';
@@ -345,6 +357,7 @@ export default async function RoomDetailPage({
     .map((item) => item.amenity)
     .filter((amenity): amenity is { id: string; name: string } => Boolean(amenity));
   const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
+  const googleMapsUrl = getGoogleMapsUrl(room);
   const roomId  = room.id;
 console.log(" [Page] Room Object:", room);
 console.log(" [Page] RoomID extracted:", roomId);
@@ -426,7 +439,7 @@ console.log(" [Page] RoomID extracted:", roomId);
                           location_on
                         </span>
 
-                        <div>
+                        <div className="flex-1">
                           <h4 className="font-semibold text-slate-900">
                             Địa chỉ phòng
                           </h4>
@@ -435,12 +448,25 @@ console.log(" [Page] RoomID extracted:", roomId);
                             {room.address}
                           </p>
                         </div>
+
+                        {googleMapsUrl && (
+                          <a
+                            href={googleMapsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-sm font-bold text-orange-800 transition-colors hover:bg-orange-100"
+                          >
+                            <span className="material-symbols-outlined text-base">open_in_new</span>
+                            Google Maps
+                          </a>
+                        )}
                       </div>
                     </div>
 
                     <RoomMapView
                       latitude={room.latitude}
                       longitude={room.longitude}
+                      mapUrl={googleMapsUrl}
                     />
                   </div>
               </div>

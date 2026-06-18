@@ -6,11 +6,13 @@ import { loadGoogleMapsLibraries } from "@/lib/google-maps-loader";
 interface RoomMapViewProps {
   latitude?: number | null;
   longitude?: number | null;
+  mapUrl?: string | null;
 }
 
 export default function RoomMapView({
   latitude,
   longitude,
+  mapUrl,
 }: RoomMapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -81,9 +83,20 @@ export default function RoomMapView({
   }
 
   return (
-    <div
-      ref={mapContainer}
-      className="h-80 w-full rounded-xl overflow-hidden bg-slate-100"
-    />
+    <div className="relative">
+      <div
+        ref={mapContainer}
+        className="h-80 w-full rounded-xl overflow-hidden bg-slate-100"
+      />
+      {mapUrl && (
+        <a
+          href={mapUrl}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Mở vị trí phòng trong Google Maps"
+          className="absolute inset-0"
+        />
+      )}
+    </div>
   );
 }
