@@ -25,6 +25,36 @@ function getImageUrls(room: RoomDetail) {
   return Array.from(new Set([...fromImages, ...fromAlias])).filter(Boolean);
 }
 
+function getGoogleMapsUrl(room: RoomDetail) {
+  if (typeof room.latitude === 'number' && typeof room.longitude === 'number') {
+    return `https://www.google.com/maps/search/?api=1&query=${room.latitude},${room.longitude}`;
+  }
+
+  if (room.address) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(room.address)}`;
+  }
+
+  return null;
+}
+
+function getPostedDateText(room: RoomDetail) {
+  if (room.posted_date?.trim()) {
+    return room.posted_date.trim();
+  }
+
+  const createdAt = room.createdAt instanceof Date ? room.createdAt : new Date(room.createdAt);
+
+  if (Number.isNaN(createdAt.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(createdAt);
+}
+
 function AmenityIcon({ name }: { name: string }) {
   const lowerName = name.toLowerCase();
   let icon = 'home';
@@ -63,7 +93,7 @@ function getRequirementIcon(key: string, value?: string | boolean): string {
       return 'info';
   }
 }
-function Gallery({ images, title }: { images: string[]; title: string }) {
+function Gallery({ images, title, postedDate }: { images: string[]; title: string; postedDate?: string | null }) {
   const galleryImages = images.length > 0 ? images : [fallbackImage];
   const featuredImage = galleryImages[0];
   const sideImages = galleryImages.slice(1, 5);
@@ -129,6 +159,13 @@ function Gallery({ images, title }: { images: string[]; title: string }) {
           </div>
         ))}
       </div>
+
+      {postedDate && (
+        <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-500">
+          <span className="material-symbols-outlined text-lg text-orange-700">calendar_month</span>
+          <span>Ngày đăng: {postedDate}</span>
+        </div>
+      )}
     </section>
   );
 }
@@ -341,10 +378,12 @@ export default async function RoomDetailPage({
   }
 
   const images = getImageUrls(room);
+  const postedDate = getPostedDateText(room);
   const amenities = ((room.amenities ?? []) as RoomAmenityItem[])
     .map((item) => item.amenity)
     .filter((amenity): amenity is { id: string; name: string } => Boolean(amenity));
   const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
+  const googleMapsUrl = getGoogleMapsUrl(room);
   const roomId  = room.id;
 console.log(" [Page] Room Object:", room);
 console.log(" [Page] RoomID extracted:", roomId);
@@ -371,7 +410,7 @@ console.log(" [Page] RoomID extracted:", roomId);
           </div>
         </header>
 
-        <Gallery images={images} title={room.title} />
+        <Gallery images={images} title={room.title} postedDate={postedDate} />
 
         <section className="mx-auto max-w-7xl px-8">
           <div className="relative flex flex-col gap-16 lg:flex-row">
@@ -426,7 +465,7 @@ console.log(" [Page] RoomID extracted:", roomId);
                           location_on
                         </span>
 
-                        <div>
+                        <div className="flex-1">
                           <h4 className="font-semibold text-slate-900">
                             Địa chỉ phòng
                           </h4>
@@ -435,12 +474,25 @@ console.log(" [Page] RoomID extracted:", roomId);
                             {room.address}
                           </p>
                         </div>
+
+                        {googleMapsUrl && (
+                          <a
+                            href={googleMapsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-sm font-bold text-orange-800 transition-colors hover:bg-orange-100"
+                          >
+                            <span className="material-symbols-outlined text-base">open_in_new</span>
+                            Google Maps
+                          </a>
+                        )}
                       </div>
                     </div>
 
                     <RoomMapView
                       latitude={room.latitude}
                       longitude={room.longitude}
+                      mapUrl={googleMapsUrl}
                     />
                   </div>
               </div>
