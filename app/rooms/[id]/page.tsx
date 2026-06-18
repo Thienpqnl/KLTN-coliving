@@ -37,6 +37,24 @@ function getGoogleMapsUrl(room: RoomDetail) {
   return null;
 }
 
+function getPostedDateText(room: RoomDetail) {
+  if (room.posted_date?.trim()) {
+    return room.posted_date.trim();
+  }
+
+  const createdAt = room.createdAt instanceof Date ? room.createdAt : new Date(room.createdAt);
+
+  if (Number.isNaN(createdAt.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(createdAt);
+}
+
 function AmenityIcon({ name }: { name: string }) {
   const lowerName = name.toLowerCase();
   let icon = 'home';
@@ -75,7 +93,7 @@ function getRequirementIcon(key: string, value?: string | boolean): string {
       return 'info';
   }
 }
-function Gallery({ images, title }: { images: string[]; title: string }) {
+function Gallery({ images, title, postedDate }: { images: string[]; title: string; postedDate?: string | null }) {
   const galleryImages = images.length > 0 ? images : [fallbackImage];
   const featuredImage = galleryImages[0];
   const sideImages = galleryImages.slice(1, 5);
@@ -141,6 +159,13 @@ function Gallery({ images, title }: { images: string[]; title: string }) {
           </div>
         ))}
       </div>
+
+      {postedDate && (
+        <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-500">
+          <span className="material-symbols-outlined text-lg text-orange-700">calendar_month</span>
+          <span>Ngày đăng: {postedDate}</span>
+        </div>
+      )}
     </section>
   );
 }
@@ -353,6 +378,7 @@ export default async function RoomDetailPage({
   }
 
   const images = getImageUrls(room);
+  const postedDate = getPostedDateText(room);
   const amenities = ((room.amenities ?? []) as RoomAmenityItem[])
     .map((item) => item.amenity)
     .filter((amenity): amenity is { id: string; name: string } => Boolean(amenity));
@@ -384,7 +410,7 @@ console.log(" [Page] RoomID extracted:", roomId);
           </div>
         </header>
 
-        <Gallery images={images} title={room.title} />
+        <Gallery images={images} title={room.title} postedDate={postedDate} />
 
         <section className="mx-auto max-w-7xl px-8">
           <div className="relative flex flex-col gap-16 lg:flex-row">
