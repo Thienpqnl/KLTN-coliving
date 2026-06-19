@@ -6,6 +6,7 @@ import { roomService } from '@/lib/services/room.service';
 import { RoommatesSection } from '../components/RoommatesSection';
 import { RoomCompatibility } from './components/RoomCompatibility';
 import { RoomReviews } from './components/RoomReviews';
+import { RoomGallery } from './components/RoomGallery';
 import { FavoriteButton } from './FavoriteButton';
 import { cookies } from 'next/headers';
 import RoomMapView from "@/components/maps/RoomMapView";
@@ -16,8 +17,14 @@ type RoomAmenityItem = {
     name: string;
   } | null;
 };
-
-const fallbackImage = 'https://via.placeholder.com/900x600?text=Room';
+type OccupancyInfo = {
+  current: number;
+  max: number;
+  available: number;
+  percentage: number;
+  label: string;
+  tone: 'available' | 'limited' | 'full';
+};
 
 function getImageUrls(room: RoomDetail) {
   const fromImages = room.images?.map((image: { url: string }) => image.url) || [];
@@ -53,6 +60,29 @@ function getPostedDateText(room: RoomDetail) {
     month: '2-digit',
     year: 'numeric',
   }).format(createdAt);
+}
+
+function getOccupancyInfo(room: RoomDetail): OccupancyInfo | null {
+  const maxOccupants = Number(room.maxOccupants ?? 0);
+  const currentOccupants = Number(room.currentOccupants ?? 0);
+
+  if (!Number.isFinite(maxOccupants) || maxOccupants <= 0) {
+    return null;
+  }
+
+  const current = Math.min(maxOccupants, Math.max(0, currentOccupants));
+  const available = Math.max(0, maxOccupants - current);
+  const percentage = Math.round((current / maxOccupants) * 100);
+  const tone = available === 0 ? 'full' : available <= 1 ? 'limited' : 'available';
+
+  return {
+    current,
+    max: maxOccupants,
+    available,
+    percentage,
+    tone,
+    label: available === 0 ? 'Đã đủ người' : `Còn ${available} chỗ trống`,
+  };
 }
 
 function AmenityIcon({ name }: { name: string }) {
@@ -92,82 +122,6 @@ function getRequirementIcon(key: string, value?: string | boolean): string {
     default:
       return 'info';
   }
-}
-function Gallery({ images, title, postedDate }: { images: string[]; title: string; postedDate?: string | null }) {
-  const galleryImages = images.length > 0 ? images : [fallbackImage];
-  const featuredImage = galleryImages[0];
-  const sideImages = galleryImages.slice(1, 5);
-  const displaySideImages = sideImages.length > 0 ? sideImages : [featuredImage, featuredImage, featuredImage, featuredImage];
-  const thumbnailImages = galleryImages.slice(0, 12);
-
-  return (
-    <section className="mx-auto mb-12 max-w-7xl px-8">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.9fr)]">
-        <div className="group relative min-h-[360px] overflow-hidden rounded-[1.75rem] bg-slate-200 shadow-sm md:min-h-[560px]">
-          <img
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-            src={featuredImage}
-            alt={title}
-          />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent" />
-          <div className="absolute bottom-5 left-5 rounded-full bg-white/90 px-4 py-2 text-sm font-bold text-slate-950 shadow-lg backdrop-blur">
-            Ảnh nổi bật
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 lg:grid-rows-2">
-          {displaySideImages.map((image, index) => (
-            <div
-              key={`${image}-${index}`}
-              className="group relative min-h-[150px] overflow-hidden rounded-2xl bg-slate-200 md:min-h-[220px] lg:min-h-0"
-            >
-              <img
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                src={image}
-                alt={`${title} - ảnh ${index + 2}`}
-              />
-              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/5" />
-              {index === 3 && galleryImages.length > 5 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/45 p-4">
-                  <span className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-black text-slate-950 shadow-lg">
-                    <span className="material-symbols-outlined text-base">photo_library</span>
-                    +{galleryImages.length - 5} ảnh
-                  </span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
-        {thumbnailImages.map((image, index) => (
-          <div
-            key={`thumb-${image}-${index}`}
-            className="relative h-20 w-28 flex-none overflow-hidden rounded-xl bg-slate-200 ring-1 ring-black/5 md:h-24 md:w-36"
-          >
-            <img
-              className="h-full w-full object-cover"
-              src={image}
-              alt={`${title} - thumbnail ${index + 1}`}
-            />
-            {index === thumbnailImages.length - 1 && galleryImages.length > thumbnailImages.length && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                <span className="text-xs font-black text-white">+{galleryImages.length - thumbnailImages.length}</span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {postedDate && (
-        <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-500">
-          <span className="material-symbols-outlined text-lg text-orange-700">calendar_month</span>
-          <span>Ngày đăng: {postedDate}</span>
-        </div>
-      )}
-    </section>
-  );
 }
 function RoomRequirements({ room }: { room: RoomDetail }) {
   const requirements: Array<{ label: string; value?: string; iconKey: string }> = [];
@@ -379,6 +333,7 @@ export default async function RoomDetailPage({
 
   const images = getImageUrls(room);
   const postedDate = getPostedDateText(room);
+  const occupancy = getOccupancyInfo(room);
   const amenities = ((room.amenities ?? []) as RoomAmenityItem[])
     .map((item) => item.amenity)
     .filter((amenity): amenity is { id: string; name: string } => Boolean(amenity));
@@ -410,7 +365,12 @@ console.log(" [Page] RoomID extracted:", roomId);
           </div>
         </header>
 
-        <Gallery images={images} title={room.title} postedDate={postedDate} />
+        <RoomGallery
+          images={images}
+          title={room.title}
+          postedDate={postedDate}
+          occupancy={occupancy}
+        />
 
         <section className="mx-auto max-w-7xl px-8">
           <div className="relative flex flex-col gap-16 lg:flex-row">
