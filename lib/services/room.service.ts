@@ -48,17 +48,42 @@ const roomListInclude = {
   },
 };
 
-const normalizeRoom = (room: any) => {
-  const imageUrls = room.images?.map((image: any) => image.url) || [];
+const formatAreaText = (area?: string | null) => {
+  const value = area?.trim();
+
+  if (!value) return value;
+
+  if (/m\s*(2|²)\b/i.test(value)) {
+    return value;
+  }
+
+  if (/^\d+([.,]\d+)?$/.test(value)) {
+    return `${value} m2`;
+  }
+
+  return value;
+};
+
+type NormalizableRoom = {
+  images?: { url: string }[] | null;
+  priceValue?: Prisma.Decimal | bigint | number | null;
+  areaValue?: Prisma.Decimal | number | null;
+  areaText?: string | null;
+};
+
+const normalizeRoom = <TRoom extends NormalizableRoom>(room: TRoom) => {
+  const imageUrls = room.images?.map((image) => image.url) || [];
   const priceValue = room.priceValue == null ? null : Number(room.priceValue);
   const areaValue = room.areaValue == null ? null : Number(room.areaValue);
+  const areaText = formatAreaText(room.areaText);
 
   return {
     ...room,
+    areaText,
     priceValue,
     areaValue,
     price: priceValue ?? 0,
-    area: room.areaText || (areaValue == null ? "" : `${areaValue} m2`),
+    area: areaText || (areaValue == null ? "" : `${areaValue} m2`),
     image: imageUrls,
   };
 };
@@ -75,7 +100,7 @@ export const roomService = {
         description: data.description,
         priceText: data.price ? `${data.price.toLocaleString("vi-VN")} đ/tháng` : null,
         priceValue: data.price ? BigInt(Math.round(data.price)) : null,
-        areaText: data.area,
+        areaText: formatAreaText(data.area),
         areaValue: data.area ? new Prisma.Decimal(String(data.area).replace(/[^\d.,]/g, "").replace(",", ".") || "0") : null,
         address: data.address,
         ownerId: data.ownerId,
@@ -230,7 +255,7 @@ getAllByOwnerId: async (ownerId: string) => {
     const total = await prisma.room.count({ where });
     
     // Determine ordering based on sortBy
-    let orderBy: any = { createdAt: "desc" };
+    let orderBy: Prisma.RoomOrderByWithRelationInput = { createdAt: "desc" };
     if (sortBy === "price-low") {
       orderBy = { priceValue: "asc" };
     } else if (sortBy === "price-high") {
@@ -254,7 +279,7 @@ getAllByOwnerId: async (ownerId: string) => {
     // Verify room exists
     await roomService.getById(id);
 
-    const updateData: any = {};
+    const updateData: Prisma.RoomUpdateInput = {};
     if (data.title) updateData.title = data.title;
     if (data.description) updateData.description = data.description;
     if (data.price !== undefined) {
@@ -262,7 +287,7 @@ getAllByOwnerId: async (ownerId: string) => {
       updateData.priceValue = BigInt(Math.round(data.price));
     }
     if (data.area) {
-      updateData.areaText = data.area;
+      updateData.areaText = formatAreaText(data.area);
       updateData.areaValue = new Prisma.Decimal(String(data.area).replace(/[^\d.,]/g, "").replace(",", ".") || "0");
     }
     if (data.address) updateData.address = data.address;

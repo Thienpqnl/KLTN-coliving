@@ -21,7 +21,7 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
   useEffect(() => {
     // Nếu đang load auth, đợi
     if (authLoading) {
-      console.log("⏳ [RoommatesSection] Đang chờ AuthProvider load user...");
+      console.log("[RoommatesSection] Đang chờ AuthProvider load user...");
       return;
     }
 
@@ -56,7 +56,7 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
 
         setExplainedMatches(processedData);
       } catch (error) {
-        console.error("❌ [Fetch] Lỗi nghiêm trọng:", error);
+        console.error("[Fetch] Lỗi nghiêm trọng:", error);
       } finally {
         setLoading(false);
       }
@@ -100,10 +100,24 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
   // Trường hợp 4: Hiển thị danh sách
   return (
     <div className="space-y-8">
-      <h3 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-        <span className="material-symbols-outlined text-orange-700">groups</span>
-        Thành viên & Độ tương thích AI
-      </h3>
+      <div className="space-y-2">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-700">
+          Cộng đồng trong phòng
+        </p>
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-100 to-amber-50 text-orange-700 shadow-sm ring-1 ring-orange-100">
+            <span className="material-symbols-outlined block translate-y-px text-2xl leading-none">
+              groups
+            </span>
+          </span>
+          <div>
+            <h3 className="bg-gradient-to-r from-slate-950 via-orange-900 to-slate-700 bg-clip-text text-2xl font-black tracking-tight text-transparent md:text-3xl">
+              Gợi ý bạn ở cùng phù hợp
+            </h3>
+            <div className="mt-2 h-1 w-16 rounded-full bg-gradient-to-r from-orange-600 to-amber-300" />
+          </div>
+        </div>
+      </div>
       
       <div className="grid gap-6 md:grid-cols-2">
         {explainedMatches.map(({ match, explanation }) => (

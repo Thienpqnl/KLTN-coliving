@@ -181,8 +181,10 @@ export function RoomGallery({
 
           {occupancy && (
             <div className={`flex min-w-[260px] items-center gap-3 rounded-full border px-4 py-2 shadow-sm ${occupancyTone.badge}`}>
-              <span className={`material-symbols-outlined flex h-9 w-9 items-center justify-center rounded-full text-xl ${occupancyTone.icon}`}>
-                groups
+              <span className={`flex h-9 w-9 items-center justify-center rounded-full ${occupancyTone.icon}`}>
+                <span className="material-symbols-outlined block translate-y-px text-xl leading-none">
+                  groups
+                </span>
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-3">
