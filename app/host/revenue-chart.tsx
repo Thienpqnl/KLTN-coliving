@@ -72,22 +72,22 @@ export function RevenueChart() {
   }, [bookings])
 
   return (
-    <div className="bg-card rounded-2xl p-5 shadow-sm border border-border">
+    <div className="rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/60 backdrop-blur">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="font-semibold text-foreground">Xu hướng doanh thu</h3>
+          <h3 className="font-black text-slate-950">Xu hướng doanh thu</h3>
           <p className="text-xs text-muted-foreground mt-1">
             Doanh thu đã xác nhận và nguồn doanh thu đang chờ từ các đặt phòng
           </p>
         </div>
-        <span className="text-xs border border-border rounded-lg px-3 py-1.5 bg-secondary text-foreground">
+        <span className="rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">
           8 tháng gần nhất
         </span>
       </div>
 
       <div className="h-52">
         {loading ? (
-          <div className="h-full rounded-xl bg-secondary animate-pulse" />
+          <div className="h-full rounded-2xl bg-orange-100/70 animate-pulse" />
         ) : (
           <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -101,7 +101,7 @@ export function RevenueChart() {
                 <stop offset="95%" stopColor="oklch(0.7 0.18 55)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 280)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.02 70)" vertical={false} />
             <XAxis
               dataKey="month"
               axisLine={false}
@@ -117,21 +117,21 @@ export function RevenueChart() {
               contentStyle={{
                 backgroundColor: "oklch(1 0 0)",
                 border: "1px solid oklch(0.9 0.01 280)",
-                borderRadius: "8px",
+                borderRadius: "12px",
                 fontSize: "12px",
               }}
             />
             <Area
               type="monotone"
               dataKey="revenue"
-              stroke="oklch(0.25 0.08 260)"
+              stroke="oklch(0.55 0.18 45)"
               strokeWidth={2}
               fill="url(#colorRevenue)"
             />
             <Area
               type="monotone"
               dataKey="pending"
-              stroke="oklch(0.7 0.18 55)"
+              stroke="oklch(0.55 0.13 230)"
               strokeWidth={2}
               fill="url(#colorExpenses)"
             />
@@ -140,18 +140,18 @@ export function RevenueChart() {
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-orange-100/70">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-navy" />
+            <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
             <span className="text-xs text-muted-foreground">Doanh thu đã xác nhận</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+            <span className="h-2.5 w-2.5 rounded-full bg-sky-500" />
             <span className="text-xs text-muted-foreground">Doanh thu đang chờ</span>
           </div>
         </div>
-        <button className="text-xs text-primary font-medium hover:underline">
+        <button className="text-xs text-orange-700 font-bold hover:underline">
           Báo cáo đầy đủ
         </button>
       </div>

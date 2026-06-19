@@ -119,7 +119,7 @@ export function BookingsTable() {
 
   if (bookings.length === 0) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+      <div className="rounded-[2rem] border border-dashed border-orange-200 bg-white/80 p-8 text-center shadow-lg shadow-slate-200/60">
         <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
         <p className="text-muted-foreground">Chưa có đặt phòng</p>
       </div>
@@ -140,31 +140,31 @@ export function BookingsTable() {
               setSearchTerm(e.target.value)
               setCurrentPage(1)
             }}
-            className="w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full rounded-full border border-white/80 bg-white/85 py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
+      <div className="mb-6 overflow-hidden rounded-[2rem] border border-white/80 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur">
         {/* Table Header */}
-        <div className="grid grid-cols-7 gap-4 px-6 py-3 border-b border-border bg-muted/30">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Phòng</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nhận phòng</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Trả phòng</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Giá</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Trạng thái</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Đánh giá</div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Thao tác</div>
+        <div className="grid grid-cols-7 gap-4 border-b border-orange-100/70 bg-gradient-to-r from-orange-50 via-white to-sky-50 px-6 py-3">
+          <div className="text-xs font-black text-slate-500 uppercase tracking-wide">Phòng</div>
+          <div className="text-xs font-black text-slate-500 uppercase tracking-wide">Nhận phòng</div>
+          <div className="text-xs font-black text-slate-500 uppercase tracking-wide">Trả phòng</div>
+          <div className="text-xs font-black text-slate-500 uppercase tracking-wide">Giá</div>
+          <div className="text-xs font-black text-slate-500 uppercase tracking-wide">Trạng thái</div>
+          <div className="text-xs font-black text-slate-500 uppercase tracking-wide">Đánh giá</div>
+          <div className="text-xs font-black text-slate-500 uppercase tracking-wide">Thao tác</div>
         </div>
 
         {/* Table Rows */}
         <div className="divide-y divide-border">
           {displayedBookings.map((booking) => (
-            <div key={booking.id} className="grid grid-cols-7 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors">
+            <div key={booking.id} className="grid grid-cols-7 gap-4 px-6 py-4 items-center transition-colors hover:bg-orange-50/50">
               {/* Room ID */}
               <div>
-                <p className="text-sm font-medium text-foreground">{booking.room?.title || 'Phòng'}</p>
+                <p className="text-sm font-semibold text-slate-950">{booking.room?.title || 'Phòng'}</p>
                 <p className="text-xs text-muted-foreground">{booking.user?.fullName || booking.user?.name || booking.user?.email || booking.roomId}</p>
               </div>
 
@@ -203,7 +203,7 @@ export function BookingsTable() {
                     setSelectedBookingId(booking.id)
                     setEvaluationOpen(true)
                   }}
-                  className="px-3 py-1.5 bg-blue-500 text-white text-xs font-semibold rounded hover:bg-blue-600 transition-colors"
+                  className="rounded-full bg-sky-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-sky-500"
                 >
                   Xem
                 </button>
@@ -216,7 +216,7 @@ export function BookingsTable() {
                     <button
                       onClick={() => handleApprove(booking.id)}
                       disabled={actionLoading === booking.id}
-                      className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      className="rounded-full bg-gradient-to-r from-orange-600 to-amber-500 px-3 py-1.5 text-xs font-bold text-white transition hover:from-orange-500 hover:to-amber-400 disabled:opacity-50"
                     >
                       {actionLoading === booking.id ? (
                         <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
@@ -226,7 +226,7 @@ export function BookingsTable() {
                     <button
                       onClick={() => handleReject(booking.id)}
                       disabled={actionLoading === booking.id}
-                      className="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded hover:bg-red-600 transition-colors disabled:opacity-50"
+                      className="rounded-full bg-rose-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-500 disabled:opacity-50"
                     >
                       Từ chối
                     </button>

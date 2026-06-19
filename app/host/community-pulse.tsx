@@ -4,9 +4,9 @@ import { Sparkles } from "lucide-react"
 
 export function CommunityPulse() {
   return (
-    <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-5 shadow-sm text-primary-foreground">
+    <div className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-orange-950 to-orange-700 p-5 text-white shadow-xl shadow-orange-200/70">
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="h-4 w-4" />
+        <Sparkles className="h-4 w-4 text-amber-200" />
         <h3 className="font-semibold text-sm">Nhịp cộng đồng</h3>
       </div>
       <p className="text-sm leading-relaxed opacity-90">
@@ -17,8 +17,8 @@ export function CommunityPulse() {
           <span className="text-xs opacity-80">Mức độ hài lòng</span>
           <span className="text-lg font-bold">96%</span>
         </div>
-        <div className="mt-2 h-2 bg-primary-foreground/20 rounded-full overflow-hidden">
-          <div className="h-full w-[96%] bg-primary-foreground rounded-full" />
+        <div className="mt-2 h-2 bg-white/20 rounded-full overflow-hidden">
+          <div className="h-full w-[96%] rounded-full bg-gradient-to-r from-amber-200 to-sky-200" />
         </div>
       </div>
     </div>

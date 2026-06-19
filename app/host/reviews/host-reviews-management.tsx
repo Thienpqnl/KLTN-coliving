@@ -79,12 +79,12 @@ function StatCard({
   }[tone]
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${toneClass}`}>
+    <div className="rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/60 backdrop-blur">
+      <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-2xl ${toneClass} ring-1 ring-white/70`}>
         {icon}
       </div>
       <p className="text-sm font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
+      <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
     </div>
   )
 }
@@ -157,14 +157,16 @@ export function HostReviewsManagement() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-4 rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-xl shadow-slate-200/60 backdrop-blur md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Đánh giá phòng</h1>
+          <h1 className="bg-gradient-to-r from-slate-950 via-orange-800 to-sky-800 bg-clip-text text-2xl font-black tracking-tight text-transparent sm:text-4xl">
+            Đánh giá phòng
+          </h1>
         </div>
 
         <Link
           href="/room-management"
-          className="inline-flex items-center justify-center rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-secondary"
+          className="inline-flex items-center justify-center rounded-full border border-orange-100 bg-orange-50 px-4 py-2 text-sm font-bold text-orange-700 transition hover:bg-orange-100"
         >
           Xem phòng của tôi
         </Link>
@@ -197,7 +199,7 @@ export function HostReviewsManagement() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <aside className="space-y-4 rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/60 backdrop-blur">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-orange-600" />
             <h2 className="font-bold text-foreground">Phân bố số sao</h2>
@@ -221,21 +223,21 @@ export function HostReviewsManagement() {
         </aside>
 
         <div className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm md:flex-row">
+          <div className="flex flex-col gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-xl shadow-slate-200/60 backdrop-blur md:flex-row">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Tìm theo phòng, người thuê hoặc nội dung..."
-                className="h-11 w-full rounded-xl border border-border bg-background pl-10 pr-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                className="h-11 w-full rounded-2xl border border-orange-100 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
               />
             </div>
 
             <select
               value={ratingFilter}
               onChange={(event) => setRatingFilter(event.target.value)}
-              className="h-11 rounded-xl border border-border bg-background px-3 text-sm font-medium outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+              className="h-11 rounded-2xl border border-orange-100 bg-white px-3 text-sm font-medium outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
             >
               <option value="all">Tất cả số sao</option>
               <option value="5">5 sao</option>
@@ -247,7 +249,7 @@ export function HostReviewsManagement() {
           </div>
 
           {isLoading ? (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm font-medium text-muted-foreground">
+            <div className="rounded-[2rem] border border-white/80 bg-white/85 p-8 text-center text-sm font-medium text-muted-foreground shadow-xl shadow-slate-200/60">
               Đang tải đánh giá...
             </div>
           ) : filteredReviews.length > 0 ? (
@@ -256,7 +258,7 @@ export function HostReviewsManagement() {
               const initial = reviewerName.charAt(0).toUpperCase()
 
               return (
-                <article key={review.id} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <article key={review.id} className="rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/60 backdrop-blur">
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div className="flex gap-4">
                       {review.room.image ? (
@@ -300,7 +302,7 @@ export function HostReviewsManagement() {
                   </div>
 
                   {review.comment && (
-                    <p className="mt-4 whitespace-pre-line rounded-xl bg-secondary/60 p-4 text-sm leading-relaxed text-foreground">
+                    <p className="mt-4 whitespace-pre-line rounded-2xl bg-orange-50/70 p-4 text-sm leading-relaxed text-slate-700">
                       {review.comment}
                     </p>
                   )}
@@ -308,7 +310,7 @@ export function HostReviewsManagement() {
               )
             })
           ) : (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <div className="rounded-[2rem] border border-white/80 bg-white/85 p-8 text-center shadow-xl shadow-slate-200/60">
               <p className="font-semibold text-foreground">Chưa có đánh giá phù hợp</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Khi người thuê đánh giá phòng của bạn, đánh giá sẽ hiển thị tại đây.

@@ -27,13 +27,16 @@ function StatCard({
   action,
 }: StatCardProps) {
   return (
-    <div className="bg-card rounded-2xl p-5 shadow-sm border border-border">
-      <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${iconBg} mb-4`}>
+    <div className="group overflow-hidden rounded-2xl border border-white/80 bg-white/85 p-5 shadow-lg shadow-slate-200/60 backdrop-blur transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-100/60">
+      <div className="mb-4 flex items-start justify-between">
+        <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${iconBg} ring-1 ring-white/70`}>
         {icon}
+        </div>
+        <span className="h-2 w-12 rounded-full bg-gradient-to-r from-orange-400 to-sky-300 opacity-70 transition group-hover:w-16" />
       </div>
-      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-bold">{label}</p>
       <div className="flex items-baseline gap-2">
-        <h3 className="text-2xl font-bold text-foreground">{value}</h3>
+        <h3 className="text-2xl font-black text-slate-950">{value}</h3>
         {change && (
           <span
             className={`text-xs font-medium ${
@@ -46,7 +49,7 @@ function StatCard({
         {sublabel && <span className="text-xs text-muted-foreground">{sublabel}</span>}
       </div>
       {action && (
-        <button className="mt-3 text-xs text-primary font-medium hover:underline">
+        <button className="mt-3 text-xs text-orange-700 font-bold hover:underline">
           {action}
         </button>
       )}
@@ -105,8 +108,8 @@ export function StatCards() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[1, 2, 3].map((item) => (
-          <div key={item} className="bg-card rounded-2xl p-5 shadow-sm border border-border">
-            <div className="h-12 w-12 rounded-xl bg-secondary animate-pulse mb-4" />
+          <div key={item} className="rounded-2xl border border-white/80 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
+            <div className="h-12 w-12 rounded-2xl bg-orange-100 animate-pulse mb-4" />
             <div className="h-3 w-24 bg-secondary animate-pulse rounded mb-3" />
             <div className="h-7 w-20 bg-secondary animate-pulse rounded" />
           </div>
@@ -118,8 +121,8 @@ export function StatCards() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <StatCard
-        icon={<BedDouble className="h-6 w-6 text-primary" />}
-        iconBg="bg-primary/10"
+        icon={<BedDouble className="h-6 w-6 text-orange-700" />}
+        iconBg="bg-orange-100"
         label="Tổng số phòng"
         value={rooms.length.toString()}
         change={`${availableRooms} còn trống`}
@@ -127,8 +130,8 @@ export function StatCards() {
         action="Xem tất cả"
       />
       <StatCard
-        icon={<CalendarCheck className="h-6 w-6 text-accent" />}
-        iconBg="bg-accent/10"
+        icon={<CalendarCheck className="h-6 w-6 text-sky-700" />}
+        iconBg="bg-sky-100"
         label="Tổng đặt phòng"
         value={bookings.length.toString()}
         sublabel={`${pendingBookings} đang chờ`}

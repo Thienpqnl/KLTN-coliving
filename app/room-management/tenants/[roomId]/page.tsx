@@ -25,18 +25,18 @@ export default async function RoomTenantsPage({ params }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/45 to-sky-50/60">
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex flex-1 flex-col overflow-auto">
         {/* Mobile Header */}
         <MobileHeader />
 
-        <div className="max-w-6xl mx-auto p-4 lg:p-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col p-4 lg:p-8">
           {/* Header */}
-          <header className="mb-8">
+          <header className="mb-8 rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
             <Link
               href="/room-management/tenants"
               className="flex items-center gap-2 text-sm text-orange-600 hover:text-orange-700 mb-4 w-fit"
@@ -47,12 +47,12 @@ export default async function RoomTenantsPage({ params }: Props) {
           </header>
 
           {/* Content */}
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <div className="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
             <TenantsManagement roomId={roomId} roomTitle={room.title} />
           </div>
 
           {/* Footer */}
-          <div className="mt-12">
+          <div className="mt-auto pt-12">
             <Footer />
           </div>
         </div>

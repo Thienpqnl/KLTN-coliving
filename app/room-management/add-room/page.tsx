@@ -5,7 +5,7 @@ import { Suspense } from "react"
 
 export default function AddRoomPage() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/45 to-sky-50/60">
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <MobileHeader />

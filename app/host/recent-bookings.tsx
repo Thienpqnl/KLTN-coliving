@@ -6,7 +6,7 @@ import { bookingClientService, Booking } from "@/lib/services/booking-client.ser
 
 function StatusBadge({ status }: { status: Booking["status"] }) {
   const styles = {
-    PENDING: "bg-primary/10 text-primary",
+    PENDING: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
     CONFIRMED: "bg-emerald-100 text-emerald-700",
     CANCELLED: "bg-red-100 text-red-600",
     COMPLETED: "bg-blue-100 text-blue-700",
@@ -52,14 +52,14 @@ export function RecentBookings() {
   }, [])
 
   return (
-    <div className="bg-card rounded-2xl p-5 shadow-sm border border-border">
-      <h3 className="font-semibold text-foreground mb-4">Đặt phòng gần đây</h3>
+    <div className="rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/60 backdrop-blur">
+      <h3 className="font-black text-slate-950 mb-4">Đặt phòng gần đây</h3>
 
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((item) => (
             <div key={item} className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-secondary animate-pulse" />
+              <div className="h-10 w-10 rounded-full bg-orange-100 animate-pulse" />
               <div className="flex-1 space-y-2">
                 <div className="h-3 w-28 bg-secondary animate-pulse rounded" />
                 <div className="h-3 w-36 bg-secondary animate-pulse rounded" />
@@ -75,10 +75,10 @@ export function RecentBookings() {
             const guestName = booking.user?.fullName || booking.user?.name || booking.user?.email || "Khách"
 
             return (
-              <div key={booking.id} className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
+              <div key={booking.id} className="flex items-center gap-3 rounded-2xl p-2 transition hover:bg-orange-50/60">
+                <Avatar className="h-10 w-10 ring-2 ring-orange-100">
                   <AvatarImage src="" />
-                  <AvatarFallback>{guestName[0]}</AvatarFallback>
+                  <AvatarFallback className="bg-orange-100 text-orange-800">{guestName[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ export function RecentBookings() {
         </div>
       )}
 
-      <button className="w-full mt-4 pt-4 border-t border-border text-xs text-primary font-medium hover:underline">
+      <button className="w-full mt-4 pt-4 border-t border-orange-100/70 text-xs text-orange-700 font-bold hover:underline">
         Xem tất cả đặt phòng
       </button>
     </div>
