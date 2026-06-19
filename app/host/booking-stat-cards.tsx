@@ -62,7 +62,7 @@ export function BookingStatCards() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[1, 2, 3].map(i => (
-          <div key={i} className="bg-card rounded-lg border border-border p-6 flex items-center justify-center">
+          <div key={i} className="flex items-center justify-center rounded-2xl border border-white/80 bg-white/80 p-6 shadow-lg shadow-slate-200/60">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ))}
@@ -73,14 +73,14 @@ export function BookingStatCards() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
       {statCards.map((stat, idx) => (
-        <div key={idx} className="bg-card rounded-lg border border-border p-6">
+        <div key={idx} className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-lg shadow-slate-200/60 backdrop-blur transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-100/60">
           <div className="flex items-start justify-between mb-3">
-            <div className={`${stat.color} p-2.5 rounded-lg`}>
+            <div className={`${stat.color} p-2.5 rounded-2xl ring-1 ring-white/70`}>
               <div className={`${stat.iconColor}`}>{stat.icon}</div>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-          <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{stat.label}</p>
+          <p className="text-2xl font-black text-slate-950">{stat.value}</p>
         </div>
       ))}
     </div>

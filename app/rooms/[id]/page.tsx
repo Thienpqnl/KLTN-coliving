@@ -6,6 +6,7 @@ import { roomService } from '@/lib/services/room.service';
 import { RoommatesSection } from '../components/RoommatesSection';
 import { RoomCompatibility } from './components/RoomCompatibility';
 import { RoomReviews } from './components/RoomReviews';
+import { RoomGallery } from './components/RoomGallery';
 import { FavoriteButton } from './FavoriteButton';
 import { cookies } from 'next/headers';
 import RoomMapView from "@/components/maps/RoomMapView";
@@ -16,8 +17,14 @@ type RoomAmenityItem = {
     name: string;
   } | null;
 };
-
-const fallbackImage = 'https://via.placeholder.com/900x600?text=Room';
+type OccupancyInfo = {
+  current: number;
+  max: number;
+  available: number;
+  percentage: number;
+  label: string;
+  tone: 'available' | 'limited' | 'full';
+};
 
 function getImageUrls(room: RoomDetail) {
   const fromImages = room.images?.map((image: { url: string }) => image.url) || [];
@@ -55,6 +62,29 @@ function getPostedDateText(room: RoomDetail) {
   }).format(createdAt);
 }
 
+function getOccupancyInfo(room: RoomDetail): OccupancyInfo | null {
+  const maxOccupants = Number(room.maxOccupants ?? 0);
+  const currentOccupants = Number(room.currentOccupants ?? 0);
+
+  if (!Number.isFinite(maxOccupants) || maxOccupants <= 0) {
+    return null;
+  }
+
+  const current = Math.min(maxOccupants, Math.max(0, currentOccupants));
+  const available = Math.max(0, maxOccupants - current);
+  const percentage = Math.round((current / maxOccupants) * 100);
+  const tone = available === 0 ? 'full' : available <= 1 ? 'limited' : 'available';
+
+  return {
+    current,
+    max: maxOccupants,
+    available,
+    percentage,
+    tone,
+    label: available === 0 ? 'Đã đủ người' : `Còn ${available} chỗ trống`,
+  };
+}
+
 function AmenityIcon({ name }: { name: string }) {
   const lowerName = name.toLowerCase();
   let icon = 'home';
@@ -73,6 +103,40 @@ function AmenityIcon({ name }: { name: string }) {
 
 
 }
+
+function SectionHeading({
+  icon,
+  label,
+  title,
+}: {
+  icon: string;
+  label?: string;
+  title: string;
+}) {
+  return (
+    <div className="space-y-2">
+      {label && (
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-700">
+          {label}
+        </p>
+      )}
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-100 to-amber-50 text-orange-700 shadow-sm ring-1 ring-orange-100">
+          <span className="material-symbols-outlined block translate-y-px text-2xl leading-none">
+            {icon}
+          </span>
+        </span>
+        <div>
+          <h2 className="bg-gradient-to-r from-slate-950 via-orange-900 to-slate-700 bg-clip-text text-2xl font-black tracking-tight text-transparent md:text-3xl">
+            {title}
+          </h2>
+          <div className="mt-2 h-1 w-16 rounded-full bg-gradient-to-r from-orange-600 to-amber-300" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getRequirementIcon(key: string, value?: string | boolean): string {
   switch (key) {
     case 'cleanlinessRequired':
@@ -92,82 +156,6 @@ function getRequirementIcon(key: string, value?: string | boolean): string {
     default:
       return 'info';
   }
-}
-function Gallery({ images, title, postedDate }: { images: string[]; title: string; postedDate?: string | null }) {
-  const galleryImages = images.length > 0 ? images : [fallbackImage];
-  const featuredImage = galleryImages[0];
-  const sideImages = galleryImages.slice(1, 5);
-  const displaySideImages = sideImages.length > 0 ? sideImages : [featuredImage, featuredImage, featuredImage, featuredImage];
-  const thumbnailImages = galleryImages.slice(0, 12);
-
-  return (
-    <section className="mx-auto mb-12 max-w-7xl px-8">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.9fr)]">
-        <div className="group relative min-h-[360px] overflow-hidden rounded-[1.75rem] bg-slate-200 shadow-sm md:min-h-[560px]">
-          <img
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-            src={featuredImage}
-            alt={title}
-          />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent" />
-          <div className="absolute bottom-5 left-5 rounded-full bg-white/90 px-4 py-2 text-sm font-bold text-slate-950 shadow-lg backdrop-blur">
-            Ảnh nổi bật
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 lg:grid-rows-2">
-          {displaySideImages.map((image, index) => (
-            <div
-              key={`${image}-${index}`}
-              className="group relative min-h-[150px] overflow-hidden rounded-2xl bg-slate-200 md:min-h-[220px] lg:min-h-0"
-            >
-              <img
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                src={image}
-                alt={`${title} - ảnh ${index + 2}`}
-              />
-              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/5" />
-              {index === 3 && galleryImages.length > 5 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/45 p-4">
-                  <span className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-black text-slate-950 shadow-lg">
-                    <span className="material-symbols-outlined text-base">photo_library</span>
-                    +{galleryImages.length - 5} ảnh
-                  </span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
-        {thumbnailImages.map((image, index) => (
-          <div
-            key={`thumb-${image}-${index}`}
-            className="relative h-20 w-28 flex-none overflow-hidden rounded-xl bg-slate-200 ring-1 ring-black/5 md:h-24 md:w-36"
-          >
-            <img
-              className="h-full w-full object-cover"
-              src={image}
-              alt={`${title} - thumbnail ${index + 1}`}
-            />
-            {index === thumbnailImages.length - 1 && galleryImages.length > thumbnailImages.length && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                <span className="text-xs font-black text-white">+{galleryImages.length - thumbnailImages.length}</span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {postedDate && (
-        <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-500">
-          <span className="material-symbols-outlined text-lg text-orange-700">calendar_month</span>
-          <span>Ngày đăng: {postedDate}</span>
-        </div>
-      )}
-    </section>
-  );
 }
 function RoomRequirements({ room }: { room: RoomDetail }) {
   const requirements: Array<{ label: string; value?: string; iconKey: string }> = [];
@@ -232,7 +220,7 @@ function RoomRequirements({ room }: { room: RoomDetail }) {
     });
   }
 
-  if (room.allowSmoking !== undefined) {
+  if (typeof room.allowSmoking === 'boolean') {
     requirements.push({
       label: 'Hút thuốc',
       value: room.allowSmoking ? 'Cho phép' : 'Không cho phép',
@@ -240,7 +228,7 @@ function RoomRequirements({ room }: { room: RoomDetail }) {
     });
   }
 
-  if (room.allowPets !== undefined) {
+  if (typeof room.allowPets === 'boolean') {
     requirements.push({
       label: 'Thú cưng',
       value: room.allowPets ? 'Cho phép' : 'Không cho phép',
@@ -252,7 +240,7 @@ function RoomRequirements({ room }: { room: RoomDetail }) {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-2xl font-bold tracking-tight">🎯 Yêu cầu phòng & Chính sách</h3>
+      <SectionHeading icon="rule" label="Quy chuẩn lưu trú" title="Yêu cầu phòng & Chính sách" />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
         {requirements.map((req, idx) => (
           <div 
@@ -260,7 +248,7 @@ function RoomRequirements({ room }: { room: RoomDetail }) {
             className="rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 p-4 border border-slate-200"
           >
             <div className="mb-2 flex items-center gap-2">
-              {/* ✅ Render icon bằng Material Symbols giống AmenityIcon */}
+              {/* Render icon bằng Material Symbols giống AmenityIcon */}
               <span className="material-symbols-outlined text-2xl text-orange-700">
                 {req.iconKey}
               </span>
@@ -273,7 +261,7 @@ function RoomRequirements({ room }: { room: RoomDetail }) {
     </div>
   );
 }
-  // ✅ Thêm component mới cho phần sidebar
+  // Thêm component mới cho phần sidebar
 function RoomSidebar({ room }: { room: RoomDetail }) {
   const price = room.priceText || (room.price ? `${room.price.toLocaleString('vi-VN')} đ/tháng` : 'Liên hệ');
   const area = room.areaText || room.area;
@@ -379,14 +367,13 @@ export default async function RoomDetailPage({
 
   const images = getImageUrls(room);
   const postedDate = getPostedDateText(room);
+  const occupancy = getOccupancyInfo(room);
   const amenities = ((room.amenities ?? []) as RoomAmenityItem[])
     .map((item) => item.amenity)
     .filter((amenity): amenity is { id: string; name: string } => Boolean(amenity));
   const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
   const googleMapsUrl = getGoogleMapsUrl(room);
   const roomId  = room.id;
-console.log(" [Page] Room Object:", room);
-console.log(" [Page] RoomID extracted:", roomId);
   return (
     <>
       <Navigation />
@@ -410,20 +397,25 @@ console.log(" [Page] RoomID extracted:", roomId);
           </div>
         </header>
 
-        <Gallery images={images} title={room.title} postedDate={postedDate} />
+        <RoomGallery
+          images={images}
+          title={room.title}
+          postedDate={postedDate}
+          occupancy={occupancy}
+        />
 
         <section className="mx-auto max-w-7xl px-8">
           <div className="relative flex flex-col gap-16 lg:flex-row">
             <div className="flex-1 space-y-12">
               <div className="space-y-6">
-                <h2 className="text-3xl font-bold tracking-tight">Thông tin chi tiết</h2>
+                <SectionHeading icon="subject" label="Tổng quan" title="Thông tin chi tiết" />
                 <div className="whitespace-pre-line text-lg leading-relaxed text-slate-700">
                   {room.description}
                 </div>
               </div>
 
               <div className="space-y-8">
-                <h3 className="text-2xl font-bold tracking-tight">Tiện ích</h3>
+                <SectionHeading icon="local_activity" label="Trang bị sẵn có" title="Tiện ích" />
                 {amenities.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {amenities.map((amenity: { id: string; name: string }) => (
@@ -447,17 +439,16 @@ console.log(" [Page] RoomID extracted:", roomId);
               <RoomRequirements room={room} />
 
             
-      {/* Truyền roomId đã sửa vào component */}
-      {roomId ? (
-        <section className="mx-auto max-w-7xl px-8 mt-12">
-           <RoommatesSection roomId={roomId} />
-        </section>
-      ) : (
-        <div className="text-center text-red-500">Lỗi: Không tìm thấy ID phòng!</div>
-      )}
+              {roomId ? (
+                <section className="mt-12">
+                  <RoommatesSection roomId={roomId} />
+                </section>
+              ) : (
+                <div className="text-center text-red-500">Lỗi: Không tìm thấy ID phòng!</div>
+              )}
 
               <div className="space-y-6">
-                <h3 className="text-2xl font-bold tracking-tight">Vị trí</h3>
+                <SectionHeading icon="travel_explore" label="Khu vực" title="Vị trí" />
                   <div className="overflow-hidden rounded-[2rem] border border-slate-200">
                     <div className="p-6 bg-white">
                       <div className="flex items-start gap-3">
@@ -500,9 +491,7 @@ console.log(" [Page] RoomID extracted:", roomId);
               {/* Hiển thị phần tương đồng sau vị trí */}
               {roomId && (
                 <section className="space-y-6 mt-12">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                    So sánh sở thích
-                  </p>
+                  <SectionHeading icon="psychology" label="Phân tích phù hợp" title="So sánh sở thích" />
                   <RoomCompatibility 
                     roomId={roomId} 
                     isUserLoggedIn={isUserLoggedIn}

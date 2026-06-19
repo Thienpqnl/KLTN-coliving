@@ -55,20 +55,21 @@ export function Sidebar() {
       .toUpperCase() || "HN"
 
   return (
-    <aside className="hidden lg:flex w-56 flex-shrink-0 bg-card border-r border-border flex-col h-screen sticky top-0">
-      <div className="p-4 border-b border-border">
+    <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col h-screen sticky top-0 overflow-hidden border-r border-orange-100/70 bg-slate-950 text-white shadow-2xl shadow-slate-950/10">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-br from-orange-500/25 via-amber-300/10 to-sky-400/10" />
+      <div className="relative p-4 border-b border-white/10">
         <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-lg">M</span>
+          <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-300 flex items-center justify-center shadow-lg shadow-orange-950/40">
+            <span className="text-white font-black text-lg">M</span>
           </div>
           <div>
-            <h1 className="font-semibold text-sm text-foreground">Cổng chủ nhà</h1>
-            <p className="text-xs text-muted-foreground">Không gian quản lý</p>
+            <h1 className="font-semibold text-sm text-white">Cổng chủ nhà</h1>
+            <p className="text-xs text-slate-300">Không gian quản lý</p>
           </div>
         </Link>
       </div>
 
-      <nav className="flex-1 p-3">
+      <nav className="relative flex-1 p-3">
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href
@@ -79,8 +80,8 @@ export function Sidebar() {
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
                     isActive
-                      ? "bg-sidebar-accent text-accent font-medium"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-white text-orange-700 font-semibold shadow-sm"
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
                   )}
                 >
                   {item.icon}
@@ -92,8 +93,8 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="px-3 pb-3">
-        <Button asChild className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+      <div className="relative px-3 pb-3">
+        <Button asChild className="w-full cursor-pointer bg-gradient-to-r from-orange-600 to-amber-500 text-white hover:from-orange-500 hover:to-amber-400 gap-2 shadow-lg shadow-orange-950/30">
           <Link href="/room-management/add-room">
             <Plus className="h-4 w-4" />
             Thêm phòng mới
@@ -101,39 +102,39 @@ export function Sidebar() {
         </Button>
       </div>
 
-      <div className="px-3 pb-2">
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+      <div className="relative px-3 pb-2">
+        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-white/10 hover:text-white transition-colors">
           <Settings className="h-4 w-4" />
           Cài đặt
         </button>
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-white/10 hover:text-white transition-colors">
           <HelpCircle className="h-4 w-4" />
           Hỗ trợ
         </button>
       </div>
 
-      <div className="p-3 border-t border-border">
+      <div className="relative p-3 border-t border-white/10">
         <button
           type="button"
           onClick={() => setIsUserMenuOpen((current) => !current)}
-          className="w-full flex cursor-pointer items-center gap-3 p-2 rounded-lg hover:bg-secondary transition-colors"
+          className="w-full flex cursor-pointer items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
           aria-expanded={isUserMenuOpen}
         >
-          <Avatar className="h-9 w-9">
+          <Avatar className="h-9 w-9 ring-2 ring-orange-300/40">
             {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={displayName} />}
-            <AvatarFallback>{fallback}</AvatarFallback>
+            <AvatarFallback className="bg-orange-100 text-orange-800">{fallback}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1 text-left">
-            <p className="truncate text-sm font-medium text-foreground">{displayName}</p>
-            <p className="truncate text-xs text-muted-foreground">{user?.email || "Tài khoản chủ nhà"}</p>
+            <p className="truncate text-sm font-medium text-white">{displayName}</p>
+            <p className="truncate text-xs text-slate-300">{user?.email || "Tài khoản chủ nhà"}</p>
           </div>
-          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isUserMenuOpen && "rotate-180")} />
+          <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform", isUserMenuOpen && "rotate-180")} />
         </button>
         {isUserMenuOpen && (
           <div className="mt-2 space-y-1">
             <Link
               href="/profile"
-              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
             >
               <UserRound className="h-4 w-4" />
               Xem trang cá nhân
@@ -141,7 +142,7 @@ export function Sidebar() {
             <button
               type="button"
               onClick={logout}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-red-500/15 hover:text-red-100"
             >
               <LogOut className="h-4 w-4" />
               Đăng xuất

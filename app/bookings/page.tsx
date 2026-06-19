@@ -9,22 +9,24 @@ import { HostProtectedRoute } from "@/components/HostProtectedRoute"
 export default function BookingsPage() {
   return (
     <HostProtectedRoute>
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/45 to-sky-50/60">
         {/* Sidebar */}
         <Sidebar />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex flex-1 flex-col overflow-auto">
           {/* Mobile Header */}
           <MobileHeader />
 
-          <div className="max-w-6xl mx-auto p-4 lg:p-8">
+          <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col p-4 lg:p-8">
             {/* Header */}
-            <header className="mb-8">
-            <p className="text-sm text-muted-foreground mb-1">Quản lý</p>
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+            <header className="mb-8 rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
+            <p className="mb-2 inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-orange-700">Quản lý</p>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Quản lý đặt phòng</h1>
+                  <h1 className="bg-gradient-to-r from-slate-950 via-orange-800 to-sky-800 bg-clip-text text-2xl font-black tracking-tight text-transparent sm:text-4xl">
+                    Quản lý đặt phòng
+                  </h1>
                   <p className="text-sm text-muted-foreground mt-2 max-w-lg">
                     Theo dõi, xác nhận và xử lý các yêu cầu đặt phòng mới cho{" "}
                     <span className="font-medium text-foreground">The Curated Hearth</span>.

@@ -189,14 +189,26 @@ export function RoomReviews({ roomId }: { roomId: string }) {
   return (
     <section className="space-y-8">
       <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Đánh giá phòng</p>
-          <h3 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-            Trải nghiệm từ người thuê
-          </h3>
+        <div className="space-y-2">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-700">
+            Cảm nhận thực tế
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-100 to-amber-50 text-orange-700 shadow-sm ring-1 ring-orange-100">
+              <span className="material-symbols-outlined block translate-y-px text-2xl leading-none">
+                reviews
+              </span>
+            </span>
+            <div>
+              <h3 className="bg-gradient-to-r from-slate-950 via-orange-900 to-slate-700 bg-clip-text text-2xl font-black tracking-tight text-transparent md:text-3xl">
+                Trải nghiệm từ người thuê
+              </h3>
+              <div className="mt-2 h-1 w-16 rounded-full bg-gradient-to-r from-orange-600 to-amber-300" />
+            </div>
+          </div>
         </div>
 
-        <div className="rounded-2xl bg-white px-6 py-4 shadow-sm ring-1 ring-slate-200">
+        <div className="rounded-2xl border border-orange-100 bg-gradient-to-br from-white to-orange-50 px-6 py-4 shadow-sm ring-1 ring-orange-100">
           <div className="flex items-center gap-3">
             <span className="text-4xl font-black text-slate-950">{averageRating.toFixed(1)}</span>
             <div>

@@ -63,17 +63,17 @@ export function FeaturedProperty() {
   }, [bookings, rooms])
 
   if (loading) {
-    return <div className="h-64 rounded-2xl bg-secondary animate-pulse" />
+    return <div className="h-64 rounded-[2rem] border border-white/80 bg-white/70 shadow-xl shadow-slate-200/60 animate-pulse" />
   }
 
   if (!featuredRoom) {
     return (
-      <div className="bg-navy rounded-2xl overflow-hidden shadow-lg p-6">
-        <p className="text-xs text-primary font-medium tracking-wider uppercase mb-2">Phòng nổi bật</p>
-        <h3 className="text-2xl font-serif text-navy-foreground leading-tight mb-3">Chưa có phòng</h3>
-        <p className="text-sm text-navy-foreground/70 mb-5">Tạo phòng đầu tiên để bắt đầu nhận yêu cầu đặt phòng.</p>
+      <div className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-orange-950 to-orange-700 p-6 shadow-xl shadow-orange-200/70">
+        <p className="text-xs text-amber-200 font-bold tracking-wider uppercase mb-2">Phòng nổi bật</p>
+        <h3 className="text-2xl font-black text-white leading-tight mb-3">Chưa có phòng</h3>
+        <p className="text-sm text-orange-50/80 mb-5">Tạo phòng đầu tiên để bắt đầu nhận yêu cầu đặt phòng.</p>
         <Link href="/room-management/add-room">
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-4 py-2 h-auto">
+          <Button className="bg-white text-orange-700 hover:bg-orange-50 text-xs px-4 py-2 h-auto">
             Thêm phòng
           </Button>
         </Link>
@@ -84,46 +84,46 @@ export function FeaturedProperty() {
   const roomBookings = bookings.filter((booking) => booking.roomId === featuredRoom.id)
   const confirmedBookings = roomBookings.filter((booking) => booking.status === "CONFIRMED" || booking.status === "COMPLETED").length
   return (
-    <div className="bg-navy rounded-2xl overflow-hidden shadow-lg">
+    <div className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-orange-950 to-orange-700 shadow-xl shadow-orange-200/70">
       <div className="p-6 pb-4 flex flex-col lg:flex-row gap-6">
         <div className="flex-1">
-          <p className="text-xs text-primary font-medium tracking-wider uppercase mb-2">
+          <p className="text-xs text-amber-200 font-bold tracking-wider uppercase mb-2">
             Phòng nổi bật
           </p>
-          <h3 className="text-2xl lg:text-3xl font-serif text-navy-foreground leading-tight mb-4">
+          <h3 className="text-2xl lg:text-3xl font-black text-white leading-tight mb-4">
             {featuredRoom.title}
           </h3>
           <div className="flex gap-6 mb-6">
             <div>
-              <p className="text-[10px] text-navy-foreground/60 uppercase tracking-wider">Đặt phòng</p>
-              <p className="text-xl font-bold text-navy-foreground">{roomBookings.length}</p>
+              <p className="text-[10px] text-orange-50/60 uppercase tracking-wider">Đặt phòng</p>
+              <p className="text-xl font-bold text-white">{roomBookings.length}</p>
             </div>
             <div>
-              <p className="text-[10px] text-navy-foreground/60 uppercase tracking-wider">Đã xác nhận</p>
-              <p className="text-xl font-bold text-navy-foreground">{confirmedBookings}</p>
+              <p className="text-[10px] text-orange-50/60 uppercase tracking-wider">Đã xác nhận</p>
+              <p className="text-xl font-bold text-white">{confirmedBookings}</p>
             </div>
             <div>
-              <p className="text-[10px] text-navy-foreground/60 uppercase tracking-wider">Giá</p>
-              <p className="text-xl font-bold text-navy-foreground">{roomPrice(featuredRoom)}</p>
+              <p className="text-[10px] text-orange-50/60 uppercase tracking-wider">Giá</p>
+              <p className="text-xl font-bold text-white">{roomPrice(featuredRoom)}</p>
             </div>
           </div>
           <div className="flex gap-3">
             <Link href={`/room-management/tenants/${featuredRoom.id}`}>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-4 py-2 h-auto">
+              <Button className="bg-white text-orange-700 hover:bg-orange-50 text-xs px-4 py-2 h-auto">
                 Quản lý phòng
               </Button>
             </Link>
             <Link href="/bookings">
               <Button
                 variant="outline"
-                className="border-navy-foreground/30 text-navy-foreground hover:bg-navy-foreground/10 text-xs px-4 py-2 h-auto"
+                className="border-white/30 bg-white/5 text-white hover:bg-white/10 text-xs px-4 py-2 h-auto"
               >
                 Xem đặt phòng
               </Button>
             </Link>
           </div>
         </div>
-        <div className="lg:w-64 h-48 lg:h-auto relative rounded-xl overflow-hidden">
+        <div className="lg:w-64 h-48 lg:h-auto relative rounded-2xl overflow-hidden ring-1 ring-white/15">
           <img
             src={firstImage(featuredRoom)}
             alt={featuredRoom.title}

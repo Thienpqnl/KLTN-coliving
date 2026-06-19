@@ -29,6 +29,24 @@ function firstImage(room: Room) {
   return room.images?.[0]?.url || (Array.isArray(room.image) ? room.image[0] : room.image) || '';
 }
 
+function AreaText({ value }: { value: string }) {
+  const normalizedValue = value || 'Đang cập nhật';
+  const match = normalizedValue.match(/^(.*?)(m)\s*2\b(.*)$/i);
+
+  if (!match) {
+    return <>{normalizedValue}</>;
+  }
+
+  return (
+    <>
+      {match[1]}
+      {match[2]}
+      <sup className="text-[0.65em] leading-none">2</sup>
+      {match[3]}
+    </>
+  );
+}
+
 function RoomCard({ room }: { room: Room }) {
   const imageUrl = firstImage(room);
   const price = room.priceText || (room.price ? `${room.price.toLocaleString('vi-VN')} đ/tháng` : 'Liên hệ');
@@ -64,7 +82,9 @@ function RoomCard({ room }: { room: Room }) {
               <p className="text-2xl font-black text-orange-600">{price}</p>
               <p className="text-[10px] font-bold uppercase text-gray-500">Giá thuê</p>
             </div>
-            <div className="text-right text-sm font-semibold text-gray-700">{area}</div>
+            <div className="text-right text-sm font-semibold text-gray-700">
+              <AreaText value={area} />
+            </div>
           </div>
 
           <div className="flex items-center gap-2 pt-2">

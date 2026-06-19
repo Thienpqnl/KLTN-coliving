@@ -8,16 +8,16 @@ import { HostProtectedRoute } from "@/components/HostProtectedRoute"
 
 function HostReviewsContent() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/45 to-sky-50/60">
       <Sidebar />
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex flex-1 flex-col overflow-auto">
         <MobileHeader />
 
-        <div className="mx-auto max-w-7xl p-4 lg:p-8">
+        <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-4 lg:p-8">
           <HostReviewsManagement />
 
-          <div className="mt-12">
+          <div className="mt-auto pt-12">
             <Footer />
           </div>
         </div>

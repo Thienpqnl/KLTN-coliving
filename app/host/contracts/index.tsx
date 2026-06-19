@@ -93,11 +93,13 @@ setContracts(response.contracts || []);    } catch (err) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Quản Lý Hợp Đồng</h1>
+      <div className="flex items-center justify-between rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
+        <h1 className="bg-gradient-to-r from-slate-950 via-orange-800 to-sky-800 bg-clip-text text-3xl font-black tracking-tight text-transparent">
+          Quản Lý Hợp Đồng
+        </h1>
         <Button
           onClick={() => setShowForm(!showForm)}
-          className="bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-2"
+          className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-amber-500 text-white hover:from-orange-500 hover:to-amber-400"
         >
           <Plus className="h-4 w-4" />
           Tạo Hợp Đồng Mới
@@ -106,7 +108,7 @@ setContracts(response.contracts || []);    } catch (err) {
 
       {/* Create Form */}
       {showForm && (
-        <div className="rounded-lg border border-orange-200 bg-orange-50 p-6">
+        <div className="rounded-[2rem] border border-orange-200 bg-orange-50/90 p-6 shadow-xl shadow-orange-100/60">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">Tạo Hợp Đồng Mới</h2>
             <button
@@ -129,10 +131,10 @@ setContracts(response.contracts || []);    } catch (err) {
               setStatusFilter(status as ContractStatus | 'ALL');
               setCurrentPage(1);
             }}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`rounded-full px-4 py-2 font-semibold transition-colors ${
               statusFilter === status
-                ? 'bg-orange-600 text-white'
-                : 'bg-white border border-slate-200 text-foreground hover:border-orange-300'
+                ? 'bg-slate-950 text-white shadow-sm'
+                : 'bg-white/80 border border-orange-100 text-slate-600 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700'
             }`}
           >
             {status === 'ALL'
@@ -157,8 +159,8 @@ setContracts(response.contracts || []);    } catch (err) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Contract List */}
         <div className="lg:col-span-1">
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="font-semibold text-foreground mb-4">Danh Sách Hợp Đồng</h2>
+          <div className="rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-xl shadow-slate-200/60 backdrop-blur">
+            <h2 className="font-black text-slate-950 mb-4">Danh Sách Hợp Đồng</h2>
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
@@ -205,7 +207,7 @@ setContracts(response.contracts || []);    } catch (err) {
               )}
             </>
           ) : (
-            <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
+            <div className="rounded-[2rem] border border-dashed border-orange-200 bg-white/80 p-12 text-center shadow-xl shadow-slate-200/60">
               <p className="text-slate-600 mb-4">Chọn một hợp đồng để xem chi tiết</p>
             </div>
           )}

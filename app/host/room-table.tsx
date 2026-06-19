@@ -13,17 +13,40 @@ interface Room {
   price: number
   address: string
   image: string[]
-  status: 'AVAILABLE' | 'OCCUPIED'
+  status: 'AVAILABLE' | 'OCCUPIED' | 'PENDING' | 'HIDDEN'
   amenityIds: string[]
   createdAt: string
 }
 
 const getStatusColor = (status: string) => {
-  return status === 'AVAILABLE'
-    ? 'bg-green-100 text-green-700'
-    : 'bg-red-100 text-red-700'
+  switch (status) {
+    case 'AVAILABLE':
+      return 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
+    case 'OCCUPIED':
+      return 'bg-rose-100 text-rose-700 ring-1 ring-rose-200'
+    case 'PENDING':
+      return 'bg-amber-100 text-amber-700 ring-1 ring-amber-200'
+    case 'HIDDEN':
+      return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
+    default:
+      return 'bg-slate-100 text-slate-700'
+  }
 }
 
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'AVAILABLE':
+      return 'Còn trống'
+    case 'OCCUPIED':
+      return 'Đã thuê'
+    case 'PENDING':
+      return 'Chờ duyệt'
+    case 'HIDDEN':
+      return 'Đang ẩn'
+    default:
+      return 'Không xác định'
+  }
+}
 
 export function RoomsTable() {
   const [rooms, setRooms] = useState<{ rooms?: Room[] }>({})
@@ -58,6 +81,7 @@ export function RoomsTable() {
         ...prev,
         rooms: prev.rooms?.filter(room => room.id !== roomId) || []
       }))
+      window.dispatchEvent(new Event('host-rooms-updated'))
     } catch (err) {
       console.error('Không thể xóa phòng:', err)
       alert('Không thể xóa phòng')
@@ -76,10 +100,10 @@ export function RoomsTable() {
 
   if (rooms.rooms?.length === 0) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-12 text-center">
+      <div className="rounded-[2rem] border border-dashed border-orange-200 bg-white/80 p-12 text-center shadow-lg shadow-slate-200/50">
         <p className="text-muted-foreground mb-6">Bạn chưa tạo phòng nào</p>
         <Link href="/room-management/add-room">
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button className="bg-gradient-to-r from-orange-600 to-amber-500 text-white hover:from-orange-500 hover:to-amber-400">
             <Plus className="w-4 h-4 mr-2" />
             Tạo phòng đầu tiên
           </Button>
@@ -89,10 +113,10 @@ export function RoomsTable() {
   }
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+    <div className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur">
       {/* Table Header */}
-      <div className="px-6 py-4 border-b border-border bg-muted/30">
-        <div className="grid grid-cols-12 gap-4 items-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="border-b border-orange-100/70 bg-gradient-to-r from-orange-50 via-white to-sky-50 px-6 py-4">
+        <div className="grid grid-cols-12 gap-4 items-center text-xs font-black uppercase tracking-wider text-slate-500">
           <div className="col-span-4">Tên phòng</div>
           <div className="col-span-2">Giá</div>
           <div className="col-span-2">Trạng thái</div>
@@ -106,7 +130,7 @@ export function RoomsTable() {
         {rooms.rooms?.map((room) => (
           <div
             key={room.id}
-            className="px-6 py-4 hover:bg-muted/20 transition-colors"
+            className="px-6 py-4 transition-colors hover:bg-orange-50/50"
           >
             <div className="grid grid-cols-12 gap-4 items-center">
               {/* Room Name with Image */}
@@ -115,28 +139,28 @@ export function RoomsTable() {
                  <img
   src={room.image?.[0] || "https://via.placeholder.com/150"}
   alt={room.title}
-  className="h-12 w-12 rounded-xl object-cover"
+  className="h-12 w-12 rounded-2xl object-cover ring-2 ring-white shadow-sm"
 />
                 )}
                 <div className="min-w-0">
-                  <p className="font-medium text-foreground text-sm">{room.title}</p>
+                  <p className="font-semibold text-slate-950 text-sm">{room.title}</p>
                   <p className="text-xs text-muted-foreground truncate">{room.description}</p>
                 </div>
               </div>
 
               {/* Price */}
-              <div className="col-span-2 text-sm font-semibold text-foreground">
+              <div className="col-span-2 text-sm font-bold text-slate-950">
                 {room.price.toLocaleString('vi-VN')} đ
               </div>
 
               {/* Status */}
               <div className="col-span-2">
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(
+                  className={`inline-block rounded-full px-3 py-1 text-xs font-bold capitalize ${getStatusColor(
                     room.status
                   )}`}
                 >
-                  {room.status === 'AVAILABLE' ? 'Còn trống' : 'Đã thuê'}
+                  {getStatusLabel(room.status)}
                 </span>
               </div>
 
@@ -148,14 +172,14 @@ export function RoomsTable() {
               {/* Actions */}
               <div className="col-span-2 flex items-center gap-2">
                 <Link href={`/room-management/edit-room?id=${room.id}`}>
-                  <button className="p-1.5 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+                  <button className="rounded-xl p-2 text-slate-500 transition-colors hover:bg-sky-50 hover:text-sky-700">
                     <Edit2 className="h-4 w-4" />
                   </button>
                 </Link>
                 <button
                   onClick={() => handleDelete(room.id)}
                   disabled={deleting === room.id}
-                  className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-muted-foreground hover:text-red-600 disabled:opacity-50"
+                  className="rounded-xl p-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
                 >
                   {deleting === room.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -170,7 +194,7 @@ export function RoomsTable() {
       </div>
 
       {/* Table Footer */}
-      <div className="px-6 py-3 border-t border-border bg-muted/30 text-xs text-muted-foreground flex justify-between items-center">
+      <div className="flex items-center justify-between border-t border-orange-100/70 bg-orange-50/50 px-6 py-3 text-xs font-medium text-slate-500">
         <span>Đang hiển thị {rooms.rooms?.length || 0} phòng</span>
       </div>
     </div>

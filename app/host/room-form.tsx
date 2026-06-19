@@ -104,7 +104,7 @@ useEffect(() => {
             ...(res.images?.map((image) => image.url) || []),
             ...(Array.isArray(res.image) ? res.image : res.image ? [res.image] : []),
           ].filter(Boolean)
-          const amenityIds = res.amenityIds || (res.amenities?.map((item: any) => item.amenity?.id).filter((id: any): id is string => Boolean(id)) ?? [])
+          const amenityIds = res.amenityIds || (res.amenities?.map((item) => item.amenity?.id).filter((id): id is string => Boolean(id)) ?? [])
 
           setFormData({
             title: res.title,
@@ -234,17 +234,17 @@ if (images.length > 0) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="max-w-6xl mx-auto p-4 lg:p-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
           <p className="text-sm uppercase tracking-wide text-primary font-semibold mb-2">
             {editMode ? 'Cập nhật phòng' : 'Tạo phòng mới'}
           </p>
-          <h1 className="text-4xl font-serif text-foreground mb-4">
+          <h1 className="mb-4 bg-gradient-to-r from-slate-950 via-orange-800 to-sky-800 bg-clip-text text-4xl font-black tracking-tight text-transparent">
             {editMode ? 'Chỉnh sửa không gian của bạn.' : 'Tạo không gian lưu trú của bạn.'}
           </h1>
-          <p className="text-foreground max-w-2xl leading-relaxed">
+          <p className="max-w-2xl leading-relaxed text-slate-600">
             Mỗi phòng là một phần quan trọng trong trải nghiệm lưu trú. Hãy cập nhật thông tin, giá, tiện ích và hình ảnh để khách dễ dàng lựa chọn.
           </p>
         </div>
@@ -253,7 +253,7 @@ if (images.length > 0) {
           {/* Form Section - Left */}
           <div className="lg:col-span-2 space-y-8">
             {/* Room Details */}
-            <div className="space-y-4">
+            <div className="space-y-4 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
               {/* Room Title */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
@@ -370,9 +370,9 @@ if (images.length > 0) {
             </div>
 
             {/* Room Requirements */}
-            <div className="space-y-6">
+            <div className="space-y-6 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
               <div>
-                <h2 className="text-lg font-semibold text-foreground mb-1">SỞ THÍCH & CHÍNH SÁCH PHÒNG</h2>
+                <h2 className="text-lg font-black text-slate-950 mb-1">SỞ THÍCH & CHÍNH SÁCH PHÒNG</h2>
                 <p className="text-sm text-muted-foreground mb-4">Giúp hệ thống hiểu kiểu người thuê phù hợp với không gian của bạn</p>
               </div>
               
@@ -524,7 +524,7 @@ if (images.length > 0) {
               <div>
                 <p className="text-sm font-semibold text-foreground mb-4">Mức độ tương thích lối sống</p>
                 <div className="space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted transition">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-orange-100 bg-orange-50/40 p-3 transition hover:bg-orange-50">
                     <input
                       type="checkbox"
                       name="allowSmoking"
@@ -538,7 +538,7 @@ if (images.length > 0) {
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted transition">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/50 p-3 transition hover:bg-sky-50">
                     <input
                       type="checkbox"
                       name="allowPets"
@@ -554,8 +554,8 @@ if (images.length > 0) {
                 </div>
               </div>
             </div>
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">TIỆN ÍCH</h2>
+            <div className="space-y-4 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
+              <h2 className="text-lg font-black text-slate-950">TIỆN ÍCH</h2>
               <div className="grid grid-cols-2 gap-3">
                 {amenities.map(amenity => (
                   <button
@@ -564,8 +564,8 @@ if (images.length > 0) {
                     onClick={() => toggleAmenity(amenity.id)}
                     className={`px-4 py-3 rounded-lg font-medium transition-all text-sm flex items-center gap-2 ${
                       selectedAmenities.includes(amenity.id)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-gray-200 text-gray-600'
+                        ? 'bg-gradient-to-r from-orange-600 to-amber-500 text-white shadow-md shadow-orange-100'
+                        : 'bg-slate-100 text-slate-600 hover:bg-orange-50 hover:text-orange-700'
                     }`}
                   >
                     <input
@@ -581,11 +581,11 @@ if (images.length > 0) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-xl shadow-slate-200/60 backdrop-blur">
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="bg-gradient-to-r from-orange-600 to-amber-500 text-white hover:from-orange-500 hover:to-amber-400"
               >
                 {loading ? (
                   <>
@@ -609,7 +609,7 @@ if (images.length > 0) {
           {/* Thanh bên phải - tải ảnh */}
           <div className="space-y-6">
             {/* Khu vực tải ảnh */}
-            <div className="bg-blue-50 rounded-xl p-6 border-2 border-dashed border-blue-200">
+            <div className="rounded-[2rem] border-2 border-dashed border-sky-200 bg-sky-50/80 p-6 shadow-lg shadow-sky-100/60">
               <div className="text-center mb-6">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-orange-500 text-white mb-3">
                   <Upload className="w-6 h-6" />
@@ -632,7 +632,7 @@ if (images.length > 0) {
                 <button
                   type="button"
                   onClick={() => document.getElementById('image-upload')?.click()}
-                  className="w-full px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg text-center cursor-pointer hover:bg-blue-100 transition-colors"
+                  className="w-full cursor-pointer rounded-2xl border-2 border-dashed border-sky-300 bg-white/70 px-4 py-3 text-center transition-colors hover:bg-sky-100"
                 >
                   <span className="text-sm font-medium text-foreground">Bấm để chọn ảnh</span>
                 </button>
