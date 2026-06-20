@@ -29,6 +29,7 @@ model User {
   bookings                  Booking[]
   hostedContracts           Contract[]               @relation("ContractHost")
   rentedContracts           Contract[]               @relation("ContractRenter")
+  contractEvents            ContractEvent[]
   favorites                 FavoriteRoom[]
   invoices                  Invoice[]
   reviews                   Review[]
@@ -182,7 +183,7 @@ model Booking {
   updatedAt DateTime      @updatedAt
   room      Room          @relation(fields: [roomId], references: [id])
   user      User          @relation(fields: [userId], references: [id])
-  contract  Contract[]
+  contract  Contract?
   invoice   Invoice?
 }
 
@@ -293,30 +294,79 @@ model AdminLog {
 }
 
 model Contract {
-  id       String @id @default(uuid())
-  roomId   String
-  renterId String
-
-  startDate DateTime
-  endDate   DateTime
-
-  monthlyRent       Float
-  depositAmount     Float
-  renewalCount      Int            @default(0)
-  status            ContractStatus @default(ACTIVE)
-  terminatedAt      DateTime?
-  terminationReason String?
-  notes             String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  hostId            String
-  bookingId         String?
-  booking           Booking?       @relation(fields: [bookingId], references: [id])
-  host              User?          @relation("ContractHost", fields: [hostId], references: [id])
-  renter            User           @relation("ContractRenter", fields: [renterId], references: [id])
-  room              Room           @relation(fields: [roomId], references: [id])
+  id                        String                @id @default(uuid())
+  contractNumber            String                @unique
+  roomId                    String
+  renterId                  String
+  hostId                    String
+  bookingId                 String?               @unique
+  startDate                 DateTime
+  endDate                   DateTime
+  monthlyRent               Float
+  depositAmount             Float
+  depositStatus             ContractDepositStatus @default(PENDING)
+  depositPaidAt             DateTime?
+  depositReference          String?
+  paymentDueDay             Int                   @default(5)
+  paymentMethod             String?
+  electricityRate           Float?
+  waterRate                 Float?
+  utilitiesNotes            String?
+  noticeDays                Int                   @default(30)
+  depositReturnDays         Int                   @default(7)
+  houseRules                String?
+  inventory                 Json?
+  contentSnapshot           Json
+  contentHash               String
+  termsVersion              String                @default("VN-HOUSING-2023-v1")
+  status                    ContractStatus        @default(DRAFT)
+  hostSignedAt              DateTime?
+  hostSignatureName         String?
+  hostSignatureIp           String?
+  hostSignatureUserAgent    String?
+  renterSignedAt            DateTime?
+  renterSignatureName       String?
+  renterSignatureIp         String?
+  renterSignatureUserAgent  String?
+  hostHandoverConfirmedAt   DateTime?
+  renterHandoverConfirmedAt DateTime?
+  handoverNotes             String?
+  activatedAt               DateTime?
+  renewalCount              Int                   @default(0)
+  terminatedAt              DateTime?
+  terminationReason         String?
+  notes                     String?
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  booking                   Booking?              @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  host                      User                  @relation("ContractHost", fields: [hostId], references: [id])
+  renter                    User                  @relation("ContractRenter", fields: [renterId], references: [id])
+  room                      Room                  @relation(fields: [roomId], references: [id])
+  events                    ContractEvent[]
 
   @@index([hostId])
+  @@index([renterId])
+  @@index([roomId])
+  @@index([status])
+}
+
+model ContractEvent {
+  id         String         @id @default(uuid())
+  contractId String
+  actorId    String?
+  type       String
+  fromStatus ContractStatus?
+  toStatus   ContractStatus?
+  note       String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime       @default(now())
+  contract   Contract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  actor      User?          @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([contractId, createdAt])
+  @@index([actorId])
 }
 
 model Occupancy {
@@ -429,9 +479,25 @@ enum InvoiceStatus {
 }
 
 enum ContractStatus {
+  DRAFT
+  PENDING_HOST_SIGNATURE
+  PENDING_RENTER_SIGNATURE
+  PENDING_DEPOSIT
+  PENDING_HANDOVER
   ACTIVE
   EXPIRED
   TERMINATED
+  CANCELLED
+  DISPUTED
+}
+
+enum ContractDepositStatus {
+  NOT_REQUIRED
+  PENDING
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FORFEITED
 }
 
 enum ReviewStatus {

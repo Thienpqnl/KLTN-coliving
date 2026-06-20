@@ -3,6 +3,7 @@ import { z } from "zod";
 import { contractService } from "@/lib/services/contract.service";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse } from "@/lib/api-error";
+import { getRequestMetadata } from "@/lib/request-metadata";
 
 const renewSchema = z.object({
   newEndDate: z.string().datetime(),
@@ -52,6 +53,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     const renewed = await contractService.renew(id, {
       newEndDate: new Date(data.newEndDate),
       newMonthlyRent: data.newMonthlyRent,
+      actorId: authUser.userId,
+      role: authUser.role,
+      ...getRequestMetadata(request),
     });
 
     return successResponse(renewed);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { contractClient, ContractData } from '@/lib/services/contract-client.service';
 import { ContractList } from './contract-list';
 import { ContractDetail } from './contract-detail';
@@ -10,6 +10,17 @@ import { TerminateContractModal } from './terminate-contract-modal';
 import { ContractStatus } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, X } from 'lucide-react';
+
+const filterLabels: Record<string, string> = {
+  ALL: 'Tất cả',
+  DRAFT: 'Bản nháp',
+  PENDING_RENTER_SIGNATURE: 'Chờ người thuê ký',
+  PENDING_DEPOSIT: 'Chờ tiền cọc',
+  PENDING_HANDOVER: 'Chờ bàn giao',
+  ACTIVE: 'Đang hiệu lực',
+  EXPIRED: 'Đã hết hạn',
+  TERMINATED: 'Đã chấm dứt',
+};
 
 export function ContractsManagement() {
   const [contracts, setContracts] = useState<ContractData[]>([]);
@@ -22,7 +33,7 @@ export function ContractsManagement() {
   const [statusFilter, setStatusFilter] = useState<ContractStatus | 'ALL'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const loadContracts = async () => {
+  const loadContracts = useCallback(async () => {
     setIsLoading(true);
     setError('');
     try {
@@ -40,29 +51,21 @@ export function ContractsManagement() {
       }
 
       const response = await contractClient.getAll(filters);
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-setContracts(response.contracts || []);    } catch (err) {
+      setContracts(response.contracts || []);
+    } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách hợp đồng');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, statusFilter]);
 
   useEffect(() => {
     loadContracts();
-  }, [statusFilter, currentPage]);
+  }, [loadContracts]);
 
   const handleSelectContract = async (contract: ContractData) => {
     try {
       const fullContract = await contractClient.getById(contract.id);
-
-      if (fullContract.error) {
-        throw new Error(fullContract.error);
-      }
       setSelectedContract(fullContract);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể tải chi tiết hợp đồng');
@@ -88,6 +91,12 @@ setContracts(response.contracts || []);    } catch (err) {
       handleSelectContract(selectedContract);
     }
     setShowTerminateModal(false);
+  };
+
+  const handleWorkflowChanged = (updated: ContractData) => {
+    setSelectedContract(updated);
+    loadContracts();
+    handleSelectContract(updated);
   };
 
   return (
@@ -124,7 +133,7 @@ setContracts(response.contracts || []);    } catch (err) {
 
       {/* Filters */}
       <div className="flex gap-2 flex-wrap">
-        {['ALL', 'ACTIVE', 'EXPIRED', 'TERMINATED'].map((status) => (
+        {['ALL', 'DRAFT', 'PENDING_RENTER_SIGNATURE', 'PENDING_DEPOSIT', 'PENDING_HANDOVER', 'ACTIVE', 'EXPIRED', 'TERMINATED'].map((status) => (
           <button
             key={status}
             onClick={() => {
@@ -137,13 +146,7 @@ setContracts(response.contracts || []);    } catch (err) {
                 : 'bg-white/80 border border-orange-100 text-slate-600 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700'
             }`}
           >
-            {status === 'ALL'
-              ? 'Tất Cả'
-              : status === 'ACTIVE'
-                ? 'Đang Hiệu Lực'
-                : status === 'EXPIRED'
-                  ? 'Đã Hết Hạn'
-                  : 'Đã Chấm Dứt'}
+            {filterLabels[status] || status}
           </button>
         ))}
       </div>
@@ -181,6 +184,7 @@ setContracts(response.contracts || []);    } catch (err) {
               <ContractDetail
                 contract={selectedContract}
                 isHost={true}
+                onChanged={handleWorkflowChanged}
                 onRenew={() => setShowRenewModal(true)}
                 onTerminate={() => setShowTerminateModal(true)}
               />

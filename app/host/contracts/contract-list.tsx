@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { ContractData } from '@/lib/services/contract-client.service';
 import { ContractStatus } from '@prisma/client';
-import { Calendar, DollarSign, File, MapPin, Phone, User } from 'lucide-react';
+import { Calendar, DollarSign, MapPin, User } from 'lucide-react';
 
 interface ContractListProps {
   contracts: ContractData[];
@@ -15,14 +14,26 @@ interface ContractListProps {
   };
 }
 
-export function ContractList({ contracts, onSelectContract, filters }: ContractListProps) {
+export function ContractList({ contracts, onSelectContract }: ContractListProps) {
   const getStatusBadgeColor = (status: ContractStatus) => {
     switch (status) {
       case 'ACTIVE':
         return 'bg-green-100 text-green-800';
+      case 'DRAFT':
+      case 'PENDING_HOST_SIGNATURE':
+        return 'bg-slate-100 text-slate-700';
+      case 'PENDING_RENTER_SIGNATURE':
+        return 'bg-violet-100 text-violet-800';
+      case 'PENDING_DEPOSIT':
+        return 'bg-amber-100 text-amber-800';
+      case 'PENDING_HANDOVER':
+        return 'bg-sky-100 text-sky-800';
       case 'EXPIRED':
         return 'bg-yellow-100 text-yellow-800';
       case 'TERMINATED':
+        return 'bg-red-100 text-red-800';
+      case 'CANCELLED':
+      case 'DISPUTED':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -33,10 +44,24 @@ export function ContractList({ contracts, onSelectContract, filters }: ContractL
     switch (status) {
       case 'ACTIVE':
         return 'Đang hiệu lực';
+      case 'DRAFT':
+        return 'Bản nháp';
+      case 'PENDING_HOST_SIGNATURE':
+        return 'Chờ chủ nhà ký';
+      case 'PENDING_RENTER_SIGNATURE':
+        return 'Chờ người thuê ký';
+      case 'PENDING_DEPOSIT':
+        return 'Chờ tiền cọc';
+      case 'PENDING_HANDOVER':
+        return 'Chờ bàn giao';
       case 'EXPIRED':
         return 'Đã hết hạn';
       case 'TERMINATED':
         return 'Đã chấm dứt';
+      case 'CANCELLED':
+        return 'Đã hủy';
+      case 'DISPUTED':
+        return 'Đang tranh chấp';
       default:
         return status;
     }
@@ -76,7 +101,7 @@ export function ContractList({ contracts, onSelectContract, filters }: ContractL
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                Hợp đồng #{contract.id.slice(0, 8).toUpperCase()}
+                {contract.contractNumber}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {contract.room.title}

@@ -43,11 +43,7 @@ export function TerminateContractModal({
         terminationReason: terminationReason.trim(),
       };
 
-      const result = await contractClient.terminate(contractId, payload);
-
-      if (result.error) {
-        throw new Error(result.error || result.message);
-      }
+      await contractClient.terminate(contractId, payload);
 
       onSuccess?.();
       onClose();

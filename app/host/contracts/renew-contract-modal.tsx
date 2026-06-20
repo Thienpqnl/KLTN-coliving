@@ -52,11 +52,7 @@ export function RenewContractModal({
         newMonthlyRent: formData.newMonthlyRent,
       };
 
-      const result = await contractClient.renew(contractId, payload);
-
-      if (result.error) {
-        throw new Error(result.error || result.message);
-      }
+      await contractClient.renew(contractId, payload);
 
       onSuccess?.();
       onClose();
