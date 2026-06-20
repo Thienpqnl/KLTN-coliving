@@ -90,6 +90,7 @@ export const roomVerificationService = {
         id: true,
         ownerId: true,
         status: true,
+        _count: { select: { images: true } },
         verification: { include: verificationInclude },
       },
     });
@@ -149,7 +150,17 @@ export const roomVerificationService = {
     return { id: documentId };
   },
 
-  submit: async (roomId: string, ownerId: string) => {
+  submit: async (
+    roomId: string,
+    ownerId: string,
+    declaration: {
+      informationAccurateConfirmed: true;
+      legalResponsibilityAccepted: true;
+      verificationConsentAccepted: true;
+      ipAddress?: string;
+      userAgent?: string;
+    }
+  ) => {
     const room = await prisma.room.findUnique({
       where: { id: roomId },
       include: {
@@ -169,7 +180,17 @@ export const roomVerificationService = {
     return prisma.$transaction(async (tx) => {
       await tx.roomVerification.upsert({
         where: { roomId },
-        create: { roomId, submittedAt: new Date() },
+        create: {
+          roomId,
+          submittedAt: new Date(),
+          informationAccurateConfirmed: true,
+          legalResponsibilityAccepted: true,
+          verificationConsentAccepted: true,
+          declarationAcceptedAt: new Date(),
+          declarationVersion: "ROOM_VERIFICATION_DECLARATION_V1",
+          declarationIpAddress: declaration.ipAddress,
+          declarationUserAgent: declaration.userAgent,
+        },
         update: {
           submittedAt: new Date(),
           reviewedAt: null,
@@ -182,6 +203,13 @@ export const roomVerificationService = {
           addressPassed: false,
           imagesPassed: false,
           detailsPassed: false,
+          informationAccurateConfirmed: true,
+          legalResponsibilityAccepted: true,
+          verificationConsentAccepted: true,
+          declarationAcceptedAt: new Date(),
+          declarationVersion: "ROOM_VERIFICATION_DECLARATION_V1",
+          declarationIpAddress: declaration.ipAddress,
+          declarationUserAgent: declaration.userAgent,
           documents: {
             updateMany: {
               where: {},
@@ -258,6 +286,15 @@ export const roomVerificationService = {
 
     if (data.action === "approve" && (!data.checklist || Object.values(data.checklist).some((value) => !value))) {
       throw new ApiError(400, "Cần hoàn tất toàn bộ checklist trước khi phê duyệt");
+    }
+    if (
+      data.action === "approve"
+      && (!room.verification?.informationAccurateConfirmed
+        || !room.verification.legalResponsibilityAccepted
+        || !room.verification.verificationConsentAccepted
+        || !room.verification.declarationAcceptedAt)
+    ) {
+      throw new ApiError(400, "Chủ nhà chưa hoàn tất cam kết xác minh bắt buộc");
     }
     if ((data.action === "request_revision" || data.action === "reject" || data.action === "hide") && !data.reason?.trim()) {
       throw new ApiError(400, "Vui lòng nhập lý do");

@@ -230,24 +230,31 @@ model Review {
 }
 
 model RoomVerification {
-  id              String                     @id @default(uuid())
-  roomId          String                     @unique
-  reviewerId      String?
-  submittedAt     DateTime?
-  reviewedAt      DateTime?
-  revisionReason  String?
-  rejectionReason String?
-  adminNote       String?
-  identityPassed  Boolean                    @default(false)
-  ownershipPassed Boolean                    @default(false)
-  addressPassed   Boolean                    @default(false)
-  imagesPassed    Boolean                    @default(false)
-  detailsPassed   Boolean                    @default(false)
-  createdAt       DateTime                   @default(now())
-  updatedAt       DateTime                   @updatedAt
-  room            Room                       @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  reviewer        User?                      @relation("RoomVerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
-  documents       RoomVerificationDocument[]
+  id                           String                     @id @default(uuid())
+  roomId                       String                     @unique
+  reviewerId                   String?
+  submittedAt                  DateTime?
+  reviewedAt                   DateTime?
+  revisionReason               String?
+  rejectionReason              String?
+  adminNote                    String?
+  identityPassed               Boolean                    @default(false)
+  ownershipPassed              Boolean                    @default(false)
+  addressPassed                Boolean                    @default(false)
+  imagesPassed                 Boolean                    @default(false)
+  detailsPassed                Boolean                    @default(false)
+  informationAccurateConfirmed Boolean                    @default(false)
+  legalResponsibilityAccepted  Boolean                    @default(false)
+  verificationConsentAccepted  Boolean                    @default(false)
+  declarationAcceptedAt        DateTime?
+  declarationVersion           String?
+  declarationIpAddress         String?
+  declarationUserAgent         String?
+  createdAt                    DateTime                   @default(now())
+  updatedAt                    DateTime                   @updatedAt
+  room                         Room                       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reviewer                     User?                      @relation("RoomVerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  documents                    RoomVerificationDocument[]
 
   @@index([reviewerId])
   @@index([submittedAt])

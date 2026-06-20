@@ -2,10 +2,12 @@
 
 export class ApiError extends Error {
   status: number;
+  errors?: Record<string, string[]>;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, errors?: Record<string, string[]>) {
     super(message);
     this.status = status;
+    this.errors = errors;
   }
 }
 
@@ -47,15 +49,16 @@ if (token) {
     headers, 
     credentials: "include",
   });
-  console.log('response status:', response.status);
-  // Xử lý response như cũ...
   const data = await response.json();
   if (!response.ok) {
-    console.error('API Error Response:', {
-      status: response.status,
-      data,
-    });
-    throw new ApiError(data.error || data.message || "API Error", response.status);
+    if (response.status >= 500) {
+      console.error('API Error Response:', { status: response.status, data });
+    }
+    throw new ApiError(
+      data.error || data.message || "API Error",
+      response.status,
+      data.errors,
+    );
   }
   
   // Nếu response có cấu trúc ApiResponse, trả về data

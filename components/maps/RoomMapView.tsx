@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { loadGoogleMapsLibraries } from "@/lib/google-maps-loader";
+import { useEffect, useRef, useState } from "react";
+import { ExternalLink, MapPinOff } from "lucide-react";
+import type { Map, Marker } from "mapbox-gl";
 
 interface RoomMapViewProps {
   latitude?: number | null;
@@ -9,94 +10,80 @@ interface RoomMapViewProps {
   mapUrl?: string | null;
 }
 
-export default function RoomMapView({
-  latitude,
-  longitude,
-  mapUrl,
-}: RoomMapViewProps) {
+export default function RoomMapView({ latitude, longitude, mapUrl }: RoomMapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const mapRef = useRef<Map | null>(null);
+  const markerRef = useRef<Marker | null>(null);
+  const [mapError, setMapError] = useState(false);
 
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!mapContainer.current || latitude == null || longitude == null) return;
 
-    // Check if coordinates are valid numbers
-    if (latitude === null || latitude === undefined || longitude === null || longitude === undefined) {
-      console.warn('[RoomMapView] Missing coordinates:', { latitude, longitude });
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) {
+      setMapError(true);
       return;
     }
 
     let cancelled = false;
 
-    loadGoogleMapsLibraries().then(({ maps, marker: markerLibrary }) => {
-      if (cancelled || !mapContainer.current) return;
+    import("mapbox-gl")
+      .then(({ default: mapboxgl }) => {
+        if (cancelled || !mapContainer.current) return;
+        mapboxgl.accessToken = token;
 
-      const map = new maps.Map(mapContainer.current, {
-        center: { lat: latitude, lng: longitude },
-        zoom: 15,
-        disableDefaultUI: true,
-        draggable: false,
-        scrollwheel: false,
-        disableDoubleClickZoom: true,
-        mapId: "272573a64e10d24bf46100e2",
-      });
+        const map = new mapboxgl.Map({
+          container: mapContainer.current,
+          style: "mapbox://styles/mapbox/streets-v12",
+          center: [longitude, latitude],
+          zoom: 14,
+          interactive: false,
+          attributionControl: true,
+        });
 
-      mapRef.current = map;
+        map.on("error", () => setMapError(true));
+        mapRef.current = map;
 
-      const pinElement = document.createElement("div");
-      pinElement.innerHTML = `
-        <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 0C6.71573 0 0 6.71573 0 15C0 26.25 15 40 15 40C15 40 30 26.25 30 15C30 6.71573 23.2843 0 15 0Z" fill="#f97316"/>
-          <circle cx="15" cy="15" r="6" fill="white"/>
-        </svg>
-      `;
-
-      markerRef.current = new markerLibrary.AdvancedMarkerElement({
-        position: { lat: latitude, lng: longitude },
-        map: map,
-        content: pinElement,
-      });
-    }).catch((error) => {
-      console.error("[RoomMapView] Failed to load Google Maps:", error);
-    });
+        const markerElement = document.createElement("div");
+        markerElement.className = "h-9 w-9 rounded-full border-4 border-white bg-orange-500 shadow-lg";
+        markerRef.current = new mapboxgl.Marker({ element: markerElement })
+          .setLngLat([longitude, latitude])
+          .addTo(map);
+      })
+      .catch(() => setMapError(true));
 
     return () => {
       cancelled = true;
-      if (markerRef.current) {
-        markerRef.current.map = null;
-      }
+      markerRef.current?.remove();
+      markerRef.current = null;
+      mapRef.current?.remove();
       mapRef.current = null;
     };
   }, [latitude, longitude]);
 
-  // Show placeholder if no coordinates
-  if (latitude === null || latitude === undefined || longitude === null || longitude === undefined) {
+  const unavailable = latitude == null || longitude == null || mapError;
+  if (unavailable) {
     return (
-      <div className="h-80 w-full rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <span className="material-symbols-outlined text-4xl text-slate-400 block mb-2">location_off</span>
-          <p className="text-slate-500 text-sm">Chưa có dữ liệu vị trí</p>
+      <div className="flex h-80 w-full items-center justify-center bg-slate-100">
+        <div className="max-w-sm px-6 text-center">
+          <MapPinOff className="mx-auto h-9 w-9 text-slate-400" />
+          <p className="mt-3 text-sm font-semibold text-slate-600">
+            {mapError ? "Không thể tải bản đồ lúc này" : "Chưa có dữ liệu vị trí"}
+          </p>
+          {mapUrl && (
+            <a href={mapUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-orange-700 hover:text-orange-600">
+              Mở vị trí bên ngoài <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      <div
-        ref={mapContainer}
-        className="h-80 w-full rounded-xl overflow-hidden bg-slate-100"
-      />
-      {mapUrl && (
-        <a
-          href={mapUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Mở vị trí phòng trong Google Maps"
-          className="absolute inset-0"
-        />
-      )}
+    <div className="relative h-80 w-full overflow-hidden bg-slate-100">
+      <div ref={mapContainer} className="h-full w-full" />
+      {mapUrl && <a href={mapUrl} target="_blank" rel="noreferrer" aria-label="Mở vị trí phòng trên Google Maps" className="absolute inset-0" />}
     </div>
   );
 }

@@ -341,7 +341,7 @@ getAllByOwnerId: async (ownerId: string) => {
     const requiresReview = currentRoom?.status === "AVAILABLE";
 
     if (requiresReview) {
-      updateData.status = "PENDING";
+      updateData.status = "DRAFT";
     }
 
     const room = await prisma.room.update({
@@ -390,9 +390,9 @@ getAllByOwnerId: async (ownerId: string) => {
     if (requiresReview) {
       await prisma.roomVerification.upsert({
         where: { roomId: id },
-        create: { roomId: id, submittedAt: new Date() },
+        create: { roomId: id },
         update: {
-          submittedAt: new Date(),
+          submittedAt: null,
           reviewedAt: null,
           reviewerId: null,
           revisionReason: null,
@@ -402,6 +402,13 @@ getAllByOwnerId: async (ownerId: string) => {
           addressPassed: false,
           imagesPassed: false,
           detailsPassed: false,
+          informationAccurateConfirmed: false,
+          legalResponsibilityAccepted: false,
+          verificationConsentAccepted: false,
+          declarationAcceptedAt: null,
+          declarationVersion: null,
+          declarationIpAddress: null,
+          declarationUserAgent: null,
         },
       });
     }

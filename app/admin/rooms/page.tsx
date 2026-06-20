@@ -32,6 +32,13 @@ type AdminRoom = {
     revisionReason?: string | null;
     rejectionReason?: string | null;
     adminNote?: string | null;
+    informationAccurateConfirmed: boolean;
+    legalResponsibilityAccepted: boolean;
+    verificationConsentAccepted: boolean;
+    declarationAcceptedAt?: string | null;
+    declarationVersion?: string | null;
+    declarationIpAddress?: string | null;
+    declarationUserAgent?: string | null;
     documents: RoomDocument[];
   }) | null;
 };
@@ -233,6 +240,22 @@ export default function AdminRoomsPage() {
                   ))}
                   {!selected.verification?.documents?.length && <p className="text-sm text-red-600">Chưa có tài liệu</p>}
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <h3 className="font-bold text-amber-950">Cam kết của chủ nhà</h3>
+                <ul className="mt-3 space-y-2 text-sm text-amber-900">
+                  <li>• Thông tin đúng sự thật: {selected.verification?.informationAccurateConfirmed ? "Đã xác nhận" : "Chưa xác nhận"}</li>
+                  <li>• Trách nhiệm pháp lý: {selected.verification?.legalResponsibilityAccepted ? "Đã chấp nhận" : "Chưa chấp nhận"}</li>
+                  <li>• Đồng ý xác minh: {selected.verification?.verificationConsentAccepted ? "Đã đồng ý" : "Chưa đồng ý"}</li>
+                </ul>
+                {selected.verification?.declarationAcceptedAt && (
+                  <div className="mt-3 border-t border-amber-200 pt-3 text-xs leading-relaxed text-amber-800">
+                    <p>Thời điểm: {new Date(selected.verification.declarationAcceptedAt).toLocaleString("vi-VN")}</p>
+                    <p>Phiên bản: {selected.verification.declarationVersion || "Không xác định"}</p>
+                    <p>IP: {selected.verification.declarationIpAddress || "Không ghi nhận"}</p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
