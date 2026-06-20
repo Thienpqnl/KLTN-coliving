@@ -6,7 +6,7 @@ import { apiClient } from '@/lib/api/client'
 
 type HostRoom = {
   id: string
-  status?: 'AVAILABLE' | 'OCCUPIED' | 'PENDING' | 'HIDDEN'
+  status?: 'DRAFT' | 'AVAILABLE' | 'OCCUPIED' | 'PENDING' | 'NEEDS_REVISION' | 'REJECTED' | 'HIDDEN'
   currentOccupants?: number | null
   maxOccupants?: number | null
 }

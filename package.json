@@ -12,10 +12,8 @@
     "import:rooms:cjs": "node scripts/import-rooms-cjs.js"
   },
   "dependencies": {
-    "@googlemaps/js-api-loader": "^2.1.1",
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-avatar": "^1.1.11",
-    "@react-google-maps/api": "^2.20.8",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

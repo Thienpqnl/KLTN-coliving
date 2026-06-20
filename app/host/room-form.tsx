@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { apiClient } from '@/lib/api/client'
 import { uploadImage } from "@/lib/upload"
 import { MapPicker } from '@/app/components/MapPicker'
+import { RoomVerificationPanel } from '@/app/host/room-verification-panel'
 interface Room {
   id: string
   title: string
@@ -16,7 +17,7 @@ interface Room {
   address: string
   image?: string | string[]
   images?: { url: string }[]
-  status: 'AVAILABLE' | 'OCCUPIED'
+  status: 'DRAFT' | 'PENDING' | 'NEEDS_REVISION' | 'AVAILABLE' | 'REJECTED' | 'HIDDEN' | 'OCCUPIED'
   amenityIds: string[]
   amenities?: Array<{ amenity?: { id: string; name: string } | null }>
   latitude?: number
@@ -51,7 +52,7 @@ export function RoomForm() {
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined,
     image: '',
-    status: 'AVAILABLE' as 'AVAILABLE' | 'OCCUPIED',
+    status: 'DRAFT' as Room['status'],
     cleanlinessRequired: 'medium' as 'low' | 'medium' | 'high',
     noiseTolerance: 'moderate' as 'quiet' | 'moderate' | 'active',
     guestPolicy: 'occasionally' as 'no_guests' | 'occasionally' | 'frequently',
@@ -220,11 +221,11 @@ if (images.length > 0) {
 
       if (editMode && roomId) {
         await apiClient.put(`/rooms/${roomId}`, payload)
+        router.push('/room-management')
       } else {
-        await apiClient.post('/rooms-upload/create', payload)
+        const createdRoom = await apiClient.post<Room>('/rooms-upload/create', payload)
+        router.push(`/room-management/edit-room?id=${createdRoom.id}`)
       }
-
-      router.push('/room-management')
     } catch (error) {
       console.error('Không thể lưu phòng:', error)
       alert('Không thể lưu phòng. Vui lòng thử lại.')
@@ -352,21 +353,6 @@ if (images.length > 0) {
                 />
               </div>
 
-              {/* Status */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  TRẠNG THÁI
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="AVAILABLE">Còn trống</option>
-                  <option value="OCCUPIED">Đã thuê</option>
-                </select>
-              </div>
             </div>
 
             {/* Room Requirements */}
@@ -593,7 +579,7 @@ if (images.length > 0) {
                     {editMode ? 'Đang cập nhật...' : 'Đang tạo...'}
                   </>
                 ) : (
-                  editMode ? 'CẬP NHẬT PHÒNG' : 'TẠO PHÒNG'
+                  editMode ? 'LƯU THAY ĐỔI' : 'LƯU BẢN NHÁP'
                 )}
               </Button>
               <Button 
@@ -698,6 +684,7 @@ if (images.length > 0) {
                 {editMode ? 'Đang chỉnh sửa phòng' : 'Đang tạo phòng mới'}
               </p>
             </div>
+            {roomId && <RoomVerificationPanel roomId={roomId} />}
           </div>
         </form>
       </div>

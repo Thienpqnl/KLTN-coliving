@@ -1,142 +1,114 @@
-'use client'
+"use client";
 
-import { useEffect, useRef, useState } from 'react'
-import { loadGoogleMapsLibraries } from '@/lib/google-maps-loader'
-import { Loader2, MapPin } from 'lucide-react'
+import { useEffect, useRef, useState } from "react";
+import { Loader2, MapPin, MapPinOff } from "lucide-react";
+import type { Map, Marker } from "mapbox-gl";
 
 interface MapPickerProps {
-  onLocationSelect: (lat: number, lng: number, address: string) => void
-  initialLat?: number
-  initialLng?: number
+  onLocationSelect: (lat: number, lng: number, address: string) => void;
+  initialLat?: number;
+  initialLng?: number;
 }
 
 export function MapPicker({ onLocationSelect, initialLat, initialLng }: MapPickerProps) {
-  const mapContainer = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<google.maps.Map | null>(null)
-  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
-
-  const [isLoading, setIsLoading] = useState(false)
-  const [selectedLocation, setSelectedLocation] = useState<{
-    lat: number
-    lng: number
-    address: string
-  } | null>(null)
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<Map | null>(null);
+  const markerRef = useRef<Marker | null>(null);
+  const callbackRef = useRef(onLocationSelect);
+  const [isLoading, setIsLoading] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
 
   useEffect(() => {
-    if (!mapContainer.current) return
+    callbackRef.current = onLocationSelect;
+  }, [onLocationSelect]);
 
-    let cancelled = false
+  useEffect(() => {
+    if (!mapContainer.current) return;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) {
+      setMapError(true);
+      return;
+    }
 
-    loadGoogleMapsLibraries().then(({ maps, marker: markerLibrary }) => {
-      if (cancelled || !mapContainer.current) return
+    let cancelled = false;
+    import("mapbox-gl")
+      .then(({ default: mapboxgl }) => {
+        if (cancelled || !mapContainer.current) return;
+        mapboxgl.accessToken = token;
 
-      const defaultLng = initialLng || 106.660172
-      const defaultLat = initialLat || 10.762622
+        const defaultLng = initialLng ?? 106.660172;
+        const defaultLat = initialLat ?? 10.762622;
+        const map = new mapboxgl.Map({
+          container: mapContainer.current,
+          style: "mapbox://styles/mapbox/streets-v12",
+          center: [defaultLng, defaultLat],
+          zoom: 14,
+        });
+        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+        map.on("error", () => setMapError(true));
+        mapRef.current = map;
 
-      const map = new maps.Map(mapContainer.current, {
-        center: { lat: defaultLat, lng: defaultLng },
-        zoom: 14,
-        clickableIcons: false,
-        mapId: '272573a64e10d24bf46100e2',
-      })
+        const setMarker = (lng: number, lat: number) => {
+          markerRef.current?.remove();
+          markerRef.current = new mapboxgl.Marker({ color: "#f97316" }).setLngLat([lng, lat]).addTo(map);
+        };
 
-      mapRef.current = map
+        if (initialLat != null && initialLng != null) setMarker(initialLng, initialLat);
 
-      const createOrangeMarker = (lat: number, lng: number) => {
-        const pinElement = document.createElement('div')
-        pinElement.innerHTML = `
-          <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 0C6.71573 0 0 6.71573 0 15C0 26.25 15 40 15 40C15 40 30 26.25 30 15C30 6.71573 23.2843 0 15 0Z" fill="#f97316"/>
-            <circle cx="15" cy="15" r="6" fill="white"/>
-          </svg>
-        `
-
-        return new markerLibrary.AdvancedMarkerElement({
-          position: { lat, lng },
-          map,
-          content: pinElement,
-        })
-      }
-
-      if (initialLat && initialLng) {
-        markerRef.current = createOrangeMarker(initialLat, initialLng)
-      }
-
-      map.addListener('click', async (e: google.maps.MapMouseEvent) => {
-        if (!e.latLng) return
-
-        const lat = e.latLng.lat()
-        const lng = e.latLng.lng()
-
-        setIsLoading(true)
-        try {
-          const response = await fetch(`/api/reverse-geocode?lat=${lat}&lng=${lng}`)
-          const data = await response.json()
-          const address = data.address || 'Không tìm thấy địa chỉ'
-
-          if (markerRef.current) {
-            markerRef.current.map = null
+        map.on("click", async (event) => {
+          const { lat, lng } = event.lngLat;
+          setIsLoading(true);
+          try {
+            const response = await fetch(`/api/reverse-geocode?lat=${lat}&lng=${lng}`);
+            const data = await response.json();
+            const address = data.address || "Không tìm thấy địa chỉ";
+            setMarker(lng, lat);
+            setSelectedLocation({ lat, lng, address });
+            callbackRef.current(lat, lng, address);
+          } catch {
+            setSelectedLocation({ lat, lng, address: "Không thể xác định địa chỉ" });
+            setMarker(lng, lat);
+            callbackRef.current(lat, lng, "Không thể xác định địa chỉ");
+          } finally {
+            setIsLoading(false);
           }
-
-          markerRef.current = createOrangeMarker(lat, lng)
-
-          setSelectedLocation({ lat, lng, address })
-          onLocationSelect(lat, lng, address)
-        } catch (error) {
-          console.error('Lỗi reverse geocoding:', error)
-        } finally {
-          setIsLoading(false)
-        }
+        });
       })
-    }).catch((error) => {
-      console.error('Lỗi tải Google Maps:', error)
-    })
+      .catch(() => setMapError(true));
 
     return () => {
-      cancelled = true
-      if (markerRef.current) {
-        markerRef.current.map = null
-      }
-      mapRef.current = null
-    }
-  }, [onLocationSelect, initialLat, initialLng])
+      cancelled = true;
+      markerRef.current?.remove();
+      markerRef.current = null;
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, [initialLat, initialLng]);
 
   return (
-    <div className="space-y-3 mt-4">
+    <div className="mt-4 space-y-3">
       <div className="flex items-center gap-2">
-        <MapPin className="w-5 h-5 text-orange-500 flex-shrink-0" />
-        <p className="text-sm font-medium text-foreground">
-          Bấm vào bản đồ để chọn vị trí
-        </p>
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-orange-500" />}
+        <MapPin className="h-5 w-5 shrink-0 text-orange-500" />
+        <p className="text-sm font-medium text-foreground">Bấm vào bản đồ để chọn vị trí</p>
+        {isLoading && <Loader2 className="h-4 w-4 animate-spin text-orange-500" />}
       </div>
 
-      <div
-        ref={mapContainer}
-        className="w-full h-80 rounded-xl border-2 border-blue-200 overflow-hidden shadow-md relative"
-        style={{ cursor: isLoading ? 'wait' : 'pointer' }}
-      />
-
-      {selectedLocation && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs font-semibold text-blue-900 mb-2">Vị trí đã chọn:</p>
-          <p className="text-sm text-blue-800">
-            {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
-          </p>
-          <p className="text-sm text-blue-800 mt-1">
-            {selectedLocation.address}
-          </p>
+      {mapError ? (
+        <div className="flex h-80 items-center justify-center rounded-xl border-2 border-slate-200 bg-slate-100">
+          <div className="text-center"><MapPinOff className="mx-auto h-8 w-8 text-slate-400" /><p className="mt-2 text-sm font-semibold text-slate-600">Không thể tải bản đồ. Vui lòng nhập địa chỉ thủ công.</p></div>
         </div>
+      ) : (
+        <div ref={mapContainer} className="h-80 w-full overflow-hidden rounded-xl border-2 border-sky-200 shadow-md" style={{ cursor: isLoading ? "wait" : "crosshair" }} />
       )}
 
-      <div className="text-xs text-muted-foreground bg-gray-50 rounded-lg p-3 border border-gray-200">
-        <p className="font-medium text-foreground mb-1">Mẹo:</p>
-        <ul className="space-y-1 list-disc list-inside">
-          <li>Bấm vào bản đồ để xác định vị trí phòng</li>
-          <li>Hệ thống sẽ tự động lấy địa chỉ từ tọa độ</li>
-          <li>Bạn có thể chỉnh sửa địa chỉ ở ô nhập liệu dưới đây</li>
-        </ul>
-      </div>
+      {selectedLocation && (
+        <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+          <p className="mb-2 text-xs font-semibold text-sky-900">Vị trí đã chọn:</p>
+          <p className="text-sm text-sky-800">{selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}</p>
+          <p className="mt-1 text-sm text-sky-800">{selectedLocation.address}</p>
+        </div>
+      )}
     </div>
-  )
+  );
 }

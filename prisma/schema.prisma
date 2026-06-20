@@ -8,35 +8,36 @@ datasource db {
 }
 
 model User {
-  id               String                   @id @default(uuid())
-  email            String                   @unique
-  password         String
-  fullName         String
-  createdAt        DateTime                 @default(now())
-  address          String?
-  avatarUrl        String?
-  birthDate        DateTime?
-  gender           String?
-  name             String
-  phone            String?
-  role             Role                     @default(CUSTOMER)
-  status           UserStatus               @default(ACTIVE)
-  updatedAt        DateTime                 @updatedAt
-  latitude         Float?
-  longitude        Float?
-  adminActions     AdminLog[]               @relation("AdminAction")
-  affectedLogs     AdminLog[]               @relation("AffectedUser")
-  bookings         Booking[]
-  hostedContracts  Contract[]               @relation("ContractHost")
-  rentedContracts  Contract[]               @relation("ContractRenter")
-  favorites        FavoriteRoom[]
-  invoices         Invoice[]
-  reviews          Review[]
-  rooms            Room[]
-  RoomInteraction  RoomInteraction[]
-  occupancies      Occupancy[]
-  lifestyleProfile user_lifestyle_profiles?
-  preference       user_preferences?
+  id                        String                   @id @default(uuid())
+  email                     String                   @unique
+  password                  String
+  fullName                  String
+  createdAt                 DateTime                 @default(now())
+  address                   String?
+  avatarUrl                 String?
+  birthDate                 DateTime?
+  gender                    String?
+  name                      String
+  phone                     String?
+  role                      Role                     @default(CUSTOMER)
+  status                    UserStatus               @default(ACTIVE)
+  updatedAt                 DateTime                 @updatedAt
+  latitude                  Float?
+  longitude                 Float?
+  adminActions              AdminLog[]               @relation("AdminAction")
+  affectedLogs              AdminLog[]               @relation("AffectedUser")
+  bookings                  Booking[]
+  hostedContracts           Contract[]               @relation("ContractHost")
+  rentedContracts           Contract[]               @relation("ContractRenter")
+  favorites                 FavoriteRoom[]
+  invoices                  Invoice[]
+  reviews                   Review[]
+  rooms                     Room[]
+  RoomInteraction           RoomInteraction[]
+  occupancies               Occupancy[]
+  lifestyleProfile          user_lifestyle_profiles?
+  preference                user_preferences?
+  reviewedRoomVerifications RoomVerification[]       @relation("RoomVerificationReviewer")
 
   @@map("User")
 }
@@ -112,7 +113,7 @@ model Room {
   priceValue          BigInt?
   roomId              String?
   sourceUrl           String?
-  status              RoomStatus        @default(AVAILABLE)
+  status              RoomStatus        @default(DRAFT)
   latitude            Float?
   longitude           Float?
   bookings            Booking[]
@@ -124,6 +125,7 @@ model Room {
   images              RoomImage[]
   RoomInteraction     RoomInteraction[]
   occupancies         Occupancy[]
+  verification        RoomVerification?
 
   @@map("Room")
 }
@@ -210,21 +212,67 @@ model Payment {
 }
 
 model Review {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   userId    String
   roomId    String
   rating    Int
   comment   String?
   status    ReviewStatus @default(VISIBLE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  room      Room     @relation(fields: [roomId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  room      Room         @relation(fields: [roomId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
 
   @@unique([roomId, userId])
   @@index([roomId])
   @@index([userId])
   @@index([status])
+}
+
+model RoomVerification {
+  id                           String                     @id @default(uuid())
+  roomId                       String                     @unique
+  reviewerId                   String?
+  submittedAt                  DateTime?
+  reviewedAt                   DateTime?
+  revisionReason               String?
+  rejectionReason              String?
+  adminNote                    String?
+  identityPassed               Boolean                    @default(false)
+  ownershipPassed              Boolean                    @default(false)
+  addressPassed                Boolean                    @default(false)
+  imagesPassed                 Boolean                    @default(false)
+  detailsPassed                Boolean                    @default(false)
+  informationAccurateConfirmed Boolean                    @default(false)
+  legalResponsibilityAccepted  Boolean                    @default(false)
+  verificationConsentAccepted  Boolean                    @default(false)
+  declarationAcceptedAt        DateTime?
+  declarationVersion           String?
+  declarationIpAddress         String?
+  declarationUserAgent         String?
+  createdAt                    DateTime                   @default(now())
+  updatedAt                    DateTime                   @updatedAt
+  room                         Room                       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reviewer                     User?                      @relation("RoomVerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  documents                    RoomVerificationDocument[]
+
+  @@index([reviewerId])
+  @@index([submittedAt])
+}
+
+model RoomVerificationDocument {
+  id             String                     @id @default(uuid())
+  verificationId String
+  type           VerificationDocumentType
+  fileUrl        String
+  status         VerificationDocumentStatus @default(PENDING)
+  note           String?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  verification   RoomVerification           @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([verificationId])
+  @@index([type])
 }
 
 model AdminLog {
@@ -245,12 +293,12 @@ model AdminLog {
 }
 
 model Contract {
-  id                String         @id @default(uuid())
-  roomId            String
-  renterId          String
+  id       String @id @default(uuid())
+  roomId   String
+  renterId String
 
-  startDate         DateTime
-  endDate           DateTime
+  startDate DateTime
+  endDate   DateTime
 
   monthlyRent       Float
   depositAmount     Float
@@ -339,10 +387,27 @@ enum UserStatus {
 }
 
 enum RoomStatus {
+  DRAFT
   AVAILABLE
   OCCUPIED
   PENDING
+  NEEDS_REVISION
+  REJECTED
   HIDDEN
+}
+
+enum VerificationDocumentType {
+  IDENTITY
+  OWNERSHIP
+  ADDRESS
+  ROOM_PROOF
+  OTHER
+}
+
+enum VerificationDocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum BookingStatus {

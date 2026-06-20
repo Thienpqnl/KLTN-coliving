@@ -12,6 +12,7 @@ import {
   MessageSquareText,
   Settings,
   Users,
+  Building2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/hooks/useAuth"
@@ -25,6 +26,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/admin" },
   { label: "Quản lý người dùng", icon: <Users className="h-4 w-4" />, href: "/admin/users" },
+  { label: "Duyệt phòng", icon: <Building2 className="h-4 w-4" />, href: "/admin/rooms" },
   { label: "Quản lý đánh giá", icon: <MessageSquareText className="h-4 w-4" />, href: "/admin/reviews" },
   { label: "Báo cáo", icon: <BarChart3 className="h-4 w-4" />, href: "/admin/reports" },
   { label: "Nhật ký hệ thống", icon: <FileText className="h-4 w-4" />, href: "/admin/logs" },

@@ -7,6 +7,7 @@ export async function GET() {
     await prisma.room.findMany({
 
       where: {
+        status: 'AVAILABLE',
         latitude: {
           not: null,
         },

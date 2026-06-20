@@ -10,6 +10,7 @@ export function AdminMobileHeader() {
   const menuItems = [
     { label: "Dashboard", href: "/admin" },
     { label: "Quản lý người dùng", href: "/admin/users" },
+    { label: "Duyệt phòng", href: "/admin/rooms" },
     { label: "Quản lý đánh giá", href: "/admin/reviews" },
     { label: "Báo cáo", href: "/admin/reports" },
     { label: "Nhật ký hệ thống", href: "/admin/logs" },

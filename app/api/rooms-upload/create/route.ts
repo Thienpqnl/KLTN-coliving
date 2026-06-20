@@ -2,12 +2,15 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { roomCreateSchema } from "@/lib/validation";
 import { getAuthUser } from "@/lib/auth";
-import { handleApiError, successResponse } from "@/lib/api-error";
+import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
 
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
     const authUser = await getAuthUser(request);
+    if (authUser.role !== "HOST") {
+      throw new ApiError(403, "Chỉ chủ nhà được tạo phòng");
+    }
 
     const body = await request.json();
     const data = roomCreateSchema.parse(body);
@@ -26,6 +29,7 @@ export async function POST(request: NextRequest) {
         latitude: data.latitude,
         longitude: data.longitude,
         ownerId: authUser.userId,
+        status: "DRAFT",
         cleanlinessRequired: data.cleanlinessRequired,
         noiseTolerance: data.noiseTolerance,
         guestPolicy: data.guestPolicy,

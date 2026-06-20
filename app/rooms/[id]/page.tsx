@@ -351,7 +351,7 @@ export default async function RoomDetailPage({
 
   try {
     const { id } = await params;
-    room = await roomService.getById(id);
+    room = await roomService.getPublicById(id);
   } catch {
     notFound();
   }
