@@ -3,6 +3,7 @@ import { z } from "zod";
 import { contractService } from "@/lib/services/contract.service";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse } from "@/lib/api-error";
+import { getRequestMetadata } from "@/lib/request-metadata";
 
 const terminateSchema = z.object({
   terminationReason: z
@@ -52,6 +53,9 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const terminated = await contractService.terminate(id, {
       terminationReason: data.terminationReason,
+      actorId: authUser.userId,
+      role: authUser.role,
+      ...getRequestMetadata(request),
     });
 
     return successResponse(terminated);

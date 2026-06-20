@@ -1,301 +1,215 @@
-'use client';
+"use client";
 
-import { ContractData } from '@/lib/services/contract-client.service';
-import { ContractStatus } from '@prisma/client';
-import {
-  Calendar,
-  DollarSign,
-  FileText,
-  MapPin,
-  Phone,
-  User,
-  AlertCircle,
-  RefreshCw,
-  Trash2,
-  Clock,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import Link from "next/link";
+import { ContractStatus } from "@prisma/client";
+import { AlertCircle, CalendarDays, Check, Circle, FileCheck2, Handshake, KeyRound, Loader2, MapPin, Printer, ReceiptText, ShieldCheck, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { contractClient, ContractData } from "@/lib/services/contract-client.service";
+import { formatRoomArea } from "@/lib/format-room-area";
 
 interface ContractDetailProps {
   contract: ContractData;
+  isHost: boolean;
   onRenew?: () => void;
   onTerminate?: () => void;
-  onDelete?: () => void;
-  isHost?: boolean;
+  onChanged?: (contract: ContractData) => void;
 }
 
-export function ContractDetail({
-  contract,
-  onRenew,
-  onTerminate,
-  onDelete,
-  isHost = false,
-}: ContractDetailProps) {
+const statusLabels: Record<ContractStatus, string> = {
+  DRAFT: "Bản nháp",
+  PENDING_HOST_SIGNATURE: "Chờ chủ nhà ký",
+  PENDING_RENTER_SIGNATURE: "Chờ người thuê ký",
+  PENDING_DEPOSIT: "Chờ xác nhận cọc",
+  PENDING_HANDOVER: "Chờ bàn giao",
+  ACTIVE: "Đang hiệu lực",
+  EXPIRED: "Đã hết hạn",
+  TERMINATED: "Đã chấm dứt",
+  CANCELLED: "Đã hủy",
+  DISPUTED: "Đang tranh chấp",
+};
 
-  const formatDate = (date: string | null) => {
-    if (!date) return 'Chưa cập nhật';
-    return new Date(date).toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+const eventLabels: Record<string, string> = {
+  CONTRACT_CREATED: "Tạo bản nháp hợp đồng",
+  DRAFT_UPDATED: "Cập nhật bản nháp",
+  HOST_SIGNED: "Chủ nhà đã ký",
+  RENTER_SIGNED: "Người thuê đã ký",
+  DEPOSIT_CONFIRMED: "Đã xác nhận tiền cọc",
+  HOST_HANDOVER_CONFIRMED: "Chủ nhà xác nhận bàn giao",
+  RENTER_HANDOVER_CONFIRMED: "Người thuê xác nhận nhận phòng",
+  RENEWAL_RECORDED: "Ghi nhận gia hạn",
+  CONTRACT_TERMINATED: "Chấm dứt hợp đồng",
+};
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(amount);
-  };
+const flow: ContractStatus[] = [
+  ContractStatus.DRAFT,
+  ContractStatus.PENDING_RENTER_SIGNATURE,
+  ContractStatus.PENDING_DEPOSIT,
+  ContractStatus.PENDING_HANDOVER,
+  ContractStatus.ACTIVE,
+];
 
-  const getStatusBadgeColor = (status: ContractStatus) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'bg-green-100 text-green-800';
-      case 'EXPIRED':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'TERMINATED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+function formatDate(value?: string | null) {
+  if (!value) return "Chưa xác nhận";
+  return new Date(value).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function formatCurrency(value: number) {
+  return `${new Intl.NumberFormat("vi-VN").format(value)} đ`;
+}
+
+export function ContractDetail({ contract, isHost, onRenew, onTerminate, onChanged }: ContractDetailProps) {
+  const [signatureName, setSignatureName] = useState("");
+  const [citizenId, setCitizenId] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [informationConfirmed, setInformationConfirmed] = useState(false);
+  const [reference, setReference] = useState("");
+  const [actionNote, setActionNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const canHostSign = isHost && (contract.status === ContractStatus.DRAFT || contract.status === ContractStatus.PENDING_HOST_SIGNATURE);
+  const canRenterSign = !isHost && contract.status === ContractStatus.PENDING_RENTER_SIGNATURE;
+  const canConfirmDeposit = isHost && contract.status === ContractStatus.PENDING_DEPOSIT;
+  const canConfirmHandover = contract.status === ContractStatus.PENDING_HANDOVER && (isHost ? !contract.hostHandoverConfirmedAt : !contract.renterHandoverConfirmedAt);
+  const flowIndex = contract.status === ContractStatus.PENDING_HOST_SIGNATURE ? 0 : flow.indexOf(contract.status);
+  const roomArea = formatRoomArea(contract.room.areaValue, contract.room.areaText);
+
+  async function runAction(action: () => Promise<ContractData>) {
+    setError("");
+    setIsSubmitting(true);
+    try {
+      const updated = await action();
+      setSignatureName("");
+      setCitizenId("");
+      setAcceptedTerms(false);
+      setInformationConfirmed(false);
+      setReference("");
+      setActionNote("");
+      onChanged?.(updated);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Không thể thực hiện thao tác");
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const getStatusLabel = (status: ContractStatus) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'Đang hiệu lực';
-      case 'EXPIRED':
-        return 'Đã hết hạn';
-      case 'TERMINATED':
-        return 'Đã chấm dứt';
-      default:
-        return status;
-    }
-  };
-
-  const daysUntilExpiry = () => {
-    const now = new Date();
-    const endDate = new Date(contract.endDate);
-    const diff = endDate.getTime() - now.getTime();
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return days;
-  };
+  const cardClass = "rounded-lg border border-slate-200 bg-white p-5";
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
+    <div className="space-y-5">
+      <header className="rounded-lg border border-orange-200 bg-gradient-to-r from-orange-50 via-white to-sky-50 p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-foreground">
-              Hợp đồng #{contract.id.slice(0, 8).toUpperCase()}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              Tạo lúc: {formatDate(contract.createdAt)}
-            </p>
+            <p className="text-xs font-bold uppercase tracking-wider text-orange-700">Hợp đồng thuê nhà ở</p>
+            <h2 className="mt-1 text-2xl font-black text-slate-950">{contract.contractNumber}</h2>
+            <p className="mt-2 text-sm text-slate-500">Phiên bản điều khoản {contract.termsVersion}</p>
           </div>
-          <span
-            className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusBadgeColor(
-              contract.status
-            )}`}
-          >
-            {getStatusLabel(contract.status)}
-          </span>
+          <span className="rounded-full bg-slate-950 px-4 py-2 text-sm font-bold text-white">{statusLabels[contract.status]}</span>
         </div>
+        <Link href={`/contracts/${contract.id}/print`} className="mt-5 inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-orange-300 hover:text-orange-700"><Printer className="h-4 w-4" />Xem bản hợp đồng để in</Link>
+      </header>
 
-        {contract.status === 'ACTIVE' && daysUntilExpiry() <= 30 && daysUntilExpiry() > 0 && (
-          <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4 flex gap-3">
-            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-yellow-900">Sắp hết hạn</p>
-              <p className="text-sm text-yellow-800">
-                Hợp đồng này sẽ hết hạn trong {daysUntilExpiry()} ngày
-              </p>
-            </div>
+      {flowIndex >= 0 && (
+        <section className={cardClass}>
+          <div className="grid grid-cols-5 gap-2">
+            {flow.map((status, index) => {
+              const done = index <= flowIndex;
+              return (
+                <div key={status} className="min-w-0 text-center">
+                  <div className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full ${done ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400"}`}>{done ? <Check className="h-4 w-4" /> : <Circle className="h-4 w-4" />}</div>
+                  <p className="mt-2 hidden text-xs font-semibold text-slate-600 sm:block">{statusLabels[status]}</p>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
-
-      {/* Renter Information */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Thông Tin Người Thuê</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex gap-4">
-            {contract.renter.avatarUrl && (
-              <img
-                src={contract.renter.avatarUrl}
-                alt={contract.renter.fullName}
-                className="w-16 h-16 rounded-lg object-cover"
-              />
-            )}
-            <div>
-              <p className="text-sm text-muted-foreground">Họ và tên</p>
-              <p className="font-semibold text-foreground">{contract.renter.fullName}</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Email</p>
-            <p className="font-medium text-foreground">{contract.renter.email}</p>
-          </div>
-          {contract.renter.phone && (
-            <div>
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Số điện thoại
-              </p>
-              <p className="font-medium text-foreground">{contract.renter.phone}</p>
-            </div>
-          )}
-          {contract.renter.gender && (
-            <div>
-              <p className="text-sm text-muted-foreground">Giới tính</p>
-              <p className="font-medium text-foreground">
-                {contract.renter.gender === 'male'
-                  ? 'Nam'
-                  : contract.renter.gender === 'female'
-                    ? 'Nữ'
-                    : 'Khác'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Room Information */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Thông Tin Phòng</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <p className="text-sm text-muted-foreground">Tên phòng</p>
-            <p className="font-semibold text-foreground">{contract.room.title}</p>
-          </div>
-          <div className="flex gap-2">
-            <MapPin className="h-4 w-4 text-slate-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm text-muted-foreground">Địa chỉ</p>
-              <p className="font-medium text-foreground">{contract.room.address}</p>
-            </div>
-          </div>
-          {contract.room.city && (
-            <div>
-              <p className="text-sm text-muted-foreground">Tỉnh/Thành phố</p>
-              <p className="font-medium text-foreground">{contract.room.city}</p>
-            </div>
-          )}
-          {contract.room.district && (
-            <div>
-              <p className="text-sm text-muted-foreground">Quận/Huyện</p>
-              <p className="font-medium text-foreground">{contract.room.district}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Contract Terms */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Dates */}
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-orange-600" />
-            Thời Hạn
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Ngày bắt đầu</p>
-              <p className="font-semibold text-foreground">{formatDate(contract.startDate)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Ngày kết thúc</p>
-              <p className="font-semibold text-foreground">{formatDate(contract.endDate)}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Financial Terms */}
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-orange-600" />
-            Điều Khoản Tài Chính
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Tiền thuê/tháng</p>
-              <p className="font-semibold text-foreground">{formatCurrency(contract.monthlyRent)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Tiền đặt cọc</p>
-              <p className="font-semibold text-foreground">{formatCurrency(contract.depositAmount)}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Renewal Information */}
-      {contract.renewalCount > 0 && (
-        <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
-          <div className="flex items-center gap-2 mb-2">
-            <RefreshCw className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-blue-900">Lịch Sử Gia Hạn</h3>
-          </div>
-          <p className="text-blue-800">
-            Hợp đồng đã được gia hạn <strong>{contract.renewalCount}</strong> lần
-          </p>
-        </div>
+        </section>
       )}
 
-      {/* Termination Information */}
-      {contract.status === 'TERMINATED' && (
-        <div className="bg-red-50 rounded-lg border border-red-200 p-6">
-          <h3 className="text-lg font-semibold text-red-900 mb-4">Thông Tin Chấm Dứt</h3>
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-red-700">Ngày chấm dứt</p>
-              <p className="font-medium text-red-900">{formatDate(contract.terminatedAt)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-red-700">Lý do chấm dứt</p>
-              <p className="font-medium text-red-900">{contract.terminationReason}</p>
-            </div>
+      <section className="grid gap-5 md:grid-cols-2">
+        <div className={cardClass}>
+          <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-900"><UserRound className="h-5 w-5 text-orange-600" />Các bên tham gia</h3>
+          <div className="space-y-4 text-sm">
+            <div><p className="text-slate-500">Bên cho thuê</p><p className="font-semibold text-slate-900">{contract.host.fullName}</p><p className="text-slate-600">{contract.host.phone || contract.host.email}</p></div>
+            <div><p className="text-slate-500">Bên thuê</p><p className="font-semibold text-slate-900">{contract.renter.fullName}</p><p className="text-slate-600">{contract.renter.phone || contract.renter.email}</p></div>
           </div>
         </div>
+        <div className={cardClass}>
+          <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-900"><MapPin className="h-5 w-5 text-orange-600" />Nhà ở cho thuê</h3>
+          <p className="font-semibold text-slate-900">{contract.room.title}</p>
+          <p className="mt-1 text-sm text-slate-600">{contract.room.address}</p>
+          <p className="mt-3 text-sm text-slate-500">Mục đích: thuê để ở{roomArea ? ` • ${roomArea}` : ""}</p>
+        </div>
+      </section>
+
+      <section className="grid gap-5 md:grid-cols-2">
+        <div className={cardClass}>
+          <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-900"><CalendarDays className="h-5 w-5 text-sky-600" />Thời hạn</h3>
+          <dl className="grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-500">Bắt đầu</dt><dd className="mt-1 font-semibold">{formatDate(contract.startDate)}</dd></div><div><dt className="text-slate-500">Kết thúc</dt><dd className="mt-1 font-semibold">{formatDate(contract.endDate)}</dd></div><div><dt className="text-slate-500">Báo trước</dt><dd className="mt-1 font-semibold">{contract.noticeDays} ngày</dd></div></dl>
+        </div>
+        <div className={cardClass}>
+          <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-900"><ReceiptText className="h-5 w-5 text-emerald-600" />Tài chính</h3>
+          <dl className="grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-500">Tiền thuê</dt><dd className="mt-1 font-semibold">{formatCurrency(contract.monthlyRent)}</dd></div><div><dt className="text-slate-500">Tiền cọc</dt><dd className="mt-1 font-semibold">{formatCurrency(contract.depositAmount)}</dd></div><div><dt className="text-slate-500">Hạn thanh toán</dt><dd className="mt-1 font-semibold">Ngày {contract.paymentDueDay} hàng tháng</dd></div><div><dt className="text-slate-500">Hoàn cọc</dt><dd className="mt-1 font-semibold">Trong {contract.depositReturnDays} ngày</dd></div></dl>
+        </div>
+      </section>
+
+      <section className={cardClass}>
+        <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-900"><FileCheck2 className="h-5 w-5 text-orange-600" />Điều khoản sử dụng và bàn giao</h3>
+        <div className="grid gap-5 text-sm md:grid-cols-2">
+          <div><p className="font-semibold text-slate-700">Điện, nước và dịch vụ</p><p className="mt-2 whitespace-pre-wrap leading-6 text-slate-600">Điện: {contract.electricityRate ? `${formatCurrency(contract.electricityRate)}/kWh` : "theo thỏa thuận"}<br />Nước: {contract.waterRate ? formatCurrency(contract.waterRate) : "theo thỏa thuận"}<br />{contract.utilitiesNotes}</p></div>
+          <div><p className="font-semibold text-slate-700">Nội quy</p><p className="mt-2 whitespace-pre-wrap leading-6 text-slate-600">{contract.houseRules || "Không có nội quy bổ sung."}</p></div>
+        </div>
+        {!!contract.inventory?.length && <div className="mt-5 border-t border-slate-100 pt-5"><p className="mb-2 font-semibold text-slate-700">Tài sản bàn giao</p><ul className="grid gap-2 text-sm text-slate-600 md:grid-cols-2">{contract.inventory.map((item, index) => <li key={`${item.name}-${index}`}>{item.name} • {item.quantity} • {item.condition || "Chưa ghi tình trạng"}</li>)}</ul></div>}
+      </section>
+
+      <section className={cardClass}>
+        <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-900"><ShieldCheck className="h-5 w-5 text-emerald-600" />Xác nhận của các bên</h3>
+        <div className="grid gap-4 text-sm md:grid-cols-2">
+          <div className="border-l-4 border-orange-400 pl-4"><p className="font-semibold">Chủ nhà</p><p className="text-slate-600">{contract.hostSignatureName || "Chưa ký"}</p><p className="text-xs text-slate-500">{formatDate(contract.hostSignedAt)}</p></div>
+          <div className="border-l-4 border-sky-400 pl-4"><p className="font-semibold">Người thuê</p><p className="text-slate-600">{contract.renterSignatureName || "Chưa ký"}</p><p className="text-xs text-slate-500">{formatDate(contract.renterSignedAt)}</p></div>
+        </div>
+        <p className="mt-5 break-all border-t border-slate-100 pt-4 font-mono text-xs text-slate-400">SHA-256: {contract.contentHash}</p>
+      </section>
+
+      {(canHostSign || canRenterSign) && (
+        <section className="rounded-lg border border-orange-200 bg-orange-50 p-5">
+          <h3 className="font-bold text-slate-900">Ký xác nhận hợp đồng</h3>
+          <input className="mt-4 w-full rounded-lg border border-orange-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-200" value={signatureName} onChange={(event) => setSignatureName(event.target.value)} placeholder="Nhập đúng họ và tên trên tài khoản" />
+          <input className="mt-3 w-full rounded-lg border border-orange-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-200" inputMode="numeric" maxLength={12} value={citizenId} onChange={(event) => setCitizenId(event.target.value.replace(/\D/g, ""))} placeholder="Số căn cước công dân (12 chữ số)" />
+          <label className="mt-4 flex gap-3 text-sm text-slate-700"><input type="checkbox" checked={informationConfirmed} onChange={(event) => setInformationConfirmed(event.target.checked)} />Tôi xác nhận thông tin các bên, phòng, giá thuê và thời hạn là chính xác.</label>
+          <label className="mt-3 flex gap-3 text-sm text-slate-700"><input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} />Tôi đã đọc, hiểu và tự nguyện đồng ý toàn bộ điều khoản hợp đồng.</label>
+          <Button className="mt-4 bg-orange-600 text-white hover:bg-orange-700" disabled={isSubmitting || !signatureName || citizenId.length !== 12 || !acceptedTerms || !informationConfirmed} onClick={() => runAction(() => contractClient.sign(contract.id, { signatureName, citizenId, acceptedTerms: true, informationConfirmed: true }))}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Ký hợp đồng</Button>
+        </section>
       )}
 
-      {/* Notes */}
-      {contract.notes && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-slate-600" />
-            Ghi Chú
-          </h3>
-          <p className="text-foreground whitespace-pre-wrap">{contract.notes}</p>
-        </div>
+      {canConfirmDeposit && (
+        <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
+          <h3 className="font-bold text-slate-900">Xác nhận đã nhận tiền cọc</h3>
+          <p className="mt-1 text-sm text-slate-600">Số tiền cần xác nhận: {formatCurrency(contract.depositAmount)}</p>
+          <input className="mt-4 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2.5 text-sm" value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Mã giao dịch hoặc số biên nhận" />
+          <Button className="mt-4 bg-emerald-700 text-white hover:bg-emerald-800" disabled={isSubmitting} onClick={() => runAction(() => contractClient.confirmDeposit(contract.id, { received: true, reference: reference || undefined }))}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Xác nhận tiền cọc</Button>
+        </section>
       )}
 
-      {/* Actions */}
-      {isHost && contract.status === 'ACTIVE' && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6 flex gap-3">
-          {onRenew && (
-            <Button
-              onClick={onRenew}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Gia Hạn Hợp Đồng
-            </Button>
-          )}
-          {onTerminate && (
-            <Button
-              onClick={onTerminate}
-              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center gap-2"
-            >
-              <AlertCircle className="h-4 w-4" />
-              Chấm Dứt Hợp Đồng
-            </Button>
-          )}
-        </div>
+      {canConfirmHandover && (
+        <section className="rounded-lg border border-sky-200 bg-sky-50 p-5">
+          <h3 className="flex items-center gap-2 font-bold text-slate-900"><KeyRound className="h-5 w-5" />{isHost ? "Xác nhận đã bàn giao phòng" : "Xác nhận đã nhận phòng"}</h3>
+          <textarea className="mt-4 w-full resize-none rounded-lg border border-sky-200 bg-white px-3 py-2.5 text-sm" rows={3} value={actionNote} onChange={(event) => setActionNote(event.target.value)} placeholder="Ghi chỉ số điện nước, tình trạng phòng hoặc lưu ý bàn giao" />
+          <Button className="mt-4 bg-sky-700 text-white hover:bg-sky-800" disabled={isSubmitting} onClick={() => runAction(() => contractClient.confirmHandover(contract.id, { confirmed: true, note: actionNote || undefined }))}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Xác nhận bàn giao</Button>
+        </section>
+      )}
+
+      {error && <div className="flex gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"><AlertCircle className="h-5 w-5 shrink-0" />{error}</div>}
+
+      {!!contract.events?.length && (
+        <section className={cardClass}>
+          <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-900"><Handshake className="h-5 w-5 text-slate-600" />Lịch sử hợp đồng</h3>
+          <div className="space-y-4 border-l border-slate-200 pl-5">{contract.events.map((event) => <div key={event.id}><p className="text-sm font-semibold text-slate-800">{eventLabels[event.type] || event.type}</p><p className="text-xs text-slate-500">{event.actor?.fullName || "Hệ thống"} • {formatDate(event.createdAt)}</p>{event.note && <p className="mt-1 text-sm text-slate-600">{event.note}</p>}</div>)}</div>
+        </section>
+      )}
+
+      {contract.status === ContractStatus.ACTIVE && isHost && (
+        <div className="flex gap-3">{onRenew && <Button variant="outline" onClick={onRenew}>Gia hạn</Button>}{onTerminate && <Button className="bg-red-600 text-white hover:bg-red-700" onClick={onTerminate}>Chấm dứt hợp đồng</Button>}</div>
       )}
     </div>
   );

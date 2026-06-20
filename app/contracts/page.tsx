@@ -6,6 +6,29 @@ import { Footer } from '@/components/Footer';
 import { contractClient, ContractData } from '@/lib/services/contract-client.service';
 import { ContractDetail } from '@/app/host/contracts/contract-detail';
 import { Loader2 } from 'lucide-react';
+import { ContractStatus } from '@prisma/client';
+
+const statusLabels: Record<ContractStatus, string> = {
+  DRAFT: 'Bản nháp',
+  PENDING_HOST_SIGNATURE: 'Chờ chủ nhà ký',
+  PENDING_RENTER_SIGNATURE: 'Chờ bạn ký',
+  PENDING_DEPOSIT: 'Chờ xác nhận cọc',
+  PENDING_HANDOVER: 'Chờ bàn giao',
+  ACTIVE: 'Đang hiệu lực',
+  EXPIRED: 'Đã hết hạn',
+  TERMINATED: 'Đã chấm dứt',
+  CANCELLED: 'Đã hủy',
+  DISPUTED: 'Đang tranh chấp',
+};
+
+function statusClass(status: ContractStatus) {
+  if (status === 'ACTIVE') return 'bg-green-100 text-green-800';
+  if (status === 'PENDING_HANDOVER') return 'bg-sky-100 text-sky-800';
+  if (status === 'PENDING_DEPOSIT') return 'bg-amber-100 text-amber-800';
+  if (status === 'PENDING_RENTER_SIGNATURE') return 'bg-violet-100 text-violet-800';
+  if (status === 'DRAFT' || status === 'PENDING_HOST_SIGNATURE') return 'bg-slate-100 text-slate-700';
+  return 'bg-red-100 text-red-800';
+}
 
 export default function CustomerContractsPage() {
   const [contracts, setContracts] = useState<ContractData[]>([]);
@@ -19,15 +42,10 @@ export default function CustomerContractsPage() {
       setError('');
       try {
         const response = await contractClient.getAll({ limit: 100 });
-            console.log("Contracts:", contracts);
-console.log("Count:", contracts.length);
-        if (response.error) {
-          throw new Error(response.error);
-        }
-
         setContracts(response.contracts || []);
         if (response.contracts?.length > 0) {
-          setSelectedContract(response.contracts[0]);
+          const firstContract = await contractClient.getById(response.contracts[0].id);
+          setSelectedContract(firstContract);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Không thể tải danh sách hợp đồng');
@@ -45,6 +63,20 @@ console.log("Count:", contracts.length);
       month: '2-digit',
       year: 'numeric',
     });
+  };
+
+  const selectContract = async (contract: ContractData) => {
+    try {
+      setSelectedContract(await contractClient.getById(contract.id));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể tải hợp đồng');
+    }
+  };
+
+  const handleChanged = (updated: ContractData) => {
+    setSelectedContract(updated);
+    setContracts((items) => items.map((item) => item.id === updated.id ? updated : item));
+    selectContract(updated);
   };
 
   return (
@@ -87,7 +119,7 @@ console.log("Count:", contracts.length);
                     {contracts.map((contract) => (
                       <button
                         key={contract.id}
-                        onClick={() => setSelectedContract(contract)}
+                        onClick={() => selectContract(contract)}
                         className={`w-full text-left p-3 rounded-lg transition-all ${
                           selectedContract?.id === contract.id
                             ? 'bg-orange-100 border border-orange-300'
@@ -102,19 +134,9 @@ console.log("Count:", contracts.length);
                         </div>
                         <div className="text-xs mt-1">
                           <span
-                            className={`px-2 py-0.5 rounded-full ${
-                              contract.status === 'ACTIVE'
-                                ? 'bg-green-100 text-green-800'
-                                : contract.status === 'EXPIRED'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                            }`}
+                            className={`px-2 py-0.5 rounded-full ${statusClass(contract.status)}`}
                           >
-                            {contract.status === 'ACTIVE'
-                              ? 'Đang hiệu lực'
-                              : contract.status === 'EXPIRED'
-                                ? 'Đã hết hạn'
-                                : 'Đã chấm dứt'}
+                            {statusLabels[contract.status]}
                           </span>
                         </div>
                       </button>
@@ -126,7 +148,7 @@ console.log("Count:", contracts.length);
               {/* Contract Detail */}
               <div className="lg:col-span-2">
                 {selectedContract && (
-                  <ContractDetail contract={selectedContract} isHost={false} />
+                  <ContractDetail contract={selectedContract} isHost={false} onChanged={handleChanged} />
                 )}
               </div>
             </div>
