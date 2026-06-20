@@ -13,7 +13,7 @@ interface Room {
   price: number
   address: string
   image: string[]
-  status: 'AVAILABLE' | 'OCCUPIED' | 'PENDING' | 'HIDDEN'
+  status: 'DRAFT' | 'AVAILABLE' | 'OCCUPIED' | 'PENDING' | 'NEEDS_REVISION' | 'REJECTED' | 'HIDDEN'
   amenityIds: string[]
   createdAt: string
 }
@@ -26,6 +26,12 @@ const getStatusColor = (status: string) => {
       return 'bg-rose-100 text-rose-700 ring-1 ring-rose-200'
     case 'PENDING':
       return 'bg-amber-100 text-amber-700 ring-1 ring-amber-200'
+    case 'DRAFT':
+      return 'bg-sky-100 text-sky-700 ring-1 ring-sky-200'
+    case 'NEEDS_REVISION':
+      return 'bg-violet-100 text-violet-700 ring-1 ring-violet-200'
+    case 'REJECTED':
+      return 'bg-red-100 text-red-700 ring-1 ring-red-200'
     case 'HIDDEN':
       return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
     default:
@@ -41,6 +47,12 @@ const getStatusLabel = (status: string) => {
       return 'Đã thuê'
     case 'PENDING':
       return 'Chờ duyệt'
+    case 'DRAFT':
+      return 'Bản nháp'
+    case 'NEEDS_REVISION':
+      return 'Cần bổ sung'
+    case 'REJECTED':
+      return 'Bị từ chối'
     case 'HIDDEN':
       return 'Đang ẩn'
     default:

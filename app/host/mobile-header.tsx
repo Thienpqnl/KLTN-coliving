@@ -11,9 +11,7 @@ import {
   BedDouble,
   CalendarCheck,
   Receipt,
-  MessageSquare,
   Star,
-  BarChart3,
   Plus,
   Settings,
   HelpCircle,
@@ -32,8 +30,6 @@ const navItems = [
   { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
   { label: "Đánh giá", icon: <Star className="h-4 w-4" />, href: "/host/reviews" },
   { label: "Giao dịch", icon: <Receipt className="h-4 w-4" />, href: "/transactions" },
-  { label: "Tin nhắn", icon: <MessageSquare className="h-4 w-4" />, href: "/chat" },
-  { label: "Phân tích", icon: <BarChart3 className="h-4 w-4" />, href: "/analytics" },
 ]
 
 export function MobileHeader() {

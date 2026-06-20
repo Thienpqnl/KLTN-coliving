@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     // Lấy chi tiết các phòng từ database
     const roomIds = recommendations.map((r: any) => r.roomId);
     const rooms = await prisma.room.findMany({
-      where: { id: { in: roomIds } },
+      where: { id: { in: roomIds }, status: "AVAILABLE" },
       include: {
         amenities: { include: { amenity: true } },
         images: true,

@@ -104,10 +104,21 @@ export const roomService = {
         areaValue: data.area ? new Prisma.Decimal(String(data.area).replace(/[^\d.,]/g, "").replace(",", ".") || "0") : null,
         address: data.address,
         ownerId: data.ownerId,
+        status: "DRAFT",
 
         latitude: data.latitude,
 
         longitude: data.longitude,
+        cleanlinessRequired: data.cleanlinessRequired,
+        noiseTolerance: data.noiseTolerance,
+        guestPolicy: data.guestPolicy,
+        preferredSleepHabit: data.preferredSleepHabit,
+        preferredOccupation: data.preferredOccupation,
+        curfewPolicy: data.curfewPolicy,
+        maxOccupants: data.maxOccupants,
+        preferredGender: data.preferredGender,
+        allowSmoking: data.allowSmoking,
+        allowPets: data.allowPets,
         images: {
           create: imageArray.map((url, index) => ({
             url,
@@ -180,11 +191,28 @@ getAllByOwnerId: async (ownerId: string) => {
     return normalizeRoom(room);
   },
 
+  getPublicById: async (id: string) => {
+    const room = await prisma.room.findFirst({
+      where: { id, status: "AVAILABLE" },
+      include: {
+        ...roomInclude,
+        reviews: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+          },
+        },
+      },
+    });
+
+    if (!room) throw new ApiError(404, "Room not found");
+    return normalizeRoom(room);
+  },
+
   // Get all rooms with filters (old, for reference)
   getAll: async (filters?: RoomFilter) => {
     const rooms = await prisma.room.findMany({
       where: {
-        ...(filters?.status && { status: filters.status }),
+        status: "AVAILABLE",
         ...(filters?.minPrice && { priceValue: { gte: filters.minPrice } }),
         ...(filters?.maxPrice && { priceValue: { lte: filters.maxPrice } }),
         ...(filters?.ownerId && { ownerId: filters.ownerId }),
@@ -215,7 +243,7 @@ getAllByOwnerId: async (ownerId: string) => {
     sortBy?: string
   ) => {
     const where: Prisma.RoomWhereInput = {
-      ...(filters?.status && { status: filters.status }),
+      status: "AVAILABLE",
       ...(filters?.minPrice && { priceValue: { gte: filters.minPrice } }),
       ...(filters?.maxPrice && { priceValue: { lte: filters.maxPrice } }),
       ...(filters?.ownerId && { ownerId: filters.ownerId }),
@@ -306,6 +334,16 @@ getAllByOwnerId: async (ownerId: string) => {
     if (data.allowSmoking !== undefined) updateData.allowSmoking = data.allowSmoking;
     if (data.allowPets !== undefined) updateData.allowPets = data.allowPets;
 
+    const currentRoom = await prisma.room.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    const requiresReview = currentRoom?.status === "AVAILABLE";
+
+    if (requiresReview) {
+      updateData.status = "PENDING";
+    }
+
     const room = await prisma.room.update({
       where: { id },
       data: updateData,
@@ -347,6 +385,25 @@ getAllByOwnerId: async (ownerId: string) => {
           )
         );
       }
+    }
+
+    if (requiresReview) {
+      await prisma.roomVerification.upsert({
+        where: { roomId: id },
+        create: { roomId: id, submittedAt: new Date() },
+        update: {
+          submittedAt: new Date(),
+          reviewedAt: null,
+          reviewerId: null,
+          revisionReason: null,
+          rejectionReason: null,
+          identityPassed: false,
+          ownershipPassed: false,
+          addressPassed: false,
+          imagesPassed: false,
+          detailsPassed: false,
+        },
+      });
     }
 
     return normalizeRoom(room);

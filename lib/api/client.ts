@@ -55,7 +55,7 @@ if (token) {
       status: response.status,
       data,
     });
-    throw new ApiError(data.message || "API Error", response.status);
+    throw new ApiError(data.error || data.message || "API Error", response.status);
   }
   
   // Nếu response có cấu trúc ApiResponse, trả về data
@@ -71,14 +71,14 @@ if (token) {
     return this.request<T>(endpoint, { method: "GET" });
   }
 
-  post<T>(endpoint: string, body: any) {
+  post<T>(endpoint: string, body: unknown) {
     return this.request<T>(endpoint, {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
-  put<T>(endpoint: string, body: any) {
+  put<T>(endpoint: string, body: unknown) {
     return this.request<T>(endpoint, {
       method: "PUT",
       body: JSON.stringify(body),
