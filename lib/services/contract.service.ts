@@ -11,6 +11,7 @@ const contractInclude = {
       id: true,
       title: true,
       address: true,
+      areaText: true,
       areaValue: true,
       priceValue: true,
       city: true,
@@ -107,6 +108,7 @@ export interface ActionContext {
 
 export interface SignContractData extends ActionContext {
   signatureName: string;
+  citizenId: string;
 }
 
 export interface ConfirmDepositData extends ActionContext {
@@ -149,6 +151,7 @@ type SnapshotSource = {
     id: string;
     title: string;
     address: string;
+    areaText: string | null;
     areaValue: Prisma.Decimal | null;
     city: string | null;
     district: string | null;
@@ -186,7 +189,8 @@ function buildSnapshot(source: SnapshotSource): Prisma.InputJsonObject {
       id: source.room.id,
       title: source.room.title,
       address: source.room.address,
-      areaSquareMeters: source.room.areaValue?.toString() ?? null,
+      areaSquareMeters: source.room.areaValue?.toString() ?? source.room.areaText ?? null,
+      areaText: source.room.areaText,
       city: source.room.city,
       district: source.room.district,
       maxOccupants: source.room.maxOccupants,
@@ -234,6 +238,14 @@ function assertSignatureName(expected: string, actual: string) {
   if (normalizedName(expected) !== normalizedName(actual)) {
     throw new ApiError(400, "Họ tên xác nhận phải trùng với họ tên tài khoản");
   }
+}
+
+function normalizeCitizenId(value: string) {
+  const citizenId = value.replace(/\s+/g, "");
+  if (!/^\d{12}$/.test(citizenId)) {
+    throw new ApiError(400, "Số căn cước công dân phải gồm đúng 12 chữ số");
+  }
+  return citizenId;
 }
 
 async function syncRoomOccupants(tx: Prisma.TransactionClient, roomId: string) {
@@ -309,7 +321,7 @@ export const contractService = {
       const [room, host, renter] = await Promise.all([
         tx.room.findUnique({
           where: { id: data.roomId },
-          select: { id: true, title: true, address: true, areaValue: true, city: true, district: true, maxOccupants: true, ownerId: true },
+          select: { id: true, title: true, address: true, areaText: true, areaValue: true, city: true, district: true, maxOccupants: true, ownerId: true },
         }),
         tx.user.findUnique({ where: { id: data.hostId }, select: { id: true, fullName: true, email: true, phone: true, address: true } }),
         tx.user.findUnique({ where: { id: data.renterId }, select: { id: true, fullName: true, email: true, phone: true, address: true } }),
@@ -443,6 +455,7 @@ export const contractService = {
       if (!contract) throw new ApiError(404, "Không tìm thấy hợp đồng");
 
       const now = new Date();
+      const citizenId = normalizeCitizenId(data.citizenId);
       const fromStatus = contract.status;
       let toStatus: ContractStatus;
       let update: Prisma.ContractUpdateInput;
@@ -485,6 +498,7 @@ export const contractService = {
           type: data.role === "HOST" ? "HOST_SIGNED" : "RENTER_SIGNED",
           fromStatus,
           toStatus,
+          metadata: { citizenId },
           ipAddress: data.ipAddress,
           userAgent: data.userAgent,
         },

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Loader2, Printer } from "lucide-react";
 import { ContractData, contractClient } from "@/lib/services/contract-client.service";
+import { formatRoomArea } from "@/lib/format-room-area";
 
 function formatDate(value?: string | null) {
   if (!value) return "Chưa xác nhận";
@@ -33,6 +34,12 @@ function numberInWords(value: number) {
   return value === 0 ? "Không đồng" : "Theo số tiền bằng số nêu trên";
 }
 
+function signingCitizenId(contract: ContractData, type: "HOST_SIGNED" | "RENTER_SIGNED") {
+  const event = contract.events?.find((item) => item.type === type);
+  const value = event?.metadata?.citizenId;
+  return typeof value === "string" ? value : "Chưa cung cấp";
+}
+
 export default function PrintableContractPage() {
   const params = useParams<{ id: string }>();
   const [contract, setContract] = useState<ContractData | null>(null);
@@ -53,6 +60,9 @@ export default function PrintableContractPage() {
   }
 
   const isDraft = contract.status === "DRAFT" || contract.status === "PENDING_HOST_SIGNATURE";
+  const roomArea = formatRoomArea(contract.room.areaValue, contract.room.areaText);
+  const hostCitizenId = signingCitizenId(contract, "HOST_SIGNED");
+  const renterCitizenId = signingCitizenId(contract, "RENTER_SIGNED");
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8 print:bg-white print:p-0">
@@ -86,11 +96,13 @@ export default function PrintableContractPage() {
         <section className="mt-4">
           <h2 className="font-bold uppercase">Bên cho thuê (Bên A)</h2>
           <p>Họ và tên: <strong>{contract.host.fullName}</strong></p>
+          <p>Số căn cước công dân: <strong>{hostCitizenId}</strong></p>
           <p>Địa chỉ: {contract.host.address || "Theo hồ sơ tài khoản đã xác minh"}</p>
           <p>Điện thoại: {contract.host.phone || "Chưa cung cấp"} | Email: {contract.host.email}</p>
 
           <h2 className="mt-4 font-bold uppercase">Bên thuê (Bên B)</h2>
           <p>Họ và tên: <strong>{contract.renter.fullName}</strong></p>
+          <p>Số căn cước công dân: <strong>{renterCitizenId}</strong></p>
           <p>Địa chỉ: {contract.renter.address || "Theo hồ sơ tài khoản"}</p>
           <p>Điện thoại: {contract.renter.phone || "Chưa cung cấp"} | Email: {contract.renter.email}</p>
         </section>
@@ -98,7 +110,7 @@ export default function PrintableContractPage() {
         <section className="mt-5">
           <h2 className="font-bold uppercase">Điều 1. Nhà ở cho thuê và mục đích sử dụng</h2>
           <p>1. Bên A đồng ý cho Bên B thuê phòng “{contract.room.title}” tại địa chỉ: {contract.room.address}.</p>
-          <p>2. Diện tích: {contract.room.areaValue ? `${contract.room.areaValue} m²` : "theo hiện trạng bàn giao"}. Mục đích sử dụng: để ở; không sử dụng vào hoạt động trái pháp luật.</p>
+          <p>2. Diện tích: {roomArea || "theo hiện trạng bàn giao"}. Mục đích sử dụng: để ở; không sử dụng vào hoạt động trái pháp luật.</p>
           <p>3. Số người ở không vượt quá {contract.room.maxOccupants || 1} người, trừ khi hai bên có thỏa thuận khác bằng văn bản.</p>
         </section>
 

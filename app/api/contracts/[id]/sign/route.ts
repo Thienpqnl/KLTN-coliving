@@ -7,6 +7,7 @@ import { getRequestMetadata } from "@/lib/request-metadata";
 
 const schema = z.object({
   signatureName: z.string().trim().min(2, "Vui lòng nhập đầy đủ họ tên"),
+  citizenId: z.string().regex(/^\d{12}$/, "Số căn cước công dân phải gồm đúng 12 chữ số"),
   acceptedTerms: z.literal(true, { error: "Bạn phải đồng ý toàn bộ điều khoản hợp đồng" }),
   informationConfirmed: z.literal(true, { error: "Bạn phải xác nhận thông tin là chính xác" }),
 });
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       actorId: authUser.userId,
       role: authUser.role,
       signatureName: data.signatureName,
+      citizenId: data.citizenId,
       ...getRequestMetadata(request),
     });
     return successResponse(contract);

@@ -6,6 +6,7 @@ import { ContractStatus } from "@prisma/client";
 import { AlertCircle, CalendarDays, Check, Circle, FileCheck2, Handshake, KeyRound, Loader2, MapPin, Printer, ReceiptText, ShieldCheck, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { contractClient, ContractData } from "@/lib/services/contract-client.service";
+import { formatRoomArea } from "@/lib/format-room-area";
 
 interface ContractDetailProps {
   contract: ContractData;
@@ -59,6 +60,7 @@ function formatCurrency(value: number) {
 
 export function ContractDetail({ contract, isHost, onRenew, onTerminate, onChanged }: ContractDetailProps) {
   const [signatureName, setSignatureName] = useState("");
+  const [citizenId, setCitizenId] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [informationConfirmed, setInformationConfirmed] = useState(false);
   const [reference, setReference] = useState("");
@@ -71,6 +73,7 @@ export function ContractDetail({ contract, isHost, onRenew, onTerminate, onChang
   const canConfirmDeposit = isHost && contract.status === ContractStatus.PENDING_DEPOSIT;
   const canConfirmHandover = contract.status === ContractStatus.PENDING_HANDOVER && (isHost ? !contract.hostHandoverConfirmedAt : !contract.renterHandoverConfirmedAt);
   const flowIndex = contract.status === ContractStatus.PENDING_HOST_SIGNATURE ? 0 : flow.indexOf(contract.status);
+  const roomArea = formatRoomArea(contract.room.areaValue, contract.room.areaText);
 
   async function runAction(action: () => Promise<ContractData>) {
     setError("");
@@ -78,6 +81,7 @@ export function ContractDetail({ contract, isHost, onRenew, onTerminate, onChang
     try {
       const updated = await action();
       setSignatureName("");
+      setCitizenId("");
       setAcceptedTerms(false);
       setInformationConfirmed(false);
       setReference("");
@@ -134,7 +138,7 @@ export function ContractDetail({ contract, isHost, onRenew, onTerminate, onChang
           <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-900"><MapPin className="h-5 w-5 text-orange-600" />Nhà ở cho thuê</h3>
           <p className="font-semibold text-slate-900">{contract.room.title}</p>
           <p className="mt-1 text-sm text-slate-600">{contract.room.address}</p>
-          <p className="mt-3 text-sm text-slate-500">Mục đích: thuê để ở{contract.room.areaValue ? ` • ${contract.room.areaValue} m²` : ""}</p>
+          <p className="mt-3 text-sm text-slate-500">Mục đích: thuê để ở{roomArea ? ` • ${roomArea}` : ""}</p>
         </div>
       </section>
 
@@ -171,9 +175,10 @@ export function ContractDetail({ contract, isHost, onRenew, onTerminate, onChang
         <section className="rounded-lg border border-orange-200 bg-orange-50 p-5">
           <h3 className="font-bold text-slate-900">Ký xác nhận hợp đồng</h3>
           <input className="mt-4 w-full rounded-lg border border-orange-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-200" value={signatureName} onChange={(event) => setSignatureName(event.target.value)} placeholder="Nhập đúng họ và tên trên tài khoản" />
+          <input className="mt-3 w-full rounded-lg border border-orange-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-200" inputMode="numeric" maxLength={12} value={citizenId} onChange={(event) => setCitizenId(event.target.value.replace(/\D/g, ""))} placeholder="Số căn cước công dân (12 chữ số)" />
           <label className="mt-4 flex gap-3 text-sm text-slate-700"><input type="checkbox" checked={informationConfirmed} onChange={(event) => setInformationConfirmed(event.target.checked)} />Tôi xác nhận thông tin các bên, phòng, giá thuê và thời hạn là chính xác.</label>
           <label className="mt-3 flex gap-3 text-sm text-slate-700"><input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} />Tôi đã đọc, hiểu và tự nguyện đồng ý toàn bộ điều khoản hợp đồng.</label>
-          <Button className="mt-4 bg-orange-600 text-white hover:bg-orange-700" disabled={isSubmitting || !signatureName || !acceptedTerms || !informationConfirmed} onClick={() => runAction(() => contractClient.sign(contract.id, { signatureName, acceptedTerms: true, informationConfirmed: true }))}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Ký hợp đồng</Button>
+          <Button className="mt-4 bg-orange-600 text-white hover:bg-orange-700" disabled={isSubmitting || !signatureName || citizenId.length !== 12 || !acceptedTerms || !informationConfirmed} onClick={() => runAction(() => contractClient.sign(contract.id, { signatureName, citizenId, acceptedTerms: true, informationConfirmed: true }))}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Ký hợp đồng</Button>
         </section>
       )}
 

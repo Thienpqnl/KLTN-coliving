@@ -6,6 +6,7 @@ export interface ContractEventData {
   fromStatus: ContractStatus | null;
   toStatus: ContractStatus | null;
   note: string | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   actor?: { id: string; fullName: string; role: string } | null;
 }
@@ -57,6 +58,7 @@ export interface ContractData {
     title: string;
     address: string;
     priceValue: number | string | null;
+    areaText?: string | null;
     areaValue?: number | string | null;
     city?: string | null;
     district?: string | null;
@@ -105,7 +107,7 @@ export interface UpdateContractPayload extends Partial<Omit<CreateContractPayloa
 
 export interface RenewContractPayload { newEndDate: string; newMonthlyRent?: number }
 export interface TerminateContractPayload { terminationReason: string }
-export interface SignContractPayload { signatureName: string; acceptedTerms: true; informationConfirmed: true }
+export interface SignContractPayload { signatureName: string; citizenId: string; acceptedTerms: true; informationConfirmed: true }
 export interface ConfirmDepositPayload { received: true; reference?: string; note?: string }
 export interface ConfirmHandoverPayload { confirmed: true; note?: string }
 
