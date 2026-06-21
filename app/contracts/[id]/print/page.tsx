@@ -26,6 +26,11 @@ function formatDateTime(value?: string | null) {
   });
 }
 
+function formatLegalDate(value: string) {
+  const date = new Date(value);
+  return `ngày ${date.getDate()} tháng ${date.getMonth() + 1} năm ${date.getFullYear()}`;
+}
+
 function money(value: number) {
   return `${new Intl.NumberFormat("vi-VN").format(value)} đồng`;
 }
@@ -63,6 +68,7 @@ export default function PrintableContractPage() {
   const roomArea = formatRoomArea(contract.room.areaValue, contract.room.areaText);
   const hostCitizenId = signingCitizenId(contract, "HOST_SIGNED");
   const renterCitizenId = signingCitizenId(contract, "RENTER_SIGNED");
+  const establishedDate = contract.renterSignedAt || contract.hostSignedAt || contract.createdAt;
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8 print:bg-white print:p-0">
@@ -91,7 +97,7 @@ export default function PrintableContractPage() {
           <p className="mt-1">Căn cứ Bộ luật Dân sự 2015 và Luật Nhà ở 2023 số 27/2023/QH15</p>
         </div>
 
-        <p className="mt-6">Hôm nay, các bên tự nguyện xác lập hợp đồng thuê nhà ở với nội dung sau:</p>
+        <p className="mt-6">Hôm nay, {formatLegalDate(establishedDate)}, các bên tự nguyện xác lập hợp đồng thuê nhà ở với nội dung sau:</p>
 
         <section className="mt-4">
           <h2 className="font-bold uppercase">Bên cho thuê (Bên A)</h2>

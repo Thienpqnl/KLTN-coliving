@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 
 type BookingRequestFormProps = {
   roomId: string;
+  isRoomFull?: boolean;
 };
 
 function addMonths(dateValue: string, months: number) {
@@ -27,6 +28,10 @@ function getBookingErrorMessage(message: unknown) {
     return 'Phòng này hiện không khả dụng để đặt.';
   }
 
+  if (message.includes('đã đủ')) {
+    return 'Phòng đã đủ số người tối đa và không thể nhận thêm yêu cầu đặt phòng.';
+  }
+
   if (message.includes('already booked')) {
     return 'Phòng này đã có yêu cầu đặt trong khoảng thời gian bạn chọn.';
   }
@@ -38,7 +43,7 @@ function getBookingErrorMessage(message: unknown) {
   return message;
 }
 
-export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
+export function BookingRequestForm({ roomId, isRoomFull = false }: BookingRequestFormProps) {
   const { user, token, isLoading } = useAuth();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [fullName, setFullName] = useState('');
@@ -64,6 +69,10 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
     setError(null);
 
     try {
+      if (isRoomFull) {
+        throw new Error('Phòng đã đủ số người tối đa và không thể nhận thêm yêu cầu đặt phòng.');
+      }
+
       if (!user) {
         throw new Error('Vui lòng đăng nhập trước khi gửi yêu cầu đặt phòng.');
       }
@@ -203,10 +212,10 @@ export function BookingRequestForm({ roomId }: BookingRequestFormProps) {
 
       <button
         className="w-full rounded-full bg-gradient-to-r from-[#944a00] to-[#f28c38] py-5 text-sm font-bold uppercase tracking-[0.1em] text-white shadow-xl shadow-orange-900/20 transition-all hover:shadow-orange-900/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
-        disabled={isSubmitting || isLoading || !user}
+        disabled={isSubmitting || isLoading || !user || isRoomFull}
         type="submit"
       >
-        {isSubmitting ? 'Đang gửi yêu cầu...' : 'Gửi Yêu Cầu Đặt Chỗ'}
+        {isRoomFull ? 'Phòng đã đủ người' : isSubmitting ? 'Đang gửi yêu cầu...' : 'Gửi Yêu Cầu Đặt Chỗ'}
       </button>
     </form>
   );

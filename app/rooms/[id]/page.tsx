@@ -265,6 +265,8 @@ function RoomRequirements({ room }: { room: RoomDetail }) {
 function RoomSidebar({ room }: { room: RoomDetail }) {
   const price = room.priceText || (room.price ? `${room.price.toLocaleString('vi-VN')} đ/tháng` : 'Liên hệ');
   const area = room.areaText || room.area;
+  const occupancyInfo = getOccupancyInfo(room);
+  const isFull = occupancyInfo?.available === 0 || room.status === 'OCCUPIED';
 
   return (
     <aside className="w-full lg:w-[400px]">
@@ -288,19 +290,28 @@ function RoomSidebar({ room }: { room: RoomDetail }) {
             <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-4">
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Trạng thái</span>
-                <span className="font-bold">{room.status === 'AVAILABLE' ? 'Còn trống' : 'Tạm ẩn'}</span>
+                <span className={`font-bold ${isFull ? 'text-red-700' : ''}`}>
+                  {isFull ? 'Đã đủ người' : room.status === 'AVAILABLE' ? 'Còn trống' : 'Tạm ẩn'}
+                </span>
               </div>
               <span className="material-symbols-outlined text-slate-300">verified</span>
             </div>
           </div>
 
-          <Link
-            href={`/rooms/${room.id}/book`}
-            className="flex w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-orange-900 to-orange-500 py-5 text-lg font-black tracking-wide text-white shadow-lg transition-transform hover:scale-[0.98]"
-          >
-            Đặt ngay
-            <span className="material-symbols-outlined">arrow_forward</span>
-          </Link>
+          {isFull ? (
+            <div className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-full bg-slate-200 py-5 text-lg font-black tracking-wide text-slate-500" aria-disabled="true">
+              Phòng đã đủ người
+              <span className="material-symbols-outlined">group_off</span>
+            </div>
+          ) : (
+            <Link
+              href={`/rooms/${room.id}/book`}
+              className="flex w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-orange-900 to-orange-500 py-5 text-lg font-black tracking-wide text-white shadow-lg transition-transform hover:scale-[0.98]"
+            >
+              Đặt ngay
+              <span className="material-symbols-outlined">arrow_forward</span>
+            </Link>
+          )}
 
           <p className="mt-6 text-center text-xs font-medium text-slate-400">
             Bạn sẽ không bị tính phí cho đến khi yêu cầu được xác nhận.

@@ -150,6 +150,10 @@ export default async function RoomBookingPage({
     notFound();
   }
 
+  const maxOccupants = Math.max(1, Number(room.maxOccupants ?? 1));
+  const currentOccupants = Math.max(0, Number(room.currentOccupants ?? 0));
+  const isRoomFull = room.status === 'OCCUPIED' || currentOccupants >= maxOccupants;
+
   return (
     <>
       <Navigation />
@@ -168,7 +172,12 @@ export default async function RoomBookingPage({
               </p>
             </header>
 
-            <BookingRequestForm roomId={room.id} />
+            {isRoomFull && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
+                Phòng này đã đủ số người tối đa. Hệ thống tạm ngừng nhận yêu cầu đặt phòng mới.
+              </div>
+            )}
+            <BookingRequestForm roomId={room.id} isRoomFull={isRoomFull} />
           </div>
 
           <RoomSummary room={room} />
