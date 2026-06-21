@@ -19,6 +19,8 @@ interface Room {
   image?: string | string[];
   images?: { url: string }[];
   status: string;
+  currentOccupants?: number | null;
+  maxOccupants?: number | null;
   owner?: {
     name: string;
     fullName: string;
@@ -52,6 +54,17 @@ function RoomCard({ room }: { room: Room }) {
   const price = room.priceText || (room.price ? `${room.price.toLocaleString('vi-VN')} đ/tháng` : 'Liên hệ');
   const area = room.areaText || room.area;
   const ownerName = room.owner?.fullName || room.owner?.name || 'Phongtro123';
+  const currentOccupants = Math.max(0, room.currentOccupants ?? 0);
+  const maxOccupants = room.maxOccupants ?? 0;
+  const isFull = maxOccupants > 0 && currentOccupants >= maxOccupants;
+  const availabilityLabel = isFull || room.status === 'OCCUPIED'
+    ? 'Đã đủ người'
+    : room.status === 'AVAILABLE'
+      ? 'Còn trống'
+      : 'Tạm ẩn';
+  const availabilityClass = isFull || room.status === 'OCCUPIED'
+    ? 'bg-slate-900/90 text-white'
+    : 'bg-white/90 text-orange-600';
 
   return (
     <article className="group flex h-full flex-col">
@@ -61,8 +74,8 @@ function RoomCard({ room }: { room: Room }) {
           src={imageUrl || 'https://via.placeholder.com/400x500?text=Room'}
           alt={room.title}
         />
-        <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-orange-600 backdrop-blur">
-          {room.status === 'AVAILABLE' ? 'Còn trống' : 'Tạm ẩn'}
+        <div className={`absolute left-4 top-4 rounded-full px-3 py-1.5 text-xs font-bold backdrop-blur ${availabilityClass}`}>
+          {availabilityLabel}
         </div>
       </div>
 
