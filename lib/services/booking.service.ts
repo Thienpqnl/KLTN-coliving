@@ -1,17 +1,35 @@
 import { prisma } from "../prisma";
 import { BookingCreate } from "../validation";
 import { ApiError } from "../api-error";
-import { roomService } from "../services/room.service";
+
+async function getRoomCapacity(roomId: string) {
+  const [room, activeOccupants] = await Promise.all([
+    prisma.room.findUnique({
+      where: { id: roomId },
+      select: { id: true, status: true, currentOccupants: true, maxOccupants: true },
+    }),
+    prisma.occupancy.count({ where: { roomId, status: "ACTIVE" } }),
+  ]);
+
+  if (!room) throw new ApiError(404, "Không tìm thấy phòng");
+
+  const maxOccupants = Math.max(1, room.maxOccupants ?? 1);
+  const occupiedPlaces = Math.max(activeOccupants, room.currentOccupants ?? 0);
+  return { room, maxOccupants, occupiedPlaces };
+}
 
 export const bookingService = {
   // Create a new booking
   create: async (userId: string, data: BookingCreate) => {
-    // Verify room exists
-    const room = await roomService.getById(data.roomId);
+    const { room, maxOccupants, occupiedPlaces } = await getRoomCapacity(data.roomId);
 
     // Check if room is available
     if (room.status !== "AVAILABLE") {
       throw new ApiError(400, "Room is not available");
+    }
+
+    if (occupiedPlaces >= maxOccupants) {
+      throw new ApiError(409, "Phòng đã đủ số người tối đa và không thể nhận thêm yêu cầu đặt phòng");
     }
 
     // Check for overlapping bookings
@@ -155,6 +173,23 @@ export const bookingService = {
     status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED"
   ) => {
     const booking = await bookingService.getById(id);
+
+    if (status === "CONFIRMED" && booking.status !== "CONFIRMED") {
+      const [{ maxOccupants, occupiedPlaces }, reservedBookings] = await Promise.all([
+        getRoomCapacity(booking.roomId),
+        prisma.booking.count({
+          where: {
+            roomId: booking.roomId,
+            status: "CONFIRMED",
+            id: { not: booking.id },
+          },
+        }),
+      ]);
+
+      if (occupiedPlaces + reservedBookings >= maxOccupants) {
+        throw new ApiError(409, "Phòng đã đủ người hoặc đã hết số chỗ có thể xác nhận");
+      }
+    }
 
     const updatedBooking = await prisma.booking.update({
       where: { id },
