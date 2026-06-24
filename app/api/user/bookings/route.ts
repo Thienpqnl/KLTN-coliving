@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { bookingService } from '@/lib/services/booking.service'
+import { bookingCreateSchema } from '@/lib/validation'
+import { handleApiError, successResponse } from '@/lib/api-error'
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,6 +12,13 @@ export async function GET(req: NextRequest) {
     const bookings = await prisma.booking.findMany({
       where: { userId: user.userId },
       include: {
+        contract: {
+          select: {
+            id: true,
+            status: true,
+            terminatedAt: true,
+          },
+        },
         room: {
           select: {
             id: true,
@@ -51,65 +61,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser(req)
-    const body = await req.json()
-
-    const { roomId, startDate, endDate } = body
-
-    if (!roomId || !startDate || !endDate) {
-      return NextResponse.json(
-        { message: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    const booking = await prisma.booking.create({
-      data: {
-        userId: user.userId,
-        roomId,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-      },
-      include: {
-        room: {
-          select: {
-            id: true,
-            title: true,
-            address: true,
-            priceValue: true,
-            priceText: true,
-            areaValue: true,
-            areaText: true,
-            images: {
-              orderBy: {
-                sortOrder: 'asc',
-              },
-              select: {
-                url: true,
-              },
-            },
-          },
-        },
-      },
-    })
-
-    const room = (booking as any).room
-
-    return NextResponse.json({
-      ...booking,
-      room: {
-        ...room,
-        priceValue: room.priceValue == null ? null : Number(room.priceValue),
-        areaValue: room.areaValue == null ? null : Number(room.areaValue),
-        price: room.priceValue == null ? 0 : Number(room.priceValue),
-        area: room.areaText || '',
-        image: room.images.map((image: any) => image.url),
-      },
-    }, { status: 201 })
+    const data = bookingCreateSchema.parse(await req.json())
+    const booking = await bookingService.create(user.userId, data)
+    return successResponse(booking, 201)
   } catch (error) {
     console.error('Booking creation error:', error)
-    return NextResponse.json(
-      { message: 'Failed to create booking' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

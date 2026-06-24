@@ -66,9 +66,16 @@ const formatAreaText = (area?: string | null) => {
 
 type NormalizableRoom = {
   images?: { url: string }[] | null;
+  bookings?: {
+    status: string;
+    startDate: Date;
+    endDate: Date;
+  }[] | null;
   priceValue?: Prisma.Decimal | bigint | number | null;
   areaValue?: Prisma.Decimal | number | null;
   areaText?: string | null;
+  currentOccupants?: number | null;
+  maxOccupants?: number | null;
 };
 
 const normalizeRoom = <TRoom extends NormalizableRoom>(room: TRoom) => {
@@ -76,6 +83,14 @@ const normalizeRoom = <TRoom extends NormalizableRoom>(room: TRoom) => {
   const priceValue = room.priceValue == null ? null : Number(room.priceValue);
   const areaValue = room.areaValue == null ? null : Number(room.areaValue);
   const areaText = formatAreaText(room.areaText);
+  const now = new Date();
+  const confirmedReservations =
+    room.bookings?.filter(
+      (booking) =>
+        booking.status === "CONFIRMED" && booking.endDate.getTime() > now.getTime()
+    ).length ?? 0;
+  const currentOccupants = Math.max(0, room.currentOccupants ?? 0);
+  const maxOccupants = Math.max(1, room.maxOccupants ?? 1);
 
   return {
     ...room,
@@ -85,6 +100,8 @@ const normalizeRoom = <TRoom extends NormalizableRoom>(room: TRoom) => {
     price: priceValue ?? 0,
     area: areaText || (areaValue == null ? "" : `${areaValue} m2`),
     image: imageUrls,
+    confirmedReservations,
+    availableOccupantSlots: Math.max(0, maxOccupants - currentOccupants),
   };
 };
 
@@ -439,35 +456,34 @@ getAllByOwnerId: async (ownerId: string) => {
     const rooms = await prisma.room.findMany({
       where: {
         status: "AVAILABLE",
-        bookings: {
-          none: {
-            AND: [
-              {
-                startDate: {
-                  lt: endDate,
-                },
-              },
-              {
-                endDate: {
-                  gt: startDate,
-                },
-              },
-              {
-                status: {
-                  in: ["PENDING", "CONFIRMED"],
-                },
-              },
-            ],
-          },
-        },
       },
       include: {
         ...roomInclude,
         reviews: true,
+        occupancies: {
+          where: { status: "ACTIVE" },
+          select: { id: true },
+        },
       },
     });
 
-    return rooms.map(normalizeRoom);
+    return rooms
+      .filter((room) => {
+        const maxOccupants = Math.max(1, room.maxOccupants ?? 1);
+        const activeOccupants = Math.max(
+          room.currentOccupants ?? 0,
+          room.occupancies.length
+        );
+        const confirmedReservations = room.bookings.filter(
+          (booking) =>
+            booking.status === "CONFIRMED" &&
+            booking.startDate < endDate &&
+            booking.endDate > startDate
+        ).length;
+
+        return activeOccupants + confirmedReservations < maxOccupants;
+      })
+      .map(normalizeRoom);
   },
 
   // Update room status

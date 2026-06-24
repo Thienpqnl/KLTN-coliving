@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify room ownership
-    const occupancy = await occupancyService.addOccupant(roomId, userId, notes);
+    const occupancy = await occupancyService.addOccupant(roomId, userId, notes, {
+      userId: user.userId,
+      role: user.role ?? "CUSTOMER",
+    });
 
     return successResponse(occupancy, 201);
   } catch (error) {

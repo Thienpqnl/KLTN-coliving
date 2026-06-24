@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { contractService } from "@/lib/services/contract.service";
 import { getAuthUser } from "@/lib/auth";
-import { handleApiError, successResponse } from "@/lib/api-error";
+import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
 import { getRequestMetadata } from "@/lib/request-metadata";
 
 const terminateSchema = z.object({
@@ -17,6 +17,7 @@ interface Params {
 
 type ContractAccess = {
   hostId: string | null;
+  renterId: string | null;
   room?: {
     ownerId: string | null;
   } | null;
@@ -28,6 +29,7 @@ function canManageContract(
 ) {
   if (authUser.role === "ADMIN") return true;
   if (authUser.role === "HOST") return contract.hostId === authUser.userId;
+  if (authUser.role === "CUSTOMER") return contract.renterId === authUser.userId;
   return false;
 }
 
@@ -36,16 +38,17 @@ export async function POST(request: NextRequest, { params }: Params) {
     const authUser = await getAuthUser(request);
     const { id } = await params;
 
-    if (authUser.role !== "HOST" && authUser.role !== "ADMIN") {
-      return successResponse(
-        { error: "Bạn không có quyền chấm dứt hợp đồng" },
-        403
-      );
+    if (
+      authUser.role !== "HOST" &&
+      authUser.role !== "CUSTOMER" &&
+      authUser.role !== "ADMIN"
+    ) {
+      throw new ApiError(403, "Bạn không có quyền rời phòng hoặc chấm dứt hợp đồng");
     }
 
     const contract = await contractService.getById(id);
     if (!canManageContract(authUser, contract)) {
-      return successResponse({ error: "Không được phép truy cập" }, 403);
+      throw new ApiError(403, "Không được phép truy cập hợp đồng này");
     }
 
     const body = await request.json();

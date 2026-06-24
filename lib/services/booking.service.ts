@@ -1,76 +1,99 @@
+import { BookingStatus } from "@prisma/client";
 import { prisma } from "../prisma";
 import { BookingCreate } from "../validation";
 import { ApiError } from "../api-error";
+import {
+  getRoomCapacity,
+  runSerializableTransaction,
+} from "./room-capacity.service";
 
-async function getRoomCapacity(roomId: string) {
-  const [room, activeOccupants] = await Promise.all([
-    prisma.room.findUnique({
-      where: { id: roomId },
-      select: { id: true, status: true, currentOccupants: true, maxOccupants: true },
-    }),
-    prisma.occupancy.count({ where: { roomId, status: "ACTIVE" } }),
-  ]);
+type BookingActor = {
+  userId: string;
+  role: string;
+};
 
-  if (!room) throw new ApiError(404, "Không tìm thấy phòng");
+const bookingInclude = {
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  room: true,
+  invoice: true,
+};
 
-  const maxOccupants = Math.max(1, room.maxOccupants ?? 1);
-  const occupiedPlaces = Math.max(activeOccupants, room.currentOccupants ?? 0);
-  return { room, maxOccupants, occupiedPlaces };
+function assertCanManageBooking(
+  actor: BookingActor,
+  booking: { userId: string; room: { ownerId: string | null } },
+  status: BookingStatus
+) {
+  const isAdmin = actor.role === "ADMIN";
+  const isHost = booking.room.ownerId === actor.userId;
+  const isRenter = booking.userId === actor.userId;
+
+  if (status === BookingStatus.CONFIRMED && !isHost && !isAdmin) {
+    throw new ApiError(403, "Chỉ chủ phòng hoặc admin mới có thể xác nhận booking");
+  }
+
+  if (status === BookingStatus.CANCELLED && !isHost && !isRenter && !isAdmin) {
+    throw new ApiError(403, "Bạn không có quyền hủy booking này");
+  }
+
+  if (status === BookingStatus.COMPLETED && !isAdmin) {
+    throw new ApiError(403, "Booking chỉ hoàn tất sau khi quy trình bàn giao kết thúc");
+  }
+
+  if (status === BookingStatus.PENDING) {
+    throw new ApiError(400, "Không thể chuyển booking trở lại trạng thái chờ");
+  }
 }
 
 export const bookingService = {
-  // Create a new booking
   create: async (userId: string, data: BookingCreate) => {
-    const { room, maxOccupants, occupiedPlaces } = await getRoomCapacity(data.roomId);
+    const interval = { startDate: data.startDate, endDate: data.endDate };
+    const capacity = await getRoomCapacity(prisma, data.roomId, interval);
 
-    // Check if room is available
-    if (room.status !== "AVAILABLE") {
-      throw new ApiError(400, "Room is not available");
+    if (!capacity) throw new ApiError(404, "Không tìm thấy phòng");
+    if (capacity.room.status !== "AVAILABLE") {
+      throw new ApiError(400, "Phòng hiện không khả dụng để đặt");
+    }
+    if (capacity.isFull) {
+      throw new ApiError(
+        409,
+        "Phòng đã hết chỗ trong khoảng thời gian bạn chọn"
+      );
     }
 
-    if (occupiedPlaces >= maxOccupants) {
-      throw new ApiError(409, "Phòng đã đủ số người tối đa và không thể nhận thêm yêu cầu đặt phòng");
-    }
-
-    // Check for overlapping bookings
-    const existingBooking = await prisma.booking.findFirst({
+    const duplicateBooking = await prisma.booking.findFirst({
       where: {
         roomId: data.roomId,
+        userId,
         status: { in: ["PENDING", "CONFIRMED"] },
-        AND: [
-          { startDate: { lt: data.endDate } },
-          { endDate: { gt: data.startDate } },
-        ],
+        startDate: { lt: data.endDate },
+        endDate: { gt: data.startDate },
       },
     });
 
-    if (existingBooking) {
-      throw new ApiError(400, "Room is already booked for bookingService period");
+    if (duplicateBooking) {
+      throw new ApiError(
+        409,
+        "Bạn đã có một yêu cầu đặt phòng trùng khoảng thời gian này"
+      );
     }
 
-    const booking = await prisma.booking.create({
+    return prisma.booking.create({
       data: {
         userId,
         roomId: data.roomId,
         startDate: data.startDate,
         endDate: data.endDate,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        room: true,
-      },
+      include: bookingInclude,
     });
-
-    return booking;
   },
 
-  // Get booking by ID
   getById: async (id: string, userId?: string) => {
     const booking = await prisma.booking.findUnique({
       where: { id },
@@ -85,180 +108,145 @@ export const bookingService = {
         },
         room: {
           include: {
-            amenities: {
-              include: {
-                amenity: true,
-              },
-            },
+            amenities: { include: { amenity: true } },
           },
         },
         invoice: true,
       },
     });
 
-    if (!booking) {
-      throw new ApiError(404, "Booking not found");
-    }
-
-    // Check ownership if userId provided
+    if (!booking) throw new ApiError(404, "Không tìm thấy booking");
     if (userId && booking.userId !== userId) {
-      throw new ApiError(403, "Access denied");
+      throw new ApiError(403, "Bạn không có quyền xem booking này");
     }
 
     return booking;
   },
 
-  // Get user's bookings
-  getUserBookings: async (userId: string) => {
-    const bookings = await prisma.booking.findMany({
+  getUserBookings: async (userId: string) =>
+    prisma.booking.findMany({
       where: { userId },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        room: {
-          include: {
-            amenities: {
-              include: {
-                amenity: true,
-              },
-            },
-          },
-        },
+        user: { select: { id: true, name: true, email: true } },
+        room: { include: { amenities: { include: { amenity: true } } } },
         invoice: true,
       },
       orderBy: { createdAt: "desc" },
-    });
+    }),
 
-    return bookings;
-  },
-
-  // Get all bookings (admin)
-  getAll: async (filters?: { status?: string; roomId?: string }) => {
-    const bookings = await prisma.booking.findMany({
+  getAll: async (filters?: { status?: string; roomId?: string }) =>
+    prisma.booking.findMany({
       where: {
-        ...(filters?.status && { 
-          status: filters.status as 
-            | "PENDING" 
-            | "CONFIRMED" 
-            | "CANCELLED" 
-            | "COMPLETED"
+        ...(filters?.status && {
+          status: filters.status as BookingStatus,
         }),
         ...(filters?.roomId && { roomId: filters.roomId }),
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        room: true,
-        invoice: true,
-      },
-      orderBy: { createdAt: "desc" as const },
-    });
+      include: bookingInclude,
+      orderBy: { createdAt: "desc" },
+    }),
 
-    return bookings;
-  },
-
-  // Update booking status
   updateStatus: async (
     id: string,
-    status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED"
+    status: BookingStatus,
+    actor: BookingActor
   ) => {
-    const booking = await bookingService.getById(id);
+    if (status === BookingStatus.CONFIRMED) {
+      return runSerializableTransaction(async (tx) => {
+        const booking = await tx.booking.findUnique({
+          where: { id },
+          include: bookingInclude,
+        });
 
-    if (status === "CONFIRMED" && booking.status !== "CONFIRMED") {
-      const [{ maxOccupants, occupiedPlaces }, reservedBookings] = await Promise.all([
-        getRoomCapacity(booking.roomId),
-        prisma.booking.count({
-          where: {
-            roomId: booking.roomId,
-            status: "CONFIRMED",
-            id: { not: booking.id },
-          },
-        }),
-      ]);
+        if (!booking) throw new ApiError(404, "Không tìm thấy booking");
+        assertCanManageBooking(actor, booking, status);
 
-      if (occupiedPlaces + reservedBookings >= maxOccupants) {
-        throw new ApiError(409, "Phòng đã đủ người hoặc đã hết số chỗ có thể xác nhận");
-      }
+        if (booking.status === BookingStatus.CONFIRMED) return booking;
+        if (booking.status !== BookingStatus.PENDING) {
+          throw new ApiError(409, "Chỉ booking đang chờ mới có thể được xác nhận");
+        }
+
+        const capacity = await getRoomCapacity(
+          tx,
+          booking.roomId,
+          { startDate: booking.startDate, endDate: booking.endDate },
+          booking.id
+        );
+
+        if (!capacity) throw new ApiError(404, "Không tìm thấy phòng");
+        if (capacity.isFull) {
+          throw new ApiError(
+            409,
+            "Phòng đã hết chỗ trong khoảng thời gian của booking này"
+          );
+        }
+
+        return tx.booking.update({
+          where: { id },
+          data: { status: BookingStatus.CONFIRMED },
+          include: bookingInclude,
+        });
+      });
     }
 
-    const updatedBooking = await prisma.booking.update({
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: bookingInclude,
+    });
+    if (!booking) throw new ApiError(404, "Không tìm thấy booking");
+    assertCanManageBooking(actor, booking, status);
+
+    if (booking.status === status) return booking;
+    if (
+      booking.status === BookingStatus.CANCELLED ||
+      booking.status === BookingStatus.COMPLETED
+    ) {
+      throw new ApiError(409, "Booking đã kết thúc và không thể đổi trạng thái");
+    }
+
+    return prisma.booking.update({
       where: { id },
       data: { status },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        room: true,
-        invoice: true,
-      },
+      include: bookingInclude,
     });
-
-    return updatedBooking;
   },
 
-  // Cancel booking
-  cancel: async (id: string, userId?: string) => {
+  cancel: async (id: string, userId: string) => {
     const booking = await bookingService.getById(id, userId);
-
-    if (booking.status === "COMPLETED" || booking.status === "CANCELLED") {
-      throw new ApiError(400, "Cannot cancel bookingService booking");
+    if (
+      booking.status === BookingStatus.COMPLETED ||
+      booking.status === BookingStatus.CANCELLED
+    ) {
+      throw new ApiError(400, "Booking này không thể hủy");
     }
 
-    return bookingService.updateStatus(id, "CANCELLED");
+    return prisma.booking.update({
+      where: { id },
+      data: { status: BookingStatus.CANCELLED },
+      include: bookingInclude,
+    });
   },
 
-  // Get bookings for a room
-  getRoomBookings: async (roomId: string) => {
-    const bookings = await prisma.booking.findMany({
+  getRoomBookings: async (roomId: string) =>
+    prisma.booking.findMany({
       where: { roomId },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        user: { select: { id: true, name: true, email: true } },
         invoice: true,
       },
-      orderBy: { startDate: "asc" as const },
-    });
+      orderBy: { startDate: "asc" },
+    }),
 
-    return bookings;
-  },
-
-  // Get booking statistics
   getStats: async (roomId?: string) => {
-    const whereClause = roomId ? { roomId } : {};
-
+    const where = roomId ? { roomId } : {};
     const [total, pending, confirmed, cancelled, completed] = await Promise.all([
-      prisma.booking.count({ where: whereClause }),
-      prisma.booking.count({ where: { ...whereClause, status: "PENDING" } }),
-      prisma.booking.count({ where: { ...whereClause, status: "CONFIRMED" } }),
-      prisma.booking.count({ where: { ...whereClause, status: "CANCELLED" } }),
-      prisma.booking.count({ where: { ...whereClause, status: "COMPLETED" } }),
+      prisma.booking.count({ where }),
+      prisma.booking.count({ where: { ...where, status: "PENDING" } }),
+      prisma.booking.count({ where: { ...where, status: "CONFIRMED" } }),
+      prisma.booking.count({ where: { ...where, status: "CANCELLED" } }),
+      prisma.booking.count({ where: { ...where, status: "COMPLETED" } }),
     ]);
 
-    return {
-      total,
-      pending,
-      confirmed,
-      cancelled,
-      completed,
-    };
+    return { total, pending, confirmed, cancelled, completed };
   },
 };

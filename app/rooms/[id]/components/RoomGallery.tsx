@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 export type GalleryOccupancyInfo = {
   current: number
   max: number
+  reserved: number
   available: number
   percentage: number
   label: string
@@ -193,6 +194,11 @@ export function RoomGallery({
                     {occupancy.current}/{occupancy.max} người
                   </span>
                 </div>
+                {occupancy.reserved > 0 && (
+                  <p className="mt-0.5 text-[11px] font-bold opacity-80">
+                    {occupancy.reserved} chỗ đã được xác nhận, chờ nhận phòng
+                  </p>
+                )}
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/80">
                   <div
                     className={`h-full rounded-full ${occupancyTone.bar}`}

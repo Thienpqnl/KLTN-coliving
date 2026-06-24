@@ -2,6 +2,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { ContractDepositStatus, ContractStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
+import {
+  getRoomCapacity,
+  syncRoomOccupancy,
+} from "@/lib/services/room-capacity.service";
 
 const TERMS_VERSION = "VN-HOUSING-2023-v1";
 
@@ -246,11 +250,6 @@ function normalizeCitizenId(value: string) {
     throw new ApiError(400, "Số căn cước công dân phải gồm đúng 12 chữ số");
   }
   return citizenId;
-}
-
-async function syncRoomOccupants(tx: Prisma.TransactionClient, roomId: string) {
-  const count = await tx.occupancy.count({ where: { roomId, status: "ACTIVE" } });
-  await tx.room.update({ where: { id: roomId }, data: { currentOccupants: count } });
 }
 
 export const contractService = {
@@ -574,6 +573,31 @@ export const contractService = {
       });
 
       if (activated) {
+        const capacity = await getRoomCapacity(
+          tx,
+          contract.roomId,
+          { startDate: contract.startDate, endDate: contract.endDate },
+          contract.bookingId ?? undefined
+        );
+        if (!capacity) throw new ApiError(404, "Không tìm thấy phòng");
+
+        const existingOccupancy = await tx.occupancy.findUnique({
+          where: {
+            Occupancy_room_user_unique: {
+              roomId: contract.roomId,
+              userId: contract.renterId,
+            },
+          },
+        });
+        if (!existingOccupancy || existingOccupancy.status !== "ACTIVE") {
+          if (capacity.isFull) {
+            throw new ApiError(
+              409,
+              "Phòng đã đủ người nên chưa thể hoàn tất bàn giao"
+            );
+          }
+        }
+
         await tx.occupancy.upsert({
           where: { Occupancy_room_user_unique: { roomId: contract.roomId, userId: contract.renterId } },
           update: { status: "ACTIVE", joinedAt: contract.startDate, terminatedAt: null, terminationReason: null },
@@ -582,7 +606,7 @@ export const contractService = {
         if (contract.bookingId) {
           await tx.booking.update({ where: { id: contract.bookingId }, data: { status: "COMPLETED" } });
         }
-        await syncRoomOccupants(tx, contract.roomId);
+        await syncRoomOccupancy(tx, contract.roomId);
       }
 
       await tx.contractEvent.create({
@@ -657,12 +681,12 @@ export const contractService = {
         where: { roomId: contract.roomId, userId: contract.renterId, status: "ACTIVE" },
         data: { status: "INACTIVE", terminatedAt: now, terminationReason: data.terminationReason },
       });
-      await syncRoomOccupants(tx, contract.roomId);
+      await syncRoomOccupancy(tx, contract.roomId);
       await tx.contractEvent.create({
         data: {
           contractId,
           actorId: data.actorId,
-          type: "CONTRACT_TERMINATED",
+          type: data.role === "CUSTOMER" ? "RENTER_LEFT_ROOM" : "CONTRACT_TERMINATED",
           fromStatus: ContractStatus.ACTIVE,
           toStatus: ContractStatus.TERMINATED,
           note: data.terminationReason,

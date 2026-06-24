@@ -41,8 +41,14 @@ interface UserProfile {
 
 interface Booking {
   id: string;
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   startDate: string;
   endDate: string;
+  contract?: {
+    id: string;
+    status: string;
+    terminatedAt?: string | null;
+  } | null;
   room: {
     id: string;
     title: string;
@@ -50,6 +56,17 @@ interface Booking {
     image: string[];
     price: number;
   };
+}
+
+interface UserPreferences {
+  budgetMinVnd?: string | number | null;
+  budgetMaxVnd?: string | number | null;
+  preferredDistrict?: string | null;
+  lifestyleArchetype?: string | null;
+  priorityCleanliness?: number | null;
+  prioritySocialEnvironment?: number | null;
+  acceptSmokingRoommates?: boolean | null;
+  acceptPets?: boolean | null;
 }
 
 type FormData = Pick<UserProfile, 'fullName' | 'phone' | 'gender' | 'address'> & {
@@ -108,7 +125,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [preferences, setPreferences] = useState<any>(null);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -201,7 +218,12 @@ export default function ProfilePage() {
   }, [avatarPreview]);
 
   const activeBooking = useMemo(
-    () => bookings.find((booking) => new Date(booking.endDate) > new Date()),
+    () =>
+      bookings.find(
+        (booking) =>
+          booking.contract?.status === 'ACTIVE' &&
+          new Date(booking.endDate) > new Date()
+      ),
     [bookings]
   );
 
@@ -799,6 +821,14 @@ export default function ProfilePage() {
                           </p>
                         </div>
                       </div>
+
+                      <Link
+                        href="/contracts"
+                        className="inline-flex w-fit items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 transition-colors hover:bg-red-100"
+                      >
+                        <Home className="h-4 w-4" />
+                        Quản lý hợp đồng hoặc rời phòng
+                      </Link>
                     </div>
                   </div>
                 ) : (
@@ -842,7 +872,7 @@ export default function ProfilePage() {
                         <p className="text-xs font-bold uppercase tracking-widest text-blue-700 mb-2">Ngân sách</p>
                         <p className="text-lg font-bold text-slate-900">
                           {preferences.budgetMinVnd && preferences.budgetMaxVnd 
-                            ? `${parseInt(preferences.budgetMinVnd).toLocaleString('vi-VN')} - ${parseInt(preferences.budgetMaxVnd).toLocaleString('vi-VN')} VND` 
+                            ? `${Number(preferences.budgetMinVnd).toLocaleString('vi-VN')} - ${Number(preferences.budgetMaxVnd).toLocaleString('vi-VN')} VND`
                             : 'Chưa cập nhật'}
                         </p>
                         <p className="text-xs text-blue-600 mt-2">mỗi tháng</p>

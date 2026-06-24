@@ -20,6 +20,7 @@ type RoomAmenityItem = {
 type OccupancyInfo = {
   current: number;
   max: number;
+  reserved: number;
   available: number;
   percentage: number;
   label: string;
@@ -65,12 +66,14 @@ function getPostedDateText(room: RoomDetail) {
 function getOccupancyInfo(room: RoomDetail): OccupancyInfo | null {
   const maxOccupants = Number(room.maxOccupants ?? 0);
   const currentOccupants = Number(room.currentOccupants ?? 0);
+  const confirmedReservations = Number(room.confirmedReservations ?? 0);
 
   if (!Number.isFinite(maxOccupants) || maxOccupants <= 0) {
     return null;
   }
 
   const current = Math.min(maxOccupants, Math.max(0, currentOccupants));
+  const reserved = Math.max(0, confirmedReservations);
   const available = Math.max(0, maxOccupants - current);
   const percentage = Math.round((current / maxOccupants) * 100);
   const tone = available === 0 ? 'full' : available <= 1 ? 'limited' : 'available';
@@ -78,6 +81,7 @@ function getOccupancyInfo(room: RoomDetail): OccupancyInfo | null {
   return {
     current,
     max: maxOccupants,
+    reserved,
     available,
     percentage,
     tone,

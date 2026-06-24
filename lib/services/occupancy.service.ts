@@ -1,55 +1,51 @@
 import { prisma } from "../prisma";
 import { ApiError } from "../api-error";
+import {
+  getRoomCapacity,
+  runSerializableTransaction,
+  syncRoomOccupancy,
+} from "./room-capacity.service";
+
+type OccupancyActor = {
+  userId: string;
+  role: string;
+};
+
+const occupantUserSelect = {
+  id: true,
+  email: true,
+  name: true,
+  fullName: true,
+  phone: true,
+  avatarUrl: true,
+  gender: true,
+  birthDate: true,
+  address: true,
+};
 
 export const occupancyService = {
-  // Get all occupants of a room
   getRoomOccupants: async (roomId: string, hostId?: string) => {
-    // Verify room ownership if hostId provided
     if (hostId) {
       const room = await prisma.room.findUnique({
         where: { id: roomId },
         select: { ownerId: true },
       });
-
-      if (!room) {
-        throw new ApiError(404, "Room not found");
-      }
-
+      if (!room) throw new ApiError(404, "Không tìm thấy phòng");
       if (room.ownerId !== hostId) {
-        throw new ApiError(403, "Not authorized to view this room's occupants");
+        throw new ApiError(403, "Bạn không có quyền xem người thuê của phòng này");
       }
     }
 
-    const occupants = await prisma.occupancy.findMany({
+    return prisma.occupancy.findMany({
       where: { roomId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            fullName: true,
-            phone: true,
-            avatarUrl: true,
-            gender: true,
-            birthDate: true,
-            address: true,
-          },
-        },
-      },
+      include: { user: { select: occupantUserSelect } },
       orderBy: [{ status: "asc" }, { joinedAt: "desc" }],
     });
-
-    return occupants;
   },
 
-  // Get active occupants only
-  getActiveOccupants: async (roomId: string) => {
-    const occupants = await prisma.occupancy.findMany({
-      where: {
-        roomId,
-        status: "ACTIVE",
-      },
+  getActiveOccupants: async (roomId: string) =>
+    prisma.occupancy.findMany({
+      where: { roomId, status: "ACTIVE" },
       include: {
         user: {
           select: {
@@ -63,27 +59,15 @@ export const occupancyService = {
         },
       },
       orderBy: { joinedAt: "asc" },
-    });
+    }),
 
-    return occupants;
-  },
-
-  // Get occupant details
   getOccupantDetails: async (occupancyId: string) => {
     const occupancy = await prisma.occupancy.findUnique({
       where: { id: occupancyId },
       include: {
         user: {
           select: {
-            id: true,
-            email: true,
-            name: true,
-            fullName: true,
-            phone: true,
-            avatarUrl: true,
-            gender: true,
-            birthDate: true,
-            address: true,
+            ...occupantUserSelect,
             createdAt: true,
             role: true,
           },
@@ -99,178 +83,127 @@ export const occupancyService = {
       },
     });
 
-    if (!occupancy) {
-      throw new ApiError(404, "Occupancy record not found");
-    }
-
+    if (!occupancy) throw new ApiError(404, "Không tìm thấy thông tin cư trú");
     return occupancy;
   },
 
-  // Add occupant (when contract is created or approved)
-  addOccupant: async (roomId: string, userId: string, notes?: string) => {
-    // Verify room and user exist
-    const [room, user] = await Promise.all([
-      prisma.room.findUnique({ where: { id: roomId } }),
-      prisma.user.findUnique({ where: { id: userId } }),
-    ]);
+  addOccupant: async (
+    roomId: string,
+    userId: string,
+    notes?: string,
+    actor?: OccupancyActor,
+    excludeBookingId?: string
+  ) =>
+    runSerializableTransaction(async (tx) => {
+      const [capacity, user] = await Promise.all([
+        getRoomCapacity(tx, roomId, undefined, excludeBookingId),
+        tx.user.findUnique({ where: { id: userId }, select: { id: true } }),
+      ]);
 
-    if (!room) {
-      throw new ApiError(404, "Room not found");
-    }
+      if (!capacity) throw new ApiError(404, "Không tìm thấy phòng");
+      if (!user) throw new ApiError(404, "Không tìm thấy người dùng");
 
-    if (!user) {
-      throw new ApiError(404, "User not found");
-    }
+      if (
+        actor &&
+        actor.role !== "ADMIN" &&
+        capacity.room.ownerId !== actor.userId
+      ) {
+        throw new ApiError(403, "Bạn không có quyền thêm người thuê vào phòng này");
+      }
 
-    // Check if already occupant
-    const existingOccupancy = await prisma.occupancy.findUnique({
-      where: {
-        Occupancy_room_user_unique: {
-          roomId,
-          userId,
-        },
-      },
-    });
+      const existing = await tx.occupancy.findUnique({
+        where: { Occupancy_room_user_unique: { roomId, userId } },
+      });
+      if (existing?.status === "ACTIVE") {
+        throw new ApiError(409, "Người dùng đã là thành viên của phòng");
+      }
+      if (capacity.isFull) {
+        throw new ApiError(409, "Phòng đã hết chỗ và không thể thêm người thuê");
+      }
 
-    if (existingOccupancy && existingOccupancy.status === "ACTIVE") {
-      throw new ApiError(409, "User is already an occupant of this room");
-    }
+      const occupancy = existing
+        ? await tx.occupancy.update({
+            where: { id: existing.id },
+            data: {
+              status: "ACTIVE",
+              joinedAt: new Date(),
+              terminatedAt: null,
+              terminationReason: null,
+              notes,
+            },
+            include: {
+              user: { select: { id: true, name: true, email: true } },
+            },
+          })
+        : await tx.occupancy.create({
+            data: { roomId, userId, notes },
+            include: {
+              user: { select: { id: true, name: true, email: true } },
+            },
+          });
 
-    // If there's a terminated record, create a new one
-    const occupancy = await prisma.occupancy.create({
-      data: {
-        roomId,
-        userId,
-        notes,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
+      await syncRoomOccupancy(tx, roomId);
+      return occupancy;
+    }),
 
-    // Update room status to OCCUPIED
-    await prisma.room.update({
-      where: { id: roomId },
-      data: { status: "OCCUPIED", currentOccupants: { increment: 1 } },
-    });
-
-    return occupancy;
-  },
-
-  // Terminate occupancy
   terminateOccupancy: async (
     occupancyId: string,
     reason: string,
     hostId?: string
-  ) => {
-    const occupancy = await prisma.occupancy.findUnique({
-      where: { id: occupancyId },
-      include: { room: true },
-    });
+  ) =>
+    runSerializableTransaction(async (tx) => {
+      const occupancy = await tx.occupancy.findUnique({
+        where: { id: occupancyId },
+        include: { room: true },
+      });
+      if (!occupancy) throw new ApiError(404, "Không tìm thấy thông tin cư trú");
+      if (hostId && occupancy.room.ownerId !== hostId) {
+        throw new ApiError(403, "Bạn không có quyền kết thúc cư trú này");
+      }
+      if (occupancy.status !== "ACTIVE") {
+        throw new ApiError(409, "Người thuê không còn ở trong phòng");
+      }
 
-    if (!occupancy) {
-      throw new ApiError(404, "Occupancy record not found");
-    }
-
-    // Verify host authorization
-    if (hostId && occupancy.room.ownerId !== hostId) {
-      throw new ApiError(403, "Not authorized to modify this occupancy record");
-    }
-
-    // Update occupancy status to INACTIVE
-    const updated = await prisma.occupancy.update({
-      where: { id: occupancyId },
-      data: {
-        status: "INACTIVE",
-        terminatedAt: new Date(),
-        terminationReason: reason,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+      const updated = await tx.occupancy.update({
+        where: { id: occupancyId },
+        data: {
+          status: "INACTIVE",
+          terminatedAt: new Date(),
+          terminationReason: reason,
         },
-      },
-    });
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+      });
 
-    // Update room currentOccupants count
-    const activeCount = await prisma.occupancy.count({
-      where: {
-        roomId: occupancy.roomId,
-        status: "ACTIVE",
-      },
-    });
+      await syncRoomOccupancy(tx, occupancy.roomId);
+      return updated;
+    }),
 
-    // Update room status based on active occupants
-    const roomStatus = activeCount === 0 ? "AVAILABLE" : "OCCUPIED";
-    await prisma.room.update({
-      where: { id: occupancy.roomId },
-      data: {
-        currentOccupants: activeCount,
-        status: roomStatus,
-      },
-    });
-
-    return updated;
-  },
-
-  // Get occupancy history
   getOccupancyHistory: async (roomId: string, hostId?: string) => {
-    // Verify room ownership if hostId provided
     if (hostId) {
       const room = await prisma.room.findUnique({
         where: { id: roomId },
         select: { ownerId: true },
       });
-
-      if (!room) {
-        throw new ApiError(404, "Room not found");
-      }
-
+      if (!room) throw new ApiError(404, "Không tìm thấy phòng");
       if (room.ownerId !== hostId) {
-        throw new ApiError(403, "Not authorized to view this room's history");
+        throw new ApiError(403, "Bạn không có quyền xem lịch sử của phòng này");
       }
     }
 
-    const history = await prisma.occupancy.findMany({
+    return prisma.occupancy.findMany({
       where: { roomId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            fullName: true,
-            phone: true,
-            avatarUrl: true,
-          },
-        },
-      },
+      include: { user: { select: occupantUserSelect } },
       orderBy: { joinedAt: "desc" },
     });
-
-    return history;
   },
 
-  // Get occupancy statistics
   getOccupancyStats: async (roomId: string) => {
     const [activeCount, totalCount, inactiveCount] = await Promise.all([
-      prisma.occupancy.count({
-        where: { roomId, status: "ACTIVE" },
-      }),
+      prisma.occupancy.count({ where: { roomId, status: "ACTIVE" } }),
       prisma.occupancy.count({ where: { roomId } }),
-      prisma.occupancy.count({
-        where: { roomId, status: "INACTIVE" },
-      }),
+      prisma.occupancy.count({ where: { roomId, status: "INACTIVE" } }),
     ]);
 
     return {
@@ -281,21 +214,19 @@ export const occupancyService = {
     };
   },
 
-  // Link occupancy to booking (when booking is confirmed)
-  linkToBooking: async (bookingId: string) => {
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-    });
-
-    if (!booking) {
-      throw new ApiError(404, "Booking not found");
+  linkToBooking: async (bookingId: string, actor?: OccupancyActor) => {
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) throw new ApiError(404, "Không tìm thấy booking");
+    if (booking.status !== "CONFIRMED") {
+      throw new ApiError(409, "Booking phải được xác nhận trước khi nhận phòng");
     }
 
-    // Add occupant to room
     return occupancyService.addOccupant(
       booking.roomId,
       booking.userId,
-      `Added from booking #${bookingId}`
+      `Được thêm từ booking #${bookingId}`,
+      actor,
+      bookingId
     );
   },
 };
