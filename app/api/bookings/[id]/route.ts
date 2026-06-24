@@ -32,7 +32,10 @@ export async function PUT(
 
     let booking;
     if (data.status) {
-      booking = await bookingService.updateStatus(id, data.status);
+      booking = await bookingService.updateStatus(id, data.status, {
+        userId: user.userId,
+        role: user.role ?? "CUSTOMER",
+      });
     } else {
       booking = await bookingService.getById(id, user.userId);
     }

@@ -88,9 +88,9 @@ export function RoomStatCards() {
       change: 'Sẵn sàng đặt',
     },
     {
-      label: 'Đã thuê',
+      label: 'Đã đủ người',
       value: stats.occupiedRooms,
-      change: 'Đang có khách',
+      change: 'Đã lấp đầy sức chứa',
     },
     {
       label: 'Tỷ lệ lấp đầy',

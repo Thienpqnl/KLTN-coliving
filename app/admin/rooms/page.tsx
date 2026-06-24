@@ -58,7 +58,7 @@ const statusLabels: Record<RoomStatus, string> = {
   AVAILABLE: "Đã duyệt",
   REJECTED: "Từ chối",
   HIDDEN: "Đang ẩn",
-  OCCUPIED: "Đã thuê",
+  OCCUPIED: "Đã đủ người",
 };
 
 const documentLabels: Record<string, string> = {

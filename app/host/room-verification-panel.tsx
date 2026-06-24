@@ -40,7 +40,7 @@ const statusLabels: Record<RoomStatus, string> = {
   AVAILABLE: "Đã duyệt và công khai",
   REJECTED: "Đã từ chối",
   HIDDEN: "Đang bị ẩn",
-  OCCUPIED: "Đã thuê",
+  OCCUPIED: "Đã đủ người",
 };
 
 export function RoomVerificationPanel({ roomId }: { roomId: string }) {

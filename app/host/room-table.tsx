@@ -44,7 +44,7 @@ const getStatusLabel = (status: string) => {
     case 'AVAILABLE':
       return 'Còn trống'
     case 'OCCUPIED':
-      return 'Đã thuê'
+      return 'Đã đủ người'
     case 'PENDING':
       return 'Chờ duyệt'
     case 'DRAFT':
