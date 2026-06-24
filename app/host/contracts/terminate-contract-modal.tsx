@@ -9,6 +9,8 @@ interface TerminateContractModalProps {
   contractId: string;
   renterName: string;
   roomTitle: string;
+  noticeDays?: number;
+  mode?: 'HOST' | 'RENTER';
   onSuccess?: () => void;
   onClose: () => void;
 }
@@ -17,6 +19,8 @@ export function TerminateContractModal({
   contractId,
   renterName,
   roomTitle,
+  noticeDays = 0,
+  mode = 'HOST',
   onSuccess,
   onClose,
 }: TerminateContractModalProps) {
@@ -24,6 +28,7 @@ export function TerminateContractModal({
   const [error, setError] = useState('');
   const [terminationReason, setTerminationReason] = useState('');
   const [confirmChecked, setConfirmChecked] = useState(false);
+  const isRenterLeaving = mode === 'RENTER';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +64,9 @@ export function TerminateContractModal({
       <div className="bg-white rounded-lg max-w-md w-full shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
-          <h2 className="text-xl font-bold text-foreground">Chấm Dứt Hợp Đồng</h2>
+          <h2 className="text-xl font-bold text-foreground">
+            {isRenterLeaving ? 'Xác Nhận Rời Phòng' : 'Chấm Dứt Hợp Đồng'}
+          </h2>
           <button
             onClick={onClose}
             className="text-slate-500 hover:text-slate-700"
@@ -76,7 +83,9 @@ export function TerminateContractModal({
             <div>
               <p className="font-medium text-yellow-900">Cảnh báo</p>
               <p className="text-sm text-yellow-800 mt-1">
-                Hành động này sẽ chấm dứt hợp đồng thuê phòng và không thể hoàn tác
+                {isRenterLeaving
+                  ? `Rời phòng sẽ chấm dứt hợp đồng ngay lập tức. Hợp đồng yêu cầu báo trước ${noticeDays} ngày; tiền cọc và nghĩa vụ còn lại được xử lý theo điều khoản đã ký.`
+                  : 'Hành động này sẽ chấm dứt hợp đồng thuê phòng và không thể hoàn tác.'}
               </p>
             </div>
           </div>
@@ -96,13 +105,13 @@ export function TerminateContractModal({
           {/* Reason */}
           <div>
             <label htmlFor="terminationReason" className="block text-sm font-medium text-foreground mb-2">
-              Lý Do Chấm Dứt
+              {isRenterLeaving ? 'Lý Do Rời Phòng' : 'Lý Do Chấm Dứt'}
             </label>
             <textarea
               id="terminationReason"
               value={terminationReason}
               onChange={(e) => setTerminationReason(e.target.value)}
-              placeholder="Nhập lý do chấm dứt hợp đồng (tối thiểu 5 ký tự)"
+              placeholder={isRenterLeaving ? 'Nhập lý do rời phòng (tối thiểu 5 ký tự)' : 'Nhập lý do chấm dứt hợp đồng (tối thiểu 5 ký tự)'}
               rows={3}
               className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
               required
@@ -122,7 +131,9 @@ export function TerminateContractModal({
               className="mt-1 rounded border-slate-300"
             />
             <label htmlFor="confirm" className="text-sm text-foreground">
-              Tôi xác nhận chấm dứt hợp đồng này và chấp nhận tất cả hậu quả
+              {isRenterLeaving
+                ? 'Tôi xác nhận rời phòng, chấm dứt quyền cư trú và chấp nhận các nghĩa vụ theo hợp đồng.'
+                : 'Tôi xác nhận chấm dứt hợp đồng này và chấp nhận tất cả hậu quả.'}
             </label>
           </div>
 
@@ -142,10 +153,10 @@ export function TerminateContractModal({
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Đang chấm dứt...
+                  {isRenterLeaving ? 'Đang xử lý...' : 'Đang chấm dứt...'}
                 </>
               ) : (
-                'Chấm Dứt'
+                isRenterLeaving ? 'Xác Nhận Rời Phòng' : 'Chấm Dứt'
               )}
             </Button>
             <Button

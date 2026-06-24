@@ -39,6 +39,7 @@ const eventLabels: Record<string, string> = {
   RENTER_HANDOVER_CONFIRMED: "Người thuê xác nhận nhận phòng",
   RENEWAL_RECORDED: "Ghi nhận gia hạn",
   CONTRACT_TERMINATED: "Chấm dứt hợp đồng",
+  RENTER_LEFT_ROOM: "Người thuê đã rời phòng",
 };
 
 const flow: ContractStatus[] = [
@@ -208,8 +209,13 @@ export function ContractDetail({ contract, isHost, onRenew, onTerminate, onChang
         </section>
       )}
 
-      {contract.status === ContractStatus.ACTIVE && isHost && (
-        <div className="flex gap-3">{onRenew && <Button variant="outline" onClick={onRenew}>Gia hạn</Button>}{onTerminate && <Button className="bg-red-600 text-white hover:bg-red-700" onClick={onTerminate}>Chấm dứt hợp đồng</Button>}</div>
+      {contract.status === ContractStatus.ACTIVE && onTerminate && (
+        <div className="flex flex-wrap gap-3">
+          {isHost && onRenew && <Button variant="outline" onClick={onRenew}>Gia hạn</Button>}
+          <Button className="bg-red-600 text-white hover:bg-red-700" onClick={onTerminate}>
+            {isHost ? "Chấm dứt hợp đồng" : "Rời phòng"}
+          </Button>
+        </div>
       )}
     </div>
   );

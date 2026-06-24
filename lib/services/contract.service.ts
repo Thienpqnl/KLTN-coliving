@@ -686,7 +686,7 @@ export const contractService = {
         data: {
           contractId,
           actorId: data.actorId,
-          type: "CONTRACT_TERMINATED",
+          type: data.role === "CUSTOMER" ? "RENTER_LEFT_ROOM" : "CONTRACT_TERMINATED",
           fromStatus: ContractStatus.ACTIVE,
           toStatus: ContractStatus.TERMINATED,
           note: data.terminationReason,

@@ -5,6 +5,7 @@ import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { contractClient, ContractData } from '@/lib/services/contract-client.service';
 import { ContractDetail } from '@/app/host/contracts/contract-detail';
+import { TerminateContractModal } from '@/app/host/contracts/terminate-contract-modal';
 import { Loader2 } from 'lucide-react';
 import { ContractStatus } from '@prisma/client';
 
@@ -35,6 +36,7 @@ export default function CustomerContractsPage() {
   const [selectedContract, setSelectedContract] = useState<ContractData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   useEffect(() => {
     const loadContracts = async () => {
@@ -77,6 +79,17 @@ export default function CustomerContractsPage() {
     setSelectedContract(updated);
     setContracts((items) => items.map((item) => item.id === updated.id ? updated : item));
     selectContract(updated);
+  };
+
+  const handleLeaveSuccess = async () => {
+    if (!selectedContract) return;
+
+    try {
+      const updated = await contractClient.getById(selectedContract.id);
+      handleChanged(updated);
+    } finally {
+      setShowLeaveModal(false);
+    }
   };
 
   return (
@@ -148,7 +161,25 @@ export default function CustomerContractsPage() {
               {/* Contract Detail */}
               <div className="lg:col-span-2">
                 {selectedContract && (
-                  <ContractDetail contract={selectedContract} isHost={false} onChanged={handleChanged} />
+                  <>
+                    <ContractDetail
+                      contract={selectedContract}
+                      isHost={false}
+                      onChanged={handleChanged}
+                      onTerminate={() => setShowLeaveModal(true)}
+                    />
+                    {showLeaveModal && (
+                      <TerminateContractModal
+                        contractId={selectedContract.id}
+                        renterName={selectedContract.renter.fullName}
+                        roomTitle={selectedContract.room.title}
+                        noticeDays={selectedContract.noticeDays}
+                        mode="RENTER"
+                        onSuccess={handleLeaveSuccess}
+                        onClose={() => setShowLeaveModal(false)}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </div>
