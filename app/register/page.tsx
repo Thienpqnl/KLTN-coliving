@@ -1,357 +1,324 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from "@/lib/hooks/useAuth";
 import { useRouter } from 'next/navigation';
-export default function RegisterPage() {
-  const { refetch } = useAuth();
-const router = useRouter();
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'CUSTOMER',
-    terms: false,
-  });
+import { ArrowRight, Sparkles, Users } from 'lucide-react';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { AuthHeader } from '@/components/AuthHeader';
 
+type RegisterForm = {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  role: 'CUSTOMER' | 'HOST';
+  terms: boolean;
+};
+
+const initialForm: RegisterForm = {
+  fullName: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  role: 'CUSTOMER',
+  terms: false,
+};
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const { login } = useAuth();
+  const [formData, setFormData] = useState<RegisterForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { id, type, value, checked } = e.target as HTMLInputElement;
-    setFormData(prev => ({
-      ...prev,
-      [id]: type === 'checkbox' ? checked : value,
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const target = event.target;
+    const value =
+      target instanceof HTMLInputElement && target.type === 'checkbox'
+        ? target.checked
+        : target.value;
+
+    setFormData((current) => ({
+      ...current,
+      [target.id]: value,
     }));
+    setErrors((current) => ({ ...current, [target.id]: '' }));
   };
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+    const nextErrors: Record<string, string> = {};
 
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Vui lÃ²ng nháº­p há» tÃªn';
+      nextErrors.fullName = 'Vui lòng nhập họ và tên.';
     }
-
     if (!formData.email.trim()) {
-      newErrors.email = 'Vui lÃ²ng nháº­p email';
+      nextErrors.email = 'Vui lòng nhập địa chỉ email.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email khÃ´ng há»£p lá»‡';
+      nextErrors.email = 'Địa chỉ email không hợp lệ.';
     }
-
     if (!formData.password) {
-      newErrors.password = 'Vui lÃ²ng nháº­p máº­t kháº©u';
+      nextErrors.password = 'Vui lòng nhập mật khẩu.';
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 8 kÃ½ tá»±';
+      nextErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự.';
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Máº­t kháº©u khÃ´ng trÃ¹ng khá»›p';
+    if (!formData.confirmPassword) {
+      nextErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu.';
+    } else if (formData.password !== formData.confirmPassword) {
+      nextErrors.confirmPassword = 'Mật khẩu xác nhận không trùng khớp.';
     }
-
     if (!formData.role) {
-      newErrors.role = 'Please select a role';
+      nextErrors.role = 'Vui lòng chọn mục đích sử dụng tài khoản.';
     }
-
     if (!formData.terms) {
-      newErrors.terms = 'Vui lÃ²ng Ä‘á»“ng Ã½ vá»›i Ä‘iá»u khoáº£n';
+      nextErrors.terms = 'Bạn cần đồng ý với điều khoản và chính sách bảo mật.';
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!validateForm()) return;
 
-const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+    setIsLoading(true);
+    setErrors({});
 
-  if (!validateForm()) return;
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          password: formData.password,
+          fullName: formData.fullName.trim(),
+          role: formData.role,
+        }),
+      });
+      const payload = await response.json();
 
-  setIsLoading(true);
+      if (!response.ok) {
+        setErrors({ submit: payload.message || 'Không thể đăng ký tài khoản.' });
+        return;
+      }
 
-  try {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName,
-        role: formData.role,
-      }),
-      credentials: 'include',
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setErrors({ submit: data.message || 'ÄÄƒng kÃ½ tháº¥t báº¡i' });
-      return;
+      if (payload.token) await login(payload.token);
+      router.replace(formData.role === 'HOST' ? '/host' : '/');
+    } catch {
+      setErrors({ submit: 'Không thể kết nối đến máy chủ. Vui lòng thử lại.' });
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    // LÆ°u token vÃ o localStorage
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-    }
-
-    await refetch();
-
-    // Redirect based on role
-    if (formData.role === 'HOST') {
-      router.push('/host');
-    } else {
-      router.push('/home');
-    }
-  } catch {
-    setErrors({ submit: 'Đăng ký thất bại' });
-  } finally {
-    setIsLoading(false);
-  }
-};
   return (
-    <main className="min-h-screen flex flex-col md:flex-row overflow-hidden bg-white">
-      {/* Left Side - Hero Section */}
-      <section className="hidden md:flex md:w-1/2 lg:w-3/5 relative bg-blue-100 items-center justify-center p-12 lg:p-24 overflow-hidden">
-        <div className="absolute inset-0 z-0">
+    <>
+      <AuthHeader page="register" />
+      <main className="flex min-h-screen flex-col overflow-hidden bg-white pt-16 md:flex-row">
+      <section className="relative hidden min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-slate-950 p-12 md:flex md:w-1/2 lg:w-3/5 lg:p-24">
+        <div className="absolute inset-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            alt="KhÃ´ng gian co-living sang trá»ng"
-            className="w-full h-full object-cover"
+            alt="Không gian sống chung hiện đại"
+            className="h-full w-full object-cover"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfAu9icIgC2pau7CZT9KXd6v-pI7ev3PB8iSfvcdcZM2_8tnHhk8KP9e0he4yBOChavTyFeyriLkSAPv_VOCDwNfbb-2RiOi7S19hlx5JAbtM270wa1iIJOR0VMdxPgYLhcwpHxuXXiQtZUPmqWJb-40MxH1oyXpuIT88idIvZPFUbOoc2lp5nHsv4i_oAOtMxTCyaQbYQDcoy0KB9MD8AcJRDx8eQ8VvCticGo4qbR43ywRTHypFldeu4WZCc5DS0cydOzJrFOG8S"
           />
-          <div className="absolute inset-0 bg-slate-950/45"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/55 to-slate-950/20"></div>
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950/70 to-transparent"></div>
+          <div className="absolute inset-0 bg-slate-950/55" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-slate-950/25" />
         </div>
 
         <div className="relative z-10 w-full max-w-2xl">
-          <div className="mb-12">
-            <span className="inline-block px-4 py-1 rounded-full bg-white/95 backdrop-blur-md text-orange-700 font-label text-[10px] tracking-[0.2em] uppercase mb-6 shadow-sm">
-              The Curated Hearth
-            </span>
-            <h1 className="font-headline text-5xl lg:text-7xl font-extrabold text-white tracking-tighter leading-[0.9] mb-8 drop-shadow-[0_3px_18px_rgba(0,0,0,0.65)]">
-              TÃ¬m gia Ä‘Ã¬nh <br />
-              <span className="text-orange-200">cá»§a báº¡n</span>
-            </h1>
-            <p className="text-white text-lg lg:text-xl font-medium leading-relaxed max-w-lg mb-12 drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)]">
-              KhÃ´ng chá»‰ lÃ  má»™t phÃ²ng. Má»™t há»‡ sinh thÃ¡i Ä‘Æ°á»£c tuyá»ƒn chá»n Ä‘Æ°á»£c thiáº¿t káº¿ cho nhá»¯ng cÃ¢u chuyá»‡n chia sáº», sá»± phÃ¡t triá»ƒn sÃ¡ng táº¡o vÃ  áº¥m Ã¡p cá»§a má»™t lÃ² sÆ°á»Ÿi hiá»‡n Ä‘áº¡i.
-            </p>
-          </div>
+          <span className="mb-7 inline-block rounded-full bg-white/95 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-orange-700 shadow-sm">
+            The Curated Hearth
+          </span>
+          <h1 className="max-w-xl font-headline text-5xl font-extrabold leading-[0.95] text-white drop-shadow-lg lg:text-7xl">
+            Tìm không gian
+            <span className="mt-2 block text-orange-200">thuộc về bạn</span>
+          </h1>
+          <p className="mt-8 max-w-xl text-lg font-medium leading-relaxed text-white/90 drop-shadow-md lg:text-xl">
+            Không chỉ là một căn phòng, đây là nơi bạn tìm thấy cộng đồng phù hợp,
+            những kết nối chân thành và một nhịp sống mới đầy cảm hứng.
+          </p>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white/90 backdrop-blur-md p-6 rounded-xl border border-white/60 shadow-xl shadow-black/20">
-              <span className="material-symbols-outlined text-orange-600 mb-3 block text-3xl">auto_awesome</span>
-              <h3 className="font-headline font-bold text-slate-900">KhÃ´ng gian Tuyá»ƒn chá»n</h3>
-              <p className="text-sm text-slate-700 mt-1">CÃ¡c mÃ´i trÆ°á»ng Ä‘Æ°á»£c thiáº¿t káº¿ Ä‘áº§y cáº£m há»©ng.</p>
+          <div className="mt-12 grid grid-cols-2 gap-6">
+            <div className="rounded-lg border border-white/50 bg-white/90 p-6 shadow-xl backdrop-blur-md">
+              <Sparkles className="h-7 w-7 text-orange-600" />
+              <h2 className="mt-4 font-headline font-bold text-slate-900">
+                Không gian tuyển chọn
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                Khám phá những nơi ở đã được kiểm duyệt và xác thực.
+              </p>
             </div>
-            <div className="bg-white/90 backdrop-blur-md p-6 rounded-xl border border-white/60 shadow-xl shadow-black/20">
-              <span className="material-symbols-outlined text-orange-600 mb-3 block text-3xl">group</span>
-              <h3 className="font-headline font-bold text-slate-900">Káº¿t ná»‘i Thá»±c sá»±</h3>
-              <p className="text-sm text-slate-700 mt-1">CÃ¡c cá»™ng Ä‘á»“ng Ä‘Æ°á»£c kiá»ƒm duyá»‡t cáº©n tháº­n.</p>
+            <div className="rounded-lg border border-white/50 bg-white/90 p-6 shadow-xl backdrop-blur-md">
+              <Users className="h-7 w-7 text-orange-600" />
+              <h2 className="mt-4 font-headline font-bold text-slate-900">
+                Kết nối phù hợp
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                Gặp gỡ những người bạn ở cùng có lối sống tương đồng.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Right Side - Registration Form */}
-      <section className="flex-1 flex flex-col justify-center items-center px-6 py-12 md:px-12 lg:px-24 bg-white relative">
-        <div className="absolute top-8 left-8 md:hidden">
-          <span className="font-headline text-xl font-bold tracking-tighter text-orange-900">
-            The Curated Hearth
-          </span>
-        </div>
-
-        <div className="w-full max-w-md">
-          <header className="mb-10">
-            <h2 className="font-headline text-3xl font-bold text-slate-900 tracking-tight mb-2">
-              Táº¡o tÃ i khoáº£n
+      <section className="relative flex flex-1 flex-col items-center justify-center bg-white px-6 py-20 md:px-12 lg:px-20">
+        <div className="w-full max-w-lg">
+          <header className="mb-9">
+            <h2 className="font-headline text-4xl font-extrabold tracking-tight text-slate-950">
+              Tạo tài khoản
             </h2>
-            <p className="text-slate-600 font-light">
-              Tham gia má»™t cá»™ng Ä‘á»“ng Ä‘Æ°á»£c xÃ¢y dá»±ng trÃªn cÃ¡c giÃ¡ trá»‹ chia sáº».
+            <p className="mt-2 leading-relaxed text-slate-600">
+              Bắt đầu hành trình tìm kiếm không gian sống phù hợp với bạn.
             </p>
           </header>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Full Name */}
-            <div className="space-y-1.5">
-              <label
-                className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
-                htmlFor="fullName"
-              >
-                Há» vÃ  TÃªn
-              </label>
+          <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+            <FormField label="Họ và tên" error={errors.fullName}>
               <input
-                className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all placeholder:text-slate-400 outline-none"
                 id="fullName"
-                placeholder="Evelyn Thorne"
                 type="text"
+                autoComplete="name"
+                placeholder="Nguyễn Văn An"
                 value={formData.fullName}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                className="h-14 w-full rounded-full border border-transparent bg-slate-100 px-6 text-slate-900 outline-none transition focus:border-orange-300 focus:bg-white focus:ring-2 focus:ring-orange-100"
               />
-              {errors.fullName && (
-                <p className="text-xs text-red-600 ml-1">{errors.fullName}</p>
-              )}
-            </div>
+            </FormField>
 
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label
-                className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
-                htmlFor="email"
-              >
-                Email
-              </label>
+            <FormField label="Địa chỉ email" error={errors.email}>
               <input
-                className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all placeholder:text-slate-400 outline-none"
                 id="email"
-                placeholder="evelyn@hearth.com"
                 type="email"
+                autoComplete="email"
+                placeholder="nguyenvanan@example.com"
                 value={formData.email}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                className="h-14 w-full rounded-full border border-transparent bg-slate-100 px-6 text-slate-900 outline-none transition focus:border-orange-300 focus:bg-white focus:ring-2 focus:ring-orange-100"
               />
-              {errors.email && (
-                <p className="text-xs text-red-600 ml-1">{errors.email}</p>
-              )}
-            </div>
+            </FormField>
 
-            {/* Role Selection */}
-            <div className="space-y-1.5">
-              <label
-                className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
-                htmlFor="role"
-              >
-                I want to
-              </label>
+            <FormField label="Bạn muốn" error={errors.role}>
               <select
-                className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all"
                 id="role"
                 value={formData.role}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                className="h-14 w-full rounded-full border border-transparent bg-slate-100 px-6 text-slate-900 outline-none transition focus:border-orange-300 focus:bg-white focus:ring-2 focus:ring-orange-100"
               >
-                <option value="CUSTOMER">Rent a room (Tenant)</option>
-                <option value="HOST">Host a room (Landlord)</option>
+                <option value="CUSTOMER">Tìm và thuê phòng</option>
+                <option value="HOST">Đăng phòng cho thuê</option>
               </select>
-              {errors.role && (
-                <p className="text-xs text-red-600 ml-1">{errors.role}</p>
-              )}
-            </div>
+            </FormField>
 
-            {/* Password Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label
-                  className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
-                  htmlFor="password"
-                >
-                  Máº­t kháº©u
-                </label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField label="Mật khẩu" error={errors.password}>
                 <input
-                  className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all outline-none"
                   id="password"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   type="password"
+                  autoComplete="new-password"
+                  placeholder="Tối thiểu 8 ký tự"
                   value={formData.password}
                   onChange={handleInputChange}
                   disabled={isLoading}
+                  className="h-14 w-full rounded-full border border-transparent bg-slate-100 px-6 text-slate-900 outline-none transition focus:border-orange-300 focus:bg-white focus:ring-2 focus:ring-orange-100"
                 />
-                {errors.password && (
-                  <p className="text-xs text-red-600 ml-1">{errors.password}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <label
-                  className="font-label text-[10px] font-semibold text-slate-600 uppercase tracking-wider ml-1 block"
-                  htmlFor="confirmPassword"
-                >
-                  XÃ¡c nháº­n
-                </label>
+              </FormField>
+              <FormField label="Xác nhận mật khẩu" error={errors.confirmPassword}>
                 <input
-                  className="w-full h-14 px-6 rounded-full bg-slate-100 border-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all outline-none"
                   id="confirmPassword"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   type="password"
+                  autoComplete="new-password"
+                  placeholder="Nhập lại mật khẩu"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   disabled={isLoading}
+                  className="h-14 w-full rounded-full border border-transparent bg-slate-100 px-6 text-slate-900 outline-none transition focus:border-orange-300 focus:bg-white focus:ring-2 focus:ring-orange-100"
                 />
-                {errors.confirmPassword && (
-                  <p className="text-xs text-red-600 ml-1">{errors.confirmPassword}</p>
-                )}
-              </div>
+              </FormField>
             </div>
 
-            {/* Terms Checkbox */}
-            <div className="flex items-start space-x-3 py-2">
-              <input
-                className="rounded text-orange-600 focus:ring-orange-500 border-slate-300 h-4 w-4 mt-0.5"
-                id="terms"
-                type="checkbox"
-                checked={formData.terms}
-                onChange={handleInputChange}
-                disabled={isLoading}
-              />
-              <label className="text-xs text-slate-600 leading-relaxed" htmlFor="terms">
-                TÃ´i Ä‘á»“ng Ã½ vá»›i{' '}
-                <Link href="#" className="text-orange-600 font-medium hover:underline">
-                  Äiá»u khoáº£n dá»‹ch vá»¥
-                </Link>{' '}
-                vÃ {' '}
-                <Link href="#" className="text-orange-600 font-medium hover:underline">
-                  ChÃ­nh sÃ¡ch báº£o máº­t
-                </Link>
-                .
+            <div>
+              <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-slate-600">
+                <input
+                  id="terms"
+                  type="checkbox"
+                  checked={formData.terms}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                />
+                <span>
+                  Tôi đồng ý với{' '}
+                  <Link href="#" className="font-semibold text-orange-700 hover:underline">
+                    Điều khoản dịch vụ
+                  </Link>{' '}
+                  và{' '}
+                  <Link href="#" className="font-semibold text-orange-700 hover:underline">
+                    Chính sách bảo mật
+                  </Link>
+                  .
+                </span>
               </label>
+              {errors.terms && <p className="mt-1.5 text-xs text-red-600">{errors.terms}</p>}
             </div>
-            {errors.terms && (
-              <p className="text-xs text-red-600 ml-1">{errors.terms}</p>
-            )}
 
-            {/* Submit Error */}
             {errors.submit && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{errors.submit}</p>
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {errors.submit}
               </div>
             )}
 
-            {/* Submit Button */}
             <button
-              className="w-full h-14 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-label text-xs font-bold uppercase tracking-widest rounded-full shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
               disabled={isLoading}
+              className="flex h-14 w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-gradient-to-r from-orange-700 to-orange-500 text-sm font-black uppercase tracking-wider text-white shadow-lg shadow-orange-500/20 transition hover:from-orange-800 hover:to-orange-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span>{isLoading ? 'Äang táº¡o tÃ i khoáº£n...' : 'Báº¯t Ä‘áº§u HÃ nh trÃ¬nh'}</span>
-              {!isLoading && <span className="material-symbols-outlined text-sm">arrow_forward</span>}
+              {isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
+              {!isLoading && <ArrowRight className="h-5 w-5" />}
             </button>
           </form>
 
-          {/* Sign In Link */}
-          <div className="mt-8 pt-8 border-t border-slate-200 text-center">
-            <p className="text-sm text-slate-600">
-              ÄÃ£ cÃ³ tÃ i khoáº£n?{' '}
-              <Link href="/login" className="text-orange-600 font-bold ml-1 hover:underline">
-                ÄÄƒng nháº­p
-              </Link>
-            </p>
-          </div>
-
-          {/* Partner Logos */}
-          <div className="mt-12 flex justify-center gap-6 grayscale opacity-40">
-            <img alt="Partner Logo" className="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkPk7jeBxQ18AIg-suV9cAmLLCSzl3YynCujV5hEQO4OWamPVoAvKu7XYRfzfkSf_05qbO0vnt_w495pG74NZKkW8c3ek2Tfb3ZQWfKJzsVJkM3cL2lMfBmdni0I7odQkPyv-y6ab_b_0osdEOlhZ9J7PkEhBq8j27Qoz9l2VaLNLXjhSSvJwOE4_5tSRVmk0itjmR-XdlbNkdnReyfmCEt4vqFbJgFVmHDeQYrBGK44waHu5ViByrHC0trN95nARDonvricJ3V1pB" />
-            <img alt="Partner Logo" className="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEBClqmdTSnZOY9u-aWcc9sWaUSM1Cc13FlkMXKSKzaLtGVqir7w6jfExyrBvIV4u3PfkIOfdMxaql_gkYFCx6demFeZozRfn5aP1UeyHb7Z8FgR-CVHd2FU3C8s51eOHbOA_o5qvlWVuBkCY6YPfV52Mr0y2xS1vkgCMdsmGBhIT0T6dp6toycPekgW5R5rXyzjfPVBtvb5gf_gnQ2jRPLRqP5Zy1dqtBbS3K4laI9p4rYy0me_5i80sSoACITW8guIpbEvLpGrgX" />
-            <img alt="Partner Logo" className="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRNHtqU-w2PT20lHobiJrMXyqZbJh2sAiwRNh_iWGzGlw42DZ4gEwSh3uSUrfh6n0iBNkaiCFShkltqhyOinte9vQfUP-09-KYx1Ss5ccwFtuENf2qhJgdbRb9OWle_D5jrN6kCwk_RqSjqKDkJ7rEMuVOQCakg0kMahD_L_cZfU68TtPudbg0nIe6uMoy3B81BoLH0ILTnYr-b7FGzz3-o-P4fs3rB-xF8NTMoCXmxFYWhUYhGJoMFObSBdgASI5tyC-uVk7unPX_" />
-          </div>
+          <p className="mt-8 border-t border-slate-200 pt-7 text-center text-sm text-slate-600">
+            Đã có tài khoản?{' '}
+            <Link href="/login" className="font-bold text-orange-700 hover:underline">
+              Đăng nhập
+            </Link>
+          </p>
         </div>
 
-        {/* Footer */}
-        <footer className="absolute bottom-8 text-[10px] font-label tracking-widest text-slate-500 uppercase">
-          Â© 2024 The Curated Hearth. All rights reserved.
+        <footer className="mt-12 text-center text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+          © 2026 The Curated Hearth. Bảo lưu mọi quyền.
         </footer>
       </section>
-    </main>
+      </main>
+    </>
   );
 }
 
+function FormField({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="ml-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600">
+        {label}
+      </span>
+      {children}
+      {error && <span className="ml-1 block text-xs text-red-600">{error}</span>}
+    </label>
+  );
+}
