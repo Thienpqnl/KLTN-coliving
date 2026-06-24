@@ -30,7 +30,9 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(userData)
+    return NextResponse.json(userData, {
+      headers: { 'Cache-Control': 'no-store' },
+    })
   } catch (error) {
     if (!(error instanceof ApiError && error.statusCode === 401)) {
       console.error('Auth/me error:', error)
@@ -38,7 +40,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { message: 'Unauthorized' },
-      { status: 401 }
+      {
+        status: 401,
+        headers: { 'Cache-Control': 'no-store' },
+      }
     )
   }
 }
