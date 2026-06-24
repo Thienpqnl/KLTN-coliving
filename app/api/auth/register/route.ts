@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { message: "Missing fields" },
+        { message: "Vui lòng nhập đầy đủ email và mật khẩu" },
         { status: 400 }
       );
     }
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { message: "Email already exists" },
+        { message: "Email này đã được sử dụng" },
         { status: 400 }
       );
     }
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       {
-        message: "Server error",
+        message: "Hệ thống đang gặp sự cố. Vui lòng thử lại sau.",
         error: errorMessage,
       },
       { status: 500 }

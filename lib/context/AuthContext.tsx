@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useRef, ReactNode } from 'react';
 
 export interface User {
   id: string;
@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isLoggingOut = useRef(false);
 
   const fetchUser = async () => {
     try {
@@ -48,12 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'GET',
         headers,
         credentials: 'include',
+        cache: 'no-store',
       });
+
+      if (isLoggingOut.current) return;
 
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
       } else if (response.status === 401) {
+        localStorage.removeItem('token');
+        setToken(null);
         setUser(null);
       } else {
         const errorText = await response.text();
@@ -72,16 +78,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, []);
 
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'token' && !event.newValue) {
+        setToken(null);
+        setUser(null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   const logout = async () => {
+    isLoggingOut.current = true;
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+
     try {
-      await fetch('/api/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
       });
-      setUser(null);
-      window.location.href = '/';
+
+      if (!response.ok) {
+        throw new Error('Không thể xóa phiên đăng nhập trên máy chủ');
+      }
+
+      window.location.replace('/');
     } catch (error) {
       console.error('Logout failed:', error);
+      isLoggingOut.current = false;
     }
   };
 
