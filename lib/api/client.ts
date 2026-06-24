@@ -49,24 +49,59 @@ if (token) {
     headers, 
     credentials: "include",
   });
-  const data = await response.json();
+
+  const contentType = response.headers.get("content-type") || "";
+  const responseText = await response.text();
+  let data: Record<string, unknown> | null = null;
+
+  if (responseText && contentType.includes("application/json")) {
+    try {
+      data = JSON.parse(responseText) as Record<string, unknown>;
+    } catch {
+      throw new ApiError(
+        `Máy chủ trả về JSON không hợp lệ (${response.status})`,
+        response.status,
+      );
+    }
+  }
+
+  if (responseText && !contentType.includes("application/json")) {
+    const message = response.status === 404
+      ? `Không tìm thấy API ${endpoint}`
+      : response.status === 413
+        ? "Tài liệu vượt quá dung lượng máy chủ cho phép"
+        : response.status === 401 || response.status === 403
+          ? "Phiên đăng nhập không hợp lệ hoặc bạn không có quyền thực hiện"
+          : `Máy chủ trả về nội dung không hợp lệ (${response.status} ${response.statusText})`;
+
+    if (response.status >= 500) {
+      console.error("Non-JSON API response:", {
+        endpoint,
+        status: response.status,
+        contentType,
+        preview: responseText.slice(0, 160),
+      });
+    }
+    throw new ApiError(message, response.status);
+  }
+
   if (!response.ok) {
     if (response.status >= 500) {
       console.error('API Error Response:', { status: response.status, data });
     }
     throw new ApiError(
-      data.error || data.message || "API Error",
+      String(data?.error || data?.message || "API Error"),
       response.status,
-      data.errors,
+      data?.errors as Record<string, string[]> | undefined,
     );
   }
   
   // Nếu response có cấu trúc ApiResponse, trả về data
-  if (data && typeof data === 'object' && 'data' in data && 'success' in data) {
-    return data.data;
+  if (data && 'data' in data && 'success' in data) {
+    return data.data as T;
   }
   
-  return data;
+  return data as T;
 }
 
   // 3. Methods
