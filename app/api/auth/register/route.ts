@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     }
 
     const token = jwt.sign(
-      { userId: user.id },
+      { userId: user.id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -66,9 +66,8 @@ export async function POST(req: Request) {
     });
 
     return res;
-
   } catch (error: unknown) {
-    console.error("ERROR:", error);
+    console.error("Register error:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
 

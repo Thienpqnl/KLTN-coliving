@@ -16,115 +16,114 @@ class ApiClient {
   private token: string | null;
 
   constructor() {
-    this.baseUrl = "/api";
+    this.baseUrl = '/api';
     this.token = null;
   }
 
-  // 1. Set token
   setToken(token: string | null) {
     this.token = token;
   }
 
-  // 2. Core request
- private async request<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  // 1. Khởi tạo đối tượng Headers từ options.headers có sẵn
-  const headers = new Headers(options.headers);
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const headers = new Headers(options.headers);
 
-  // 2. Thêm các header mặc định nếu chưa có
-  if (!headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
 
-  // 3. Đính kèm token
-const token = this.token || localStorage.getItem("token");
+    const storedToken =
+      typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = this.token || storedToken;
 
-if (token) {
-  headers.set("Authorization", `Bearer ${token}`);
-}
-  const response = await fetch(`${this.baseUrl}${endpoint}`, {
-    ...options,
-    headers, 
-    credentials: "include",
-  });
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
 
-  const contentType = response.headers.get("content-type") || "";
-  const responseText = await response.text();
-  let data: Record<string, unknown> | null = null;
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
 
-  if (responseText && contentType.includes("application/json")) {
-    try {
-      data = JSON.parse(responseText) as Record<string, unknown>;
-    } catch {
+    const contentType = response.headers.get('content-type') || '';
+    const responseText = await response.text();
+    let data: Record<string, unknown> | null = null;
+
+    if (responseText && contentType.includes('application/json')) {
+      try {
+        data = JSON.parse(responseText) as Record<string, unknown>;
+      } catch {
+        throw new ApiError(
+          `Máy chủ trả về JSON không hợp lệ (${response.status})`,
+          response.status
+        );
+      }
+    }
+
+    if (responseText && !contentType.includes('application/json')) {
+      const message =
+        response.status === 404
+          ? `Không tìm thấy API ${endpoint}`
+          : response.status === 413
+            ? 'Tài liệu vượt quá dung lượng máy chủ cho phép'
+            : response.status === 401 || response.status === 403
+              ? 'Phiên đăng nhập không hợp lệ hoặc bạn không có quyền thực hiện'
+              : `Máy chủ trả về nội dung không hợp lệ (${response.status} ${response.statusText})`;
+
+      if (response.status >= 500) {
+        console.error('Non-JSON API response:', {
+          endpoint,
+          status: response.status,
+          contentType,
+          preview: responseText.slice(0, 160),
+        });
+      }
+
+      throw new ApiError(message, response.status);
+    }
+
+    if (!response.ok) {
+      if (response.status >= 500) {
+        console.error('API Error Response:', { status: response.status, data });
+      }
+
       throw new ApiError(
-        `Máy chủ trả về JSON không hợp lệ (${response.status})`,
+        String(data?.error || data?.message || 'API Error'),
         response.status,
+        data?.errors as Record<string, string[]> | undefined
       );
     }
-  }
 
-  if (responseText && !contentType.includes("application/json")) {
-    const message = response.status === 404
-      ? `Không tìm thấy API ${endpoint}`
-      : response.status === 413
-        ? "Tài liệu vượt quá dung lượng máy chủ cho phép"
-        : response.status === 401 || response.status === 403
-          ? "Phiên đăng nhập không hợp lệ hoặc bạn không có quyền thực hiện"
-          : `Máy chủ trả về nội dung không hợp lệ (${response.status} ${response.statusText})`;
-
-    if (response.status >= 500) {
-      console.error("Non-JSON API response:", {
-        endpoint,
-        status: response.status,
-        contentType,
-        preview: responseText.slice(0, 160),
-      });
+    if (data && 'data' in data && 'success' in data) {
+      return data.data as T;
     }
-    throw new ApiError(message, response.status);
+
+    return data as T;
   }
 
-  if (!response.ok) {
-    if (response.status >= 500) {
-      console.error('API Error Response:', { status: response.status, data });
-    }
-    throw new ApiError(
-      String(data?.error || data?.message || "API Error"),
-      response.status,
-      data?.errors as Record<string, string[]> | undefined,
-    );
-  }
-  
-  // Nếu response có cấu trúc ApiResponse, trả về data
-  if (data && 'data' in data && 'success' in data) {
-    return data.data as T;
-  }
-  
-  return data as T;
-}
-
-  // 3. Methods
   get<T>(endpoint: string) {
-    return this.request<T>(endpoint, { method: "GET" });
+    return this.request<T>(endpoint, { method: 'GET' });
   }
 
   post<T>(endpoint: string, body: unknown) {
     return this.request<T>(endpoint, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(body),
     });
   }
 
   put<T>(endpoint: string, body: unknown) {
     return this.request<T>(endpoint, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(body),
     });
   }
 
   delete<T>(endpoint: string) {
-    return this.request<T>(endpoint, { method: "DELETE" });
+    return this.request<T>(endpoint, { method: 'DELETE' });
   }
 }
 
