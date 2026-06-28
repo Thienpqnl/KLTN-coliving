@@ -27,14 +27,26 @@ export default function LoginPage() {
         credentials: 'include',
         body: JSON.stringify({ email: email.trim(), password }),
       });
-      const payload = await response.json();
+
+      const contentType = response.headers.get('content-type') || '';
+      const payload = contentType.includes('application/json')
+        ? await response.json()
+        : null;
 
       if (!response.ok) {
-        setError(payload.message || 'Đăng nhập thất bại.');
+        setError(
+          payload?.message ||
+            `Không thể đăng nhập. Máy chủ trả về mã lỗi ${response.status}.`
+        );
         return;
       }
 
-      if (payload.token) await login(payload.token);
+      if (!payload?.token) {
+        setError('Máy chủ không trả về phiên đăng nhập hợp lệ.');
+        return;
+      }
+
+      await login(payload.token);
 
       if (payload.user?.role === 'ADMIN') {
         router.replace('/admin');
@@ -44,7 +56,7 @@ export default function LoginPage() {
         router.replace('/');
       }
     } catch {
-      setError('Không thể kết nối đến máy chủ. Vui lòng thử lại.');
+      setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại server.');
     } finally {
       setIsLoading(false);
     }

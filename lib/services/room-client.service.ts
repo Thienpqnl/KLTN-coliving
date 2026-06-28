@@ -26,7 +26,7 @@ export interface CreateRoomPayload {
   amenityIds?: string[]
 }
 
-export interface UpdateRoomPayload extends Partial<CreateRoomPayload> {}
+export type UpdateRoomPayload = Partial<CreateRoomPayload>
 
 export const roomClientService = {
   // Get all rooms
