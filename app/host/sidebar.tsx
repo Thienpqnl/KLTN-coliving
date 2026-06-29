@@ -16,6 +16,7 @@ import {
   ChevronDown,
   LogOut,
   UserRound,
+  Package2,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -30,6 +31,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, href: "/host" },
   { label: "Quản lý phòng", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
+  { label: "Tài nguyên chung", icon: <Package2 className="h-4 w-4" />, href: "/host/resources" },
   { label: "Hợp đồng", icon: <CalendarCheck className="h-4 w-4" />, href: "/host/contracts" },
   { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
   { label: "Đánh giá", icon: <Star className="h-4 w-4" />, href: "/host/reviews" },

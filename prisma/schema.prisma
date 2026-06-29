@@ -39,7 +39,9 @@ model User {
   lifestyleProfile          user_lifestyle_profiles?
   preference                user_preferences?
   reviewedRoomVerifications RoomVerification[]       @relation("RoomVerificationReviewer")
-
+  resourceBookings        ResourceBooking[]
+  createdActivities       SharedSpaceActivity[] @relation("ActivityCreator")
+  assignedActivities      SharedSpaceActivity[] @relation("ActivityAssignee")
   @@map("User")
 }
 
@@ -127,7 +129,8 @@ model Room {
   RoomInteraction     RoomInteraction[]
   occupancies         Occupancy[]
   verification        RoomVerification?
-
+  sharedResources      SharedResource[]
+  sharedSpaceActivities SharedSpaceActivity[]
   @@map("Room")
 }
 
@@ -343,6 +346,7 @@ model Contract {
   renter                    User                  @relation("ContractRenter", fields: [renterId], references: [id])
   room                      Room                  @relation(fields: [roomId], references: [id])
   events                    ContractEvent[]
+  utilityBills              UtilityBill[]
 
   @@index([hostId])
   @@index([renterId])
@@ -512,4 +516,85 @@ enum InteractionType {
   FAVORITE
   BOOKING_REQ
   CONTRACT
+}
+model SharedResource {
+  id                    String            @id @default(uuid())
+  roomId                String
+  ownerId               String 
+  description           String?  
+  name                  String            // Ví dụ: "Máy giặt LG Tầng 2", "Bếp nướng BBQ"
+  type                  String            // "EQUIPMENT", "SPACE"
+  status                String            @default("ACTIVE") // "ACTIVE", "MAINTENANCE"
+  requiresApproval      Boolean           @default(false)    // Chủ nhà/Trưởng phòng duyệt không
+  maxDurationMinutes    Int               @default(120)      // Thời gian đặt tối đa 1 slot
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  room                  Room              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  resourceBookings      ResourceBooking[]
+
+  @@map("shared_resources")
+}
+model ResourceBooking {
+  id                    String         @id @default(uuid())
+  resourceId            String
+  userId                String
+  title                 String?        // Mục đích: "Giặt đồ mùa đông", "Nấu tiệc sinh nhật"
+  startTime             DateTime
+  endTime               DateTime
+  status                String         @default("APPROVED") // "PENDING", "APPROVED", "CANCELLED"
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  resource              SharedResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("resource_bookings")
+}
+model SharedSpaceActivity {
+  id           String    @id @default(uuid())
+  roomId       String
+  creatorId    String
+  assigneeId   String?   // Dành riêng cho lịch phân công trực nhật (Duty)
+  type         String    // "ANNOUNCEMENT" (Thông báo), "DUTY" (Lịch trực nhật), "ISSUE" (Báo hỏng)
+  title        String
+  content      String?
+  eventDate    DateTime? // Ngày thực hiện trực nhật hoặc ngày diễn ra sự kiện công cộng
+  imageUrl     String?   // URL ảnh đính kèm cho báo cáo sự cố
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  room         Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  creator      User      @relation("ActivityCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  assignee     User?     @relation("ActivityAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@map("shared_space_activities")
+}
+
+model UtilityBill {
+  id              String   @id @default(uuid())
+  contractId      String
+  month           Int      // Tháng (1-12)
+  year            Int      // Năm
+  previousReading Float?   // Chỉ số cũ (điện/nước)
+  currentReading  Float?   // Chỉ số mới (điện/nước)
+  electricityUsage Float?  // Số lượng điện sử dụng (kWh)
+  waterUsage      Float?   // Số lượng nước sử dụng (m³)
+  electricityCost Float?   // Chi phí điện
+  waterCost       Float?   // Chi phí nước
+  totalCost       Float    // Tổng chi phí
+  status          String   @default("PENDING") // PENDING, PAID, OVERDUE
+  paymentProofUrl String?  // URL ảnh minh chứng thanh toán từ tenant
+  paymentProofSubmittedAt DateTime?
+  approvedAt      DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, month, year])
+  @@index([contractId])
+  @@index([status])
+  @@map("utility_bills")
 }

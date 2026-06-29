@@ -58,15 +58,21 @@ interface Booking {
   };
 }
 
-interface UserPreferences {
-  budgetMinVnd?: string | number | null;
-  budgetMaxVnd?: string | number | null;
-  preferredDistrict?: string | null;
-  lifestyleArchetype?: string | null;
-  priorityCleanliness?: number | null;
-  prioritySocialEnvironment?: number | null;
-  acceptSmokingRoommates?: boolean | null;
-  acceptPets?: boolean | null;
+interface UserOccupancy {
+  occupancy: {
+    id: string;
+    status: string;
+    room: {
+      id: string;
+      title: string;
+      address: string;
+    };
+  } | null;
+  ownedRooms: {
+    id: string;
+    title: string;
+    address: string;
+  }[];
 }
 
 type FormData = Pick<UserProfile, 'fullName' | 'phone' | 'gender' | 'address'> & {
@@ -125,7 +131,8 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [preferences, setPreferences] = useState<any>(null);
+  const [occupancy, setOccupancy] = useState<UserOccupancy | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -156,7 +163,7 @@ export default function ProfilePage() {
       setError('');
 
       try {
-        const [profileRes, bookingsRes, preferencesRes] = await Promise.all([
+        const [profileRes, bookingsRes, preferencesRes, occupancyRes] = await Promise.all([
           fetch('/api/user/profile', {
             credentials: 'include',
             signal: controller.signal,
@@ -166,6 +173,10 @@ export default function ProfilePage() {
             signal: controller.signal,
           }),
           fetch('/api/preferences', {
+            credentials: 'include',
+            signal: controller.signal,
+          }),
+          fetch('/api/user/occupancy', {
             credentials: 'include',
             signal: controller.signal,
           }),
@@ -192,6 +203,11 @@ export default function ProfilePage() {
         if (preferencesRes.ok) {
           const preferencesData = await preferencesRes.json();
           setPreferences(preferencesData);
+        }
+
+        if (occupancyRes.ok) {
+          const occupancyData = await occupancyRes.json();
+          setOccupancy(occupancyData);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -822,13 +838,15 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                      <Link
-                        href="/contracts"
-                        className="inline-flex w-fit items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 transition-colors hover:bg-red-100"
-                      >
-                        <Home className="h-4 w-4" />
-                        Quản lý hợp đồng hoặc rời phòng
-                      </Link>
+                      {occupancy?.occupancy && (
+                        <Link
+                          href={`/rooms/${activeBooking.room.id}/shared-space`}
+                          className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-600 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-orange-700"
+                        >
+                          <span className="material-symbols-outlined text-base">apartment</span>
+                          Vào Sảnh Chung
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -849,6 +867,41 @@ export default function ProfilePage() {
                   </div>
                 )}
               </section>
+
+              {/* Host Managed Rooms Section */}
+              {occupancy?.ownedRooms && occupancy.ownedRooms.length > 0 && (
+                <section
+                  className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+                >
+                  <div className="mb-5">
+                    <p className="text-xs font-bold uppercase tracking-widest text-blue-700">
+                      Quản lý
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold text-slate-950">Phòng bạn quản lý</h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    {occupancy.ownedRooms.map((room) => (
+                      <div
+                        key={room.id}
+                        className="flex items-center justify-between p-4 rounded-lg bg-slate-50 border border-slate-200"
+                      >
+                        <div>
+                          <h3 className="font-bold text-slate-900">{room.title}</h3>
+                          <p className="text-sm text-slate-600">{room.address}</p>
+                        </div>
+                        <Link
+                          href={`/rooms/${room.id}/shared-space`}
+                          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-base">apartment</span>
+                          Quản lý Sảnh Chung
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <section
                 id="preferences"

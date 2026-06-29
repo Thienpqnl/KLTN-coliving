@@ -41,13 +41,14 @@ def convert_to_native_types(obj):
 def get_detailed_compatibility(userId: str, roomId: str):
     try:
         # 1. Load Data
-        users_df = load_users_from_supabase()
-        rooms_df = load_rooms_from_supabase()
+        users_df = load_users_from_supabase().reset_index(drop=True)
+        rooms_df = load_rooms_from_supabase().reset_index(drop=True)
+      
+        users_df = users_df.loc[:, ~users_df.columns.duplicated()]
+        rooms_df = rooms_df.loc[:, ~rooms_df.columns.duplicated()]
         occupancy_df = load_occupancy_from_supabase()
-        
-        # LƯU Ý: Sử dụng đúng tên cột 'userId' và 'roomId' đã được rename trong loader
-        user_row = users_df[users_df['userId'] == userId]
-        room_row = rooms_df[rooms_df['roomId'] == roomId]
+        user_row = users_df.loc[users_df['userId'] == userId]
+        room_row = rooms_df.loc[rooms_df['roomId'] == roomId]
         
         if user_row.empty:
             return {"error": f"User {userId} not found"}
@@ -58,8 +59,6 @@ def get_detailed_compatibility(userId: str, roomId: str):
         user = user_row.iloc[0]
         room = room_row.iloc[0]
 
-        # Kiểm tra phòng đầy (Sử dụng đúng tên cột 'current_occupants' và 'maxOccupants')
-        # Lưu ý: Trong loader, maxOccupants giữ nguyên tên, currentOccupants đổi thành current_occupants
         if room.get('current_occupants', 0) >= room.get('maxOccupants', 999):
             return {
                 "userId": userId,
@@ -94,20 +93,17 @@ def get_detailed_compatibility(userId: str, roomId: str):
             room.get('maxOccupants', 4)
         )
         
-        # Cleanliness: Sử dụng 'priority_cleanliness'
         cleanliness_score = cleanliness_compatibility(
             user.get('priority_cleanliness', 3),
             room.get('cleanlinessRequired', 'medium')
         )
         
-        # Social: Sử dụng 'priority_social_environment'
         social_score = social_compatibility(
             user.get('priority_social_environment', 3),
             room.get('noiseTolerance', 'medium'),
-            room.get('guestPolicy', 'occasionally') # Default theo loader là occasionally
+            room.get('guestPolicy', 'occasionally') 
         )
         
-        # Sleep: Sử dụng 'lifestyle_archetype'
         sleep_score = sleep_compatibility(
             user.get('lifestyle_archetype', 'Young Professional'),
             room.get('preferredSleepHabit', 'normal')
@@ -119,13 +115,9 @@ def get_detailed_compatibility(userId: str, roomId: str):
             room.get('guestPolicy', 'occasionally')
         )
 
-        # =====================================================
-        # 3. ROOMMATE COMPATIBILITY (FIXED LOGIC)
-        # =====================================================
-        roommate_score = 0.5  # Default
-        
-        # Lấy danh sách userId đang ở phòng này từ bảng occupancy
-        # Lọc occupancy_df theo roomId và status ACTIVE (nếu có)
+
+        roommate_score = 0.5 
+
         current_roommates_rows = occupancy_df[occupancy_df['roomId'] == roomId]
         
         # Nếu có người ở

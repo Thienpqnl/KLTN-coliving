@@ -14,7 +14,6 @@ function configure() {
   if (configured) return;
   const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!key) throw new Error("Thiếu NEXT_PUBLIC_GOOGLE_MAPS_API_KEY");
-
   if (typeof window !== "undefined") {
     const target = window as Window & { gm_authFailure?: () => void };
     const previousHandler = target.gm_authFailure;

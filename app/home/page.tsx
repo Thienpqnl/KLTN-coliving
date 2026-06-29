@@ -11,13 +11,34 @@ import {
   Room,
 } from '@/lib/services/room-client.service'
 import RoomsMap from '../components/GoogleRoomMap';
+import { useAuth } from '@/lib/hooks/useAuth';
+
+interface UserOccupancy {
+  occupancy: {
+    id: string;
+    status: string;
+    room: {
+      id: string;
+      title: string;
+      address: string;
+    };
+  } | null;
+  ownedRooms: {
+    id: string;
+    title: string;
+    address: string;
+  }[];
+}
+
 export default function HomePage() {
+  const { user } = useAuth();
   const [location, setLocation] = useState('');
   const [moveInDate, setMoveInDate] = useState('');
   const [roomType, setRoomType] = useState('Suite Riêng tư');
   const [rooms, setRooms] = useState<Room[]>([])
   const [selectedRoom, setSelectedRoom] =
     useState<Room | null>(null)
+  const [occupancy, setOccupancy] = useState<UserOccupancy | null>(null);
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Search:', { location, moveInDate, roomType });
@@ -39,6 +60,26 @@ export default function HomePage() {
       loadRooms()
 
     }, [])
+
+    useEffect(() => {
+      if (!user?.id) return;
+
+      const loadOccupancy = async () => {
+        try {
+          const res = await fetch('/api/user/occupancy', {
+            credentials: 'include',
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setOccupancy(data);
+          }
+        } catch (error) {
+          console.error('Error loading occupancy:', error);
+        }
+      };
+
+      loadOccupancy();
+    }, [user?.id]);
   const handleNewsletterSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log('Newsletter signup');
@@ -138,6 +179,83 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Quick Access to Shared Space */}
+        {occupancy && (occupancy.occupancy || occupancy.ownedRooms.length > 0) && (
+          <section className="py-12 bg-gradient-to-r from-orange-50 to-amber-50">
+            <div className="max-w-7xl mx-auto px-8">
+              <div className="text-center mb-8">
+                <span className="inline-block px-4 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider mb-4">
+                  Truy cập nhanh
+                </span>
+                <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
+                  Không gian chung của bạn
+                </h2>
+                <p className="text-slate-600">
+                  Quản lý tiện ích, lịch trực nhật và bảng tin phòng
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {occupancy.occupancy && (
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-orange-100">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">
+                          Phòng đang ở
+                        </h3>
+                        <p className="text-sm text-slate-600 mb-4">
+                          {occupancy.occupancy.room.title}
+                        </p>
+                        <Link
+                          href={`/rooms/${occupancy.occupancy.room.id}/shared-space`}
+                          className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-base">apartment</span>
+                          Vào Sảnh Chung
+                        </Link>
+                      </div>
+                      <div className="p-3 bg-orange-100 rounded-lg">
+                        <span className="material-symbols-outlined text-2xl text-orange-600">home</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {occupancy.ownedRooms.length > 0 && (
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">
+                          Phòng bạn quản lý ({occupancy.ownedRooms.length})
+                        </h3>
+                        <p className="text-sm text-slate-600 mb-4">
+                          {occupancy.ownedRooms.map(room => room.title).join(', ')}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {occupancy.ownedRooms.map(room => (
+                            <Link
+                              key={room.id}
+                              href={`/rooms/${room.id}/shared-space`}
+                              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-base">apartment</span>
+                              {room.title}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-blue-100 rounded-lg">
+                        <span className="material-symbols-outlined text-2xl text-blue-600">admin_panel_settings</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
 {/* Map Section */}
 <section className="py-20 bg-slate-50">
   <div className="max-w-7xl mx-auto px-8">
