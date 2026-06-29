@@ -8,6 +8,8 @@ export interface User {
   name?: string;
   fullName?: string;
   phone?: string;
+  phoneVerified?: boolean;
+  phoneVerifiedAt?: string;
   gender?: string;
   birthDate?: string;
   address?: string;

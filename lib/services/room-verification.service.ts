@@ -1,4 +1,5 @@
 import {
+  CommunityManagerRecommendation,
   Prisma,
   RoomStatus,
   VerificationDocumentStatus,
@@ -12,6 +13,9 @@ const verificationInclude = {
   reviewer: {
     select: { id: true, name: true, fullName: true, email: true },
   },
+  assignedManager: {
+    select: { id: true, name: true, fullName: true, email: true, phone: true },
+  },
 };
 
 const adminRoomInclude = {
@@ -22,6 +26,7 @@ const adminRoomInclude = {
       fullName: true,
       email: true,
       phone: true,
+      phoneVerified: true,
       status: true,
     },
   },
@@ -81,6 +86,20 @@ function validateSubmission(room: {
     throw new ApiError(400, "Thông tin phòng chưa đủ để gửi xét duyệt", errors);
   }
 }
+
+const buildAdminRoomWhere = (filters: { status?: RoomStatus; search?: string }): Prisma.RoomWhereInput => ({
+  ...(filters.status ? { status: filters.status } : {}),
+  ...(filters.search
+    ? {
+        OR: [
+          { title: { contains: filters.search, mode: Prisma.QueryMode.insensitive } },
+          { address: { contains: filters.search, mode: Prisma.QueryMode.insensitive } },
+          { owner: { email: { contains: filters.search, mode: Prisma.QueryMode.insensitive } } },
+          { owner: { fullName: { contains: filters.search, mode: Prisma.QueryMode.insensitive } } },
+        ],
+      }
+    : {}),
+});
 
 export const roomVerificationService = {
   getForHost: async (roomId: string, ownerId: string) => {
@@ -183,11 +202,12 @@ export const roomVerificationService = {
         create: {
           roomId,
           submittedAt: new Date(),
+          managerRecommendation: CommunityManagerRecommendation.PENDING,
           informationAccurateConfirmed: true,
           legalResponsibilityAccepted: true,
           verificationConsentAccepted: true,
           declarationAcceptedAt: new Date(),
-          declarationVersion: "ROOM_VERIFICATION_DECLARATION_V1",
+          declarationVersion: "ROOM_VERIFICATION_DECLARATION_V2_CM",
           declarationIpAddress: declaration.ipAddress,
           declarationUserAgent: declaration.userAgent,
         },
@@ -198,16 +218,26 @@ export const roomVerificationService = {
           revisionReason: null,
           rejectionReason: null,
           adminNote: null,
+          assignedManagerId: null,
+          managerAssignedAt: null,
+          managerReviewedAt: null,
+          managerNote: null,
+          inspectionDate: null,
+          inspectionImages: Prisma.JsonNull,
+          managerRecommendation: CommunityManagerRecommendation.PENDING,
           identityPassed: false,
           ownershipPassed: false,
           addressPassed: false,
           imagesPassed: false,
           detailsPassed: false,
+          facilityPassed: false,
+          safetyPassed: false,
+          legalOccupancyPassed: false,
           informationAccurateConfirmed: true,
           legalResponsibilityAccepted: true,
           verificationConsentAccepted: true,
           declarationAcceptedAt: new Date(),
-          declarationVersion: "ROOM_VERIFICATION_DECLARATION_V1",
+          declarationVersion: "ROOM_VERIFICATION_DECLARATION_V2_CM",
           declarationIpAddress: declaration.ipAddress,
           declarationUserAgent: declaration.userAgent,
           documents: {
@@ -228,20 +258,7 @@ export const roomVerificationService = {
   },
 
   getForAdmin: async (filters: { status?: RoomStatus; search?: string; page: number; limit: number }) => {
-    const where: Prisma.RoomWhereInput = {
-      ...(filters.status ? { status: filters.status } : {}),
-      ...(filters.search
-        ? {
-            OR: [
-              { title: { contains: filters.search, mode: Prisma.QueryMode.insensitive } },
-              { address: { contains: filters.search, mode: Prisma.QueryMode.insensitive } },
-              { owner: { email: { contains: filters.search, mode: Prisma.QueryMode.insensitive } } },
-              { owner: { fullName: { contains: filters.search, mode: Prisma.QueryMode.insensitive } } },
-            ],
-          }
-        : {}),
-    };
-
+    const where = buildAdminRoomWhere(filters);
     const [rooms, total] = await Promise.all([
       prisma.room.findMany({
         where,
@@ -260,6 +277,129 @@ export const roomVerificationService = {
     const room = await prisma.room.findUnique({ where: { id: roomId }, include: adminRoomInclude });
     if (!room) throw new ApiError(404, "Không tìm thấy phòng");
     return room;
+  },
+
+  getForCommunityManager: async (filters: {
+    managerId: string;
+    status?: RoomStatus;
+    search?: string;
+    page: number;
+    limit: number;
+  }) => {
+    const where: Prisma.RoomWhereInput = {
+      ...buildAdminRoomWhere({ status: filters.status || RoomStatus.PENDING, search: filters.search }),
+      verification: {
+        is: {
+          OR: [{ assignedManagerId: filters.managerId }, { assignedManagerId: null }],
+        },
+      },
+    };
+
+    const [rooms, total] = await Promise.all([
+      prisma.room.findMany({
+        where,
+        include: adminRoomInclude,
+        orderBy: [{ verification: { submittedAt: "desc" } }, { createdAt: "desc" }],
+        skip: (filters.page - 1) * filters.limit,
+        take: filters.limit,
+      }),
+      prisma.room.count({ where }),
+    ]);
+
+    return { rooms, total, page: filters.page, limit: filters.limit, totalPages: Math.max(1, Math.ceil(total / filters.limit)) };
+  },
+
+  getDetailForCommunityManager: async (roomId: string, managerId: string) => {
+    const room = await prisma.room.findUnique({ where: { id: roomId }, include: adminRoomInclude });
+    if (!room) throw new ApiError(404, "Không tìm thấy phòng");
+    if (room.status !== RoomStatus.PENDING) throw new ApiError(409, "Chỉ có thể xác minh phòng đang chờ duyệt");
+    if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== managerId) {
+      throw new ApiError(403, "Hồ sơ này đã được phân công cho nhân viên khác");
+    }
+    return room;
+  },
+
+  reviewByCommunityManager: async (
+    roomId: string,
+    managerId: string,
+    data: {
+      action: "recommend_approval" | "request_revision" | "recommend_rejection";
+      managerNote?: string;
+      inspectionDate?: string;
+      inspectionImages?: string[];
+      checklist: {
+        identityPassed: boolean;
+        ownershipPassed: boolean;
+        addressPassed: boolean;
+        imagesPassed: boolean;
+        detailsPassed: boolean;
+        facilityPassed: boolean;
+        safetyPassed: boolean;
+        legalOccupancyPassed: boolean;
+      };
+    }
+  ) => {
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+      include: { verification: true },
+    });
+    if (!room) throw new ApiError(404, "Không tìm thấy phòng");
+    if (room.status !== RoomStatus.PENDING) throw new ApiError(409, "Chỉ có thể xác minh phòng đang chờ duyệt");
+    if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== managerId) {
+      throw new ApiError(403, "Hồ sơ này đã được phân công cho nhân viên khác");
+    }
+    if (data.action === "recommend_approval" && Object.values(data.checklist).some((value) => !value)) {
+      throw new ApiError(400, "Cần hoàn tất toàn bộ checklist trước khi đề xuất duyệt");
+    }
+    if ((data.action === "request_revision" || data.action === "recommend_rejection") && !data.managerNote?.trim()) {
+      throw new ApiError(400, "Vui lòng nhập ghi chú hoặc lý do");
+    }
+
+    const recommendation =
+      data.action === "recommend_approval"
+        ? CommunityManagerRecommendation.RECOMMEND_APPROVAL
+        : data.action === "request_revision"
+          ? CommunityManagerRecommendation.NEEDS_REVISION
+          : CommunityManagerRecommendation.RECOMMEND_REJECTION;
+
+    const nextStatus = data.action === "request_revision" ? RoomStatus.NEEDS_REVISION : RoomStatus.PENDING;
+
+    return prisma.$transaction(async (tx) => {
+      await tx.roomVerification.upsert({
+        where: { roomId },
+        create: {
+          roomId,
+          assignedManagerId: managerId,
+          managerAssignedAt: new Date(),
+          managerReviewedAt: new Date(),
+          managerRecommendation: recommendation,
+          managerNote: data.managerNote,
+          inspectionDate: data.inspectionDate ? new Date(data.inspectionDate) : null,
+          inspectionImages: data.inspectionImages || [],
+          revisionReason: data.action === "request_revision" ? data.managerNote : null,
+          rejectionReason: data.action === "recommend_rejection" ? data.managerNote : null,
+          ...data.checklist,
+        },
+        update: {
+          assignedManagerId: managerId,
+          managerAssignedAt: room.verification?.managerAssignedAt || new Date(),
+          managerReviewedAt: new Date(),
+          managerRecommendation: recommendation,
+          managerNote: data.managerNote,
+          inspectionDate: data.inspectionDate ? new Date(data.inspectionDate) : null,
+          inspectionImages: data.inspectionImages || [],
+          revisionReason: data.action === "request_revision" ? data.managerNote : null,
+          rejectionReason: data.action === "recommend_rejection" ? data.managerNote : null,
+          ...data.checklist,
+        },
+      });
+
+      return tx.room.update({
+        where: { id: roomId },
+        data: { status: nextStatus },
+        include: adminRoomInclude,
+      });
+    });
   },
 
   review: async (
@@ -284,6 +424,15 @@ export const roomVerificationService = {
     });
     if (!room) throw new ApiError(404, "Không tìm thấy phòng");
 
+    if (data.action === "approve" && room.verification?.managerRecommendation !== CommunityManagerRecommendation.RECOMMEND_APPROVAL) {
+      throw new ApiError(400, "Cần nhân viên quản lý cộng đồng xác minh và đề xuất duyệt trước");
+    }
+    if (
+      data.action === "approve"
+      && (!room.verification?.facilityPassed || !room.verification.safetyPassed || !room.verification.legalOccupancyPassed)
+    ) {
+      throw new ApiError(400, "Hồ sơ chưa hoàn tất checklist xác minh thực địa");
+    }
     if (data.action === "approve" && (!data.checklist || Object.values(data.checklist).some((value) => !value))) {
       throw new ApiError(400, "Cần hoàn tất toàn bộ checklist trước khi phê duyệt");
     }

@@ -32,6 +32,8 @@ interface UserProfile {
   name?: string;
   fullName: string;
   phone?: string | null;
+  phoneVerified?: boolean;
+  phoneVerifiedAt?: string | null;
   gender?: string | null;
   birthDate?: string | null;
   address?: string | null;
@@ -74,6 +76,17 @@ interface UserOccupancy {
     address: string;
   }[];
 }
+
+type UserPreferences = {
+  budgetMinVnd?: number | string | null;
+  budgetMaxVnd?: number | string | null;
+  preferredDistrict?: string | null;
+  lifestyleArchetype?: string | null;
+  priorityCleanliness?: number | null;
+  prioritySocialEnvironment?: number | null;
+  acceptSmokingRoommates?: boolean | null;
+  acceptPets?: boolean | null;
+};
 
 type FormData = Pick<UserProfile, 'fullName' | 'phone' | 'gender' | 'address'> & {
   birthDate: string;
@@ -131,7 +144,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [preferences, setPreferences] = useState<any>(null);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [occupancy, setOccupancy] = useState<UserOccupancy | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -146,6 +159,10 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -438,6 +455,61 @@ export default function ProfilePage() {
     }
   };
 
+  const requestPhoneOtp = async () => {
+    const phone = formData.phone?.trim();
+    if (!phone) {
+      setOtpMessage('Vui lòng nhập số điện thoại trước khi gửi OTP.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpMessage('');
+    try {
+      const res = await fetch('/api/auth/phone/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || 'Không thể gửi OTP.');
+      setOtpMessage(data.data?.devOtp ? `Mã OTP demo: ${data.data.devOtp}` : 'Đã gửi mã OTP đến số điện thoại.');
+    } catch (err) {
+      setOtpMessage(err instanceof Error ? err.message : 'Không thể gửi OTP.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const verifyPhoneOtp = async () => {
+    const phone = formData.phone?.trim();
+    if (!phone || otpCode.length !== 6) {
+      setOtpMessage('Vui lòng nhập số điện thoại và mã OTP gồm 6 số.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpMessage('');
+    try {
+      const res = await fetch('/api/auth/phone/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ phone, code: otpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || 'Không thể xác minh OTP.');
+      setProfile((current) => current ? { ...current, phone: data.data.phone, phoneVerified: true, phoneVerifiedAt: data.data.phoneVerifiedAt } : current);
+      setOtpCode('');
+      setOtpMessage('Số điện thoại đã được xác minh.');
+      await refetch();
+    } catch (err) {
+      setOtpMessage(err instanceof Error ? err.message : 'Không thể xác minh OTP.');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
   if (authLoading || isLoading) {
     return (
       <>
@@ -718,6 +790,38 @@ export default function ProfilePage() {
                       placeholder="Nhập số điện thoại"
                       className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 font-medium text-slate-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-600"
                     />
+                    <div className="mt-3 rounded-lg border border-orange-100 bg-orange-50 p-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <span className={`text-xs font-bold ${profile.phoneVerified ? 'text-emerald-700' : 'text-orange-700'}`}>
+                          {profile.phoneVerified ? 'Số điện thoại đã xác minh' : 'Số điện thoại chưa xác minh'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={requestPhoneOtp}
+                          disabled={isSendingOtp || !formData.phone}
+                          className="rounded-full bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-500 disabled:opacity-50"
+                        >
+                          {isSendingOtp ? 'Đang gửi...' : 'Gửi OTP'}
+                        </button>
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <input
+                          value={otpCode}
+                          onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                          placeholder="Nhập mã OTP"
+                          className="h-10 flex-1 rounded-lg border border-orange-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-orange-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={verifyPhoneOtp}
+                          disabled={isVerifyingOtp || otpCode.length !== 6}
+                          className="rounded-lg bg-slate-900 px-4 text-xs font-bold text-white hover:bg-slate-700 disabled:opacity-50"
+                        >
+                          {isVerifyingOtp ? 'Đang xác minh...' : 'Xác minh'}
+                        </button>
+                      </div>
+                      {otpMessage && <p className="mt-2 text-xs font-semibold text-orange-800">{otpMessage}</p>}
+                    </div>
                   </label>
 
                   <label className="space-y-2">

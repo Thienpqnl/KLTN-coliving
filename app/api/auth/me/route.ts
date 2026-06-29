@@ -15,6 +15,8 @@ export async function GET(req: NextRequest) {
         name: true,
         fullName: true,
         phone: true,
+        phoneVerified: true,
+        phoneVerifiedAt: true,
         gender: true,
         birthDate: true,
         address: true,
