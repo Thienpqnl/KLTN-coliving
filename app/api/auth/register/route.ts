@@ -34,7 +34,10 @@ export async function POST(req: Request) {
         password: hashedPassword,
         name: fullName,
         fullName,
-        role: role && (role === "HOST" || role === "CUSTOMER") ? role : "CUSTOMER",
+        role:
+          role && ["HOST", "CUSTOMER", "COMMUNITY_MANAGER"].includes(role)
+            ? role
+            : "CUSTOMER",
       },
     });
 

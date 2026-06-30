@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { AdminService } from "@/lib/services/admin.service";
 import { ApiError } from "@/lib/api-error";
 import { getAuthUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const updateUserSchema = z.object({
   action: z.enum(["lock", "unlock", "delete", "update_role"]),
   reason: z.string().optional(),
-  newRole: z.enum(["CUSTOMER", "HOST", "ADMIN"]).optional(),
+  newRole: z.enum(["CUSTOMER", "HOST", "ADMIN", "COMMUNITY_MANAGER"]).optional(),
 });
 
 export async function PATCH(
@@ -69,7 +70,7 @@ export async function PATCH(
     }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation error", details: error.errors },
+        { error: "Validation error", details: error.issues },
         { status: 400 }
       );
     }
@@ -83,23 +84,24 @@ export async function PATCH(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const payload = await getAuthUser(request);
     if (payload.role !== "ADMIN")
       throw new ApiError(403, "Forbidden: Admin only");
 
-    const { default: prisma } = await import("@/lib/prisma");
+    const { id } = await params;
 
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         email: true,
         name: true,
         fullName: true,
         phone: true,
+        phoneVerified: true,
         role: true,
         status: true,
         createdAt: true,

@@ -19,6 +19,8 @@ model User {
   gender                    String?
   name                      String
   phone                     String?
+  phoneVerified             Boolean                  @default(false)
+  phoneVerifiedAt           DateTime?
   role                      Role                     @default(CUSTOMER)
   status                    UserStatus               @default(ACTIVE)
   updatedAt                 DateTime                 @updatedAt
@@ -39,6 +41,9 @@ model User {
   lifestyleProfile          user_lifestyle_profiles?
   preference                user_preferences?
   reviewedRoomVerifications RoomVerification[]       @relation("RoomVerificationReviewer")
+  managedRoomVerifications  RoomVerification[]       @relation("RoomVerificationManager")
+  communityManagerAreas     CommunityManagerArea[]
+  phoneOtps                 PhoneOtp[]
   resourceBookings        ResourceBooking[]
   createdActivities       SharedSpaceActivity[] @relation("ActivityCreator")
   assignedActivities      SharedSpaceActivity[] @relation("ActivityAssignee")
@@ -237,16 +242,26 @@ model RoomVerification {
   id                           String                     @id @default(uuid())
   roomId                       String                     @unique
   reviewerId                   String?
+  assignedManagerId            String?
   submittedAt                  DateTime?
+  managerAssignedAt            DateTime?
+  managerReviewedAt            DateTime?
   reviewedAt                   DateTime?
   revisionReason               String?
   rejectionReason              String?
   adminNote                    String?
+  managerNote                  String?
+  inspectionDate               DateTime?
+  inspectionImages             Json?
+  managerRecommendation        CommunityManagerRecommendation @default(PENDING)
   identityPassed               Boolean                    @default(false)
   ownershipPassed              Boolean                    @default(false)
   addressPassed                Boolean                    @default(false)
   imagesPassed                 Boolean                    @default(false)
   detailsPassed                Boolean                    @default(false)
+  facilityPassed               Boolean                    @default(false)
+  safetyPassed                 Boolean                    @default(false)
+  legalOccupancyPassed         Boolean                    @default(false)
   informationAccurateConfirmed Boolean                    @default(false)
   legalResponsibilityAccepted  Boolean                    @default(false)
   verificationConsentAccepted  Boolean                    @default(false)
@@ -258,10 +273,49 @@ model RoomVerification {
   updatedAt                    DateTime                   @updatedAt
   room                         Room                       @relation(fields: [roomId], references: [id], onDelete: Cascade)
   reviewer                     User?                      @relation("RoomVerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  assignedManager              User?                      @relation("RoomVerificationManager", fields: [assignedManagerId], references: [id], onDelete: SetNull)
   documents                    RoomVerificationDocument[]
 
   @@index([reviewerId])
+  @@index([assignedManagerId])
+  @@index([managerRecommendation])
   @@index([submittedAt])
+}
+
+model PhoneOtp {
+  id          String    @id @default(uuid())
+  userId      String
+  phone       String
+  codeHash    String
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  attemptCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([phone])
+  @@index([expiresAt])
+}
+
+model CommunityManagerArea {
+  id        String        @id @default(uuid())
+  managerId String
+  region    ServiceRegion?
+  city      String?
+  district  String?
+  districtId String?
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  manager   User          @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@index([managerId])
+  @@index([region])
+  @@index([city])
+  @@index([district])
+  @@index([districtId])
+  @@unique([managerId, region, city, district, districtId], name: "CommunityManagerArea_unique_scope")
 }
 
 model RoomVerificationDocument {
@@ -432,6 +486,13 @@ enum Role {
   DELIVER
   ADMIN
   HOST
+  COMMUNITY_MANAGER
+}
+
+enum ServiceRegion {
+  NORTH
+  CENTRAL
+  SOUTH
 }
 
 enum UserStatus {
@@ -462,6 +523,13 @@ enum VerificationDocumentStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum CommunityManagerRecommendation {
+  PENDING
+  NEEDS_REVISION
+  RECOMMEND_APPROVAL
+  RECOMMEND_REJECTION
 }
 
 enum BookingStatus {

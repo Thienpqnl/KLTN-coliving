@@ -73,23 +73,10 @@ class ApiClient {
               ? 'Phiên đăng nhập không hợp lệ hoặc bạn không có quyền thực hiện'
               : `Máy chủ trả về nội dung không hợp lệ (${response.status} ${response.statusText})`;
 
-      if (response.status >= 500) {
-        console.error('Non-JSON API response:', {
-          endpoint,
-          status: response.status,
-          contentType,
-          preview: responseText.slice(0, 160),
-        });
-      }
-
       throw new ApiError(message, response.status);
     }
 
     if (!response.ok) {
-      if (response.status >= 500) {
-        console.error('API Error Response:', { status: response.status, data });
-      }
-
       throw new ApiError(
         String(data?.error || data?.message || 'API Error'),
         response.status,

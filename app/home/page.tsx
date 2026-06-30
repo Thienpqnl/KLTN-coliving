@@ -52,8 +52,8 @@ export default function HomePage() {
               await roomClientService
                 .getMapRooms()
             setRooms(data)
-          } catch (error) {
-            console.error(error)
+          } catch {
+            setRooms([])
           }
         }
 

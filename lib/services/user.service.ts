@@ -150,6 +150,8 @@ export const userService = {
             | "SERVER" 
             | "DELIVER" 
             | "ADMIN"
+            | "HOST"
+            | "COMMUNITY_MANAGER"
         }),
       },
       select: {

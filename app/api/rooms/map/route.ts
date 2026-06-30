@@ -41,12 +41,7 @@ export async function GET() {
     return NextResponse.json(mappedRooms);
   } catch (error) {
     console.error('Rooms map API error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Không thể tải dữ liệu phòng trên bản đồ',
-      },
-      { status: 500 }
-    );
+
+    return NextResponse.json([]);
   }
 }

@@ -12,7 +12,7 @@ type RegisterForm = {
   email: string;
   password: string;
   confirmPassword: string;
-  role: 'CUSTOMER' | 'HOST';
+  role: 'CUSTOMER' | 'HOST' | 'COMMUNITY_MANAGER';
   terms: boolean;
 };
 
@@ -120,7 +120,13 @@ export default function RegisterPage() {
       }
 
       await login(payload.token);
-      router.replace(formData.role === 'HOST' ? '/host' : '/');
+      router.replace(
+        formData.role === 'HOST'
+          ? '/host'
+          : formData.role === 'COMMUNITY_MANAGER'
+            ? '/community-manager'
+            : '/'
+      );
     } catch {
       setErrors({ submit: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại server.' });
     } finally {
@@ -228,6 +234,7 @@ export default function RegisterPage() {
                 >
                   <option value="CUSTOMER">Tìm và thuê phòng</option>
                   <option value="HOST">Đăng phòng cho thuê</option>
+                  <option value="COMMUNITY_MANAGER">Nhân viên quản lý cộng đồng</option>
                 </select>
               </FormField>
 

@@ -50,6 +50,8 @@ export default function LoginPage() {
 
       if (payload.user?.role === 'ADMIN') {
         router.replace('/admin');
+      } else if (payload.user?.role === 'COMMUNITY_MANAGER') {
+        router.replace('/community-manager');
       } else if (payload.user?.role === 'HOST') {
         router.replace('/host');
       } else {
