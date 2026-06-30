@@ -9,6 +9,7 @@ import {
   HelpCircle,
   LayoutDashboard,
   LogOut,
+  MapPinned,
   MessageSquareText,
   Settings,
   Users,
@@ -26,6 +27,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/admin" },
   { label: "Quản lý người dùng", icon: <Users className="h-4 w-4" />, href: "/admin/users" },
+  { label: "Phân vùng CM", icon: <MapPinned className="h-4 w-4" />, href: "/admin/community-managers" },
   { label: "Duyệt phòng", icon: <Building2 className="h-4 w-4" />, href: "/admin/rooms" },
   { label: "Quản lý đánh giá", icon: <MessageSquareText className="h-4 w-4" />, href: "/admin/reviews" },
   { label: "Báo cáo", icon: <BarChart3 className="h-4 w-4" />, href: "/admin/reports" },

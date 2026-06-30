@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
+import { communityManagerAreaService } from "@/lib/services/community-manager-area.service";
 
 const verificationInclude = {
   documents: { orderBy: { createdAt: "desc" as const } },
@@ -195,31 +196,39 @@ export const roomVerificationService = {
     }
 
     validateSubmission(room);
+    const assignedManager = await communityManagerAreaService.findBestManagerForRoom({
+      city: room.city,
+      district: room.district,
+      districtId: room.districtId,
+    });
+    const now = new Date();
 
     return prisma.$transaction(async (tx) => {
       await tx.roomVerification.upsert({
         where: { roomId },
         create: {
           roomId,
-          submittedAt: new Date(),
+          submittedAt: now,
+          assignedManagerId: assignedManager?.id || null,
+          managerAssignedAt: assignedManager ? now : null,
           managerRecommendation: CommunityManagerRecommendation.PENDING,
           informationAccurateConfirmed: true,
           legalResponsibilityAccepted: true,
           verificationConsentAccepted: true,
-          declarationAcceptedAt: new Date(),
+          declarationAcceptedAt: now,
           declarationVersion: "ROOM_VERIFICATION_DECLARATION_V2_CM",
           declarationIpAddress: declaration.ipAddress,
           declarationUserAgent: declaration.userAgent,
         },
         update: {
-          submittedAt: new Date(),
+          submittedAt: now,
           reviewedAt: null,
           reviewerId: null,
           revisionReason: null,
           rejectionReason: null,
           adminNote: null,
-          assignedManagerId: null,
-          managerAssignedAt: null,
+          assignedManagerId: assignedManager?.id || null,
+          managerAssignedAt: assignedManager ? now : null,
           managerReviewedAt: null,
           managerNote: null,
           inspectionDate: null,
@@ -236,7 +245,7 @@ export const roomVerificationService = {
           informationAccurateConfirmed: true,
           legalResponsibilityAccepted: true,
           verificationConsentAccepted: true,
-          declarationAcceptedAt: new Date(),
+          declarationAcceptedAt: now,
           declarationVersion: "ROOM_VERIFICATION_DECLARATION_V2_CM",
           declarationIpAddress: declaration.ipAddress,
           declarationUserAgent: declaration.userAgent,
@@ -286,13 +295,23 @@ export const roomVerificationService = {
     page: number;
     limit: number;
   }) => {
+    const scopeWhere = await communityManagerAreaService.buildManagerRoomScopeWhere(filters.managerId);
+    const assignmentWhere: Prisma.RoomWhereInput[] = [
+      { verification: { is: { assignedManagerId: filters.managerId } } },
+    ];
+
+    if (scopeWhere) {
+      assignmentWhere.push({
+        AND: [
+          scopeWhere,
+          { verification: { is: { assignedManagerId: null } } },
+        ],
+      });
+    }
+
     const where: Prisma.RoomWhereInput = {
       ...buildAdminRoomWhere({ status: filters.status || RoomStatus.PENDING, search: filters.search }),
-      verification: {
-        is: {
-          OR: [{ assignedManagerId: filters.managerId }, { assignedManagerId: null }],
-        },
-      },
+      OR: assignmentWhere,
     };
 
     const [rooms, total] = await Promise.all([
@@ -315,6 +334,16 @@ export const roomVerificationService = {
     if (room.status !== RoomStatus.PENDING) throw new ApiError(409, "Chỉ có thể xác minh phòng đang chờ duyệt");
     if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== managerId) {
       throw new ApiError(403, "Hồ sơ này đã được phân công cho nhân viên khác");
+    }
+    if (!room.verification?.assignedManagerId) {
+      const canAccess = await communityManagerAreaService.managerCanAccessRoom(managerId, {
+        city: room.city,
+        district: room.district,
+        districtId: room.districtId,
+      });
+      if (!canAccess) {
+        throw new ApiError(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
+      }
     }
     return room;
   },
@@ -347,6 +376,16 @@ export const roomVerificationService = {
     if (room.status !== RoomStatus.PENDING) throw new ApiError(409, "Chỉ có thể xác minh phòng đang chờ duyệt");
     if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== managerId) {
       throw new ApiError(403, "Hồ sơ này đã được phân công cho nhân viên khác");
+    }
+    if (!room.verification?.assignedManagerId) {
+      const canAccess = await communityManagerAreaService.managerCanAccessRoom(managerId, {
+        city: room.city,
+        district: room.district,
+        districtId: room.districtId,
+      });
+      if (!canAccess) {
+        throw new ApiError(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
+      }
     }
     if (data.action === "recommend_approval" && Object.values(data.checklist).some((value) => !value)) {
       throw new ApiError(400, "Cần hoàn tất toàn bộ checklist trước khi đề xuất duyệt");

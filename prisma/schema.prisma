@@ -42,6 +42,7 @@ model User {
   preference                user_preferences?
   reviewedRoomVerifications RoomVerification[]       @relation("RoomVerificationReviewer")
   managedRoomVerifications  RoomVerification[]       @relation("RoomVerificationManager")
+  communityManagerAreas     CommunityManagerArea[]
   phoneOtps                 PhoneOtp[]
   resourceBookings        ResourceBooking[]
   createdActivities       SharedSpaceActivity[] @relation("ActivityCreator")
@@ -297,6 +298,26 @@ model PhoneOtp {
   @@index([expiresAt])
 }
 
+model CommunityManagerArea {
+  id        String        @id @default(uuid())
+  managerId String
+  region    ServiceRegion?
+  city      String?
+  district  String?
+  districtId String?
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  manager   User          @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@index([managerId])
+  @@index([region])
+  @@index([city])
+  @@index([district])
+  @@index([districtId])
+  @@unique([managerId, region, city, district, districtId], name: "CommunityManagerArea_unique_scope")
+}
+
 model RoomVerificationDocument {
   id             String                     @id @default(uuid())
   verificationId String
@@ -466,6 +487,12 @@ enum Role {
   ADMIN
   HOST
   COMMUNITY_MANAGER
+}
+
+enum ServiceRegion {
+  NORTH
+  CENTRAL
+  SOUTH
 }
 
 enum UserStatus {
