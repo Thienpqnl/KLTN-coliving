@@ -2,6 +2,8 @@ import {
   CommunityManagerRecommendation,
   Prisma,
   RoomStatus,
+  VerificationCheckStatus,
+  VerificationCheckType,
   VerificationDocumentStatus,
   VerificationDocumentType,
 } from "@prisma/client";
@@ -11,6 +13,7 @@ import { areaMatchesRoom, communityManagerAreaService } from "@/lib/services/com
 
 const verificationInclude = {
   documents: { orderBy: { createdAt: "desc" as const } },
+  checks: { orderBy: { createdAt: "asc" as const } },
   reviewer: {
     select: { id: true, name: true, fullName: true, email: true },
   },
@@ -88,6 +91,92 @@ function validateSubmission(room: {
   }
 }
 
+type VerificationCheckSeedRoom = {
+  title: string;
+  description: string;
+  address: string;
+  city: string | null;
+  ward: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  priceValue: bigint | null;
+  areaValue: Prisma.Decimal | null;
+  images: { id: string }[];
+  owner: {
+    fullName: string | null;
+    name: string;
+    phone: string | null;
+    phoneVerified: boolean;
+  } | null;
+  verification: { documents: { type: VerificationDocumentType }[] } | null;
+};
+
+function hasDocument(room: VerificationCheckSeedRoom, type: VerificationDocumentType) {
+  return Boolean(room.verification?.documents.some((document) => document.type === type));
+}
+
+function buildVerificationChecks(room: VerificationCheckSeedRoom) {
+  const locationParts = [room.ward, room.city].filter(Boolean).join(", ");
+  return [
+    {
+      type: VerificationCheckType.OWNER_PHONE,
+      status: room.owner?.phoneVerified ? VerificationCheckStatus.MATCHED : VerificationCheckStatus.NEEDS_REVIEW,
+      sourceValue: room.owner?.phone || "Chưa có số điện thoại",
+      targetValue: room.owner?.phoneVerified ? "Đã xác minh OTP" : "Chưa xác minh OTP",
+      note: room.owner?.phoneVerified ? "Hệ thống đã xác minh số điện thoại bằng OTP." : "Cần yêu cầu chủ nhà xác minh số điện thoại.",
+    },
+    {
+      type: VerificationCheckType.OWNER_IDENTITY_DOCUMENT,
+      status: hasDocument(room, VerificationDocumentType.IDENTITY) ? VerificationCheckStatus.NEEDS_REVIEW : VerificationCheckStatus.MISMATCHED,
+      sourceValue: room.owner?.fullName || room.owner?.name || "Chưa có tên chủ nhà",
+      targetValue: hasDocument(room, VerificationDocumentType.IDENTITY) ? "Đã có giấy tờ danh tính" : "Thiếu giấy tờ danh tính",
+      note: "Community Manager cần đối chiếu họ tên chủ nhà với giấy tờ danh tính.",
+    },
+    {
+      type: VerificationCheckType.OWNERSHIP_DOCUMENT,
+      status: hasDocument(room, VerificationDocumentType.OWNERSHIP) ? VerificationCheckStatus.NEEDS_REVIEW : VerificationCheckStatus.MISMATCHED,
+      sourceValue: room.address,
+      targetValue: hasDocument(room, VerificationDocumentType.OWNERSHIP) ? "Đã có giấy tờ quyền cho thuê/sở hữu" : "Thiếu giấy tờ quyền cho thuê/sở hữu",
+      note: "Cần kiểm tra giấy tờ có cho phép chủ nhà cho thuê hoặc chia sẻ phòng hay không.",
+    },
+    {
+      type: VerificationCheckType.ROOM_ADDRESS,
+      status: room.address && locationParts ? VerificationCheckStatus.NEEDS_REVIEW : VerificationCheckStatus.PENDING,
+      sourceValue: room.address,
+      targetValue: locationParts || "Chưa có tỉnh/thành hoặc phường/xã",
+      note: "Đối chiếu địa chỉ khai báo với địa chỉ trên giấy tờ và thực địa.",
+    },
+    {
+      type: VerificationCheckType.MAP_LOCATION,
+      status: room.latitude != null && room.longitude != null ? VerificationCheckStatus.NEEDS_REVIEW : VerificationCheckStatus.MISMATCHED,
+      sourceValue: room.latitude != null && room.longitude != null ? `${room.latitude}, ${room.longitude}` : "Chưa có tọa độ",
+      targetValue: room.address,
+      note: "Kiểm tra tọa độ Google Maps có gần đúng địa chỉ phòng và vị trí thực tế hay không.",
+    },
+    {
+      type: VerificationCheckType.ROOM_IMAGES,
+      status: room.images.length >= 3 ? VerificationCheckStatus.NEEDS_REVIEW : VerificationCheckStatus.MISMATCHED,
+      sourceValue: `${room.images.length} ảnh`,
+      targetValue: "Tối thiểu 3 ảnh phòng",
+      note: "Kiểm tra ảnh có đúng hiện trạng phòng và không bị trùng lặp bất thường.",
+    },
+    {
+      type: VerificationCheckType.ROOM_DETAILS,
+      status: room.priceValue && room.areaValue ? VerificationCheckStatus.NEEDS_REVIEW : VerificationCheckStatus.MISMATCHED,
+      sourceValue: `Giá: ${room.priceValue?.toString() || "chưa có"}; Diện tích: ${room.areaValue?.toString() || "chưa có"}`,
+      targetValue: `${room.title} - ${room.description.slice(0, 160)}`,
+      note: "Đối chiếu giá, diện tích và mô tả với thực tế khi khảo sát.",
+    },
+    {
+      type: VerificationCheckType.LEGAL_DECLARATION,
+      status: VerificationCheckStatus.MATCHED,
+      sourceValue: "Chủ nhà đã gửi cam kết pháp lý khi nộp hồ sơ",
+      targetValue: "Thông tin đúng sự thật, chịu trách nhiệm pháp luật, đồng ý xác minh",
+      note: "Cam kết là điều kiện bắt buộc trước khi hồ sơ được gửi xét duyệt.",
+    },
+  ];
+}
+
 const buildAdminRoomWhere = (filters: { status?: RoomStatus; search?: string }): Prisma.RoomWhereInput => ({
   ...(filters.status ? { status: filters.status } : {}),
   ...(filters.search
@@ -101,6 +190,60 @@ const buildAdminRoomWhere = (filters: { status?: RoomStatus; search?: string }):
       }
     : {}),
 });
+
+async function assertCommunityManagerCanAccessRoom(roomId: string, managerId: string) {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: { verification: true },
+  });
+  if (!room) throw new ApiError(404, "Không tìm thấy phòng");
+  if (room.status !== RoomStatus.PENDING) throw new ApiError(409, "Chỉ có thể xác minh phòng đang chờ duyệt");
+  if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== managerId) {
+    throw new ApiError(403, "Hồ sơ này đã được phân công cho nhân viên khác");
+  }
+  if (!room.verification?.assignedManagerId) {
+    const canAccess = await communityManagerAreaService.managerCanAccessRoom(managerId, {
+      city: room.city,
+      provinceCode: room.provinceCode,
+      ward: room.ward,
+      wardCode: room.wardCode,
+      district: room.district,
+      districtId: room.districtId,
+      address: room.address,
+    });
+    if (!canAccess) {
+      throw new ApiError(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
+    }
+  }
+
+  return room;
+}
+
+async function ensureVerificationChecks(roomId: string) {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: {
+      images: { select: { id: true } },
+      owner: { select: { fullName: true, name: true, phone: true, phoneVerified: true } },
+      verification: {
+        include: {
+          documents: { select: { type: true } },
+          checks: { select: { id: true } },
+        },
+      },
+    },
+  });
+
+  if (!room?.verification || room.verification.checks.length > 0) return;
+
+  await prisma.verificationCheck.createMany({
+    data: buildVerificationChecks(room).map((check) => ({
+      ...check,
+      verificationId: room.verification!.id,
+    })),
+    skipDuplicates: true,
+  });
+}
 
 export const roomVerificationService = {
   getForHost: async (roomId: string, ownerId: string) => {
@@ -186,6 +329,7 @@ export const roomVerificationService = {
       include: {
         images: { select: { id: true } },
         verification: { include: { documents: true } },
+        owner: { select: { fullName: true, name: true, phone: true, phoneVerified: true } },
       },
     });
 
@@ -198,11 +342,15 @@ export const roomVerificationService = {
     validateSubmission(room);
     const assignedManager = await communityManagerAreaService.findBestManagerForRoom({
       city: room.city,
+      provinceCode: room.provinceCode,
+      ward: room.ward,
+      wardCode: room.wardCode,
       district: room.district,
       districtId: room.districtId,
       address: room.address,
     });
     const now = new Date();
+    const verificationChecks = buildVerificationChecks(room);
 
     return prisma.$transaction(async (tx) => {
       await tx.roomVerification.upsert({
@@ -220,6 +368,11 @@ export const roomVerificationService = {
           declarationVersion: "ROOM_VERIFICATION_DECLARATION_V2_CM",
           declarationIpAddress: declaration.ipAddress,
           declarationUserAgent: declaration.userAgent,
+          checks: {
+            createMany: {
+              data: verificationChecks,
+            },
+          },
         },
         update: {
           submittedAt: now,
@@ -254,6 +407,12 @@ export const roomVerificationService = {
             updateMany: {
               where: {},
               data: { status: VerificationDocumentStatus.PENDING, note: null },
+            },
+          },
+          checks: {
+            deleteMany: {},
+            createMany: {
+              data: verificationChecks,
             },
           },
         },
@@ -319,6 +478,9 @@ export const roomVerificationService = {
       return areas.some((area) =>
         areaMatchesRoom(area, {
           city: room.city,
+          provinceCode: room.provinceCode,
+          ward: room.ward,
+          wardCode: room.wardCode,
           district: room.district,
           districtId: room.districtId,
           address: room.address,
@@ -333,24 +495,36 @@ export const roomVerificationService = {
   },
 
   getDetailForCommunityManager: async (roomId: string, managerId: string) => {
+    await assertCommunityManagerCanAccessRoom(roomId, managerId);
+    await ensureVerificationChecks(roomId);
+
     const room = await prisma.room.findUnique({ where: { id: roomId }, include: adminRoomInclude });
     if (!room) throw new ApiError(404, "Không tìm thấy phòng");
-    if (room.status !== RoomStatus.PENDING) throw new ApiError(409, "Chỉ có thể xác minh phòng đang chờ duyệt");
-    if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== managerId) {
-      throw new ApiError(403, "Hồ sơ này đã được phân công cho nhân viên khác");
-    }
-    if (!room.verification?.assignedManagerId) {
-      const canAccess = await communityManagerAreaService.managerCanAccessRoom(managerId, {
-        city: room.city,
-        district: room.district,
-        districtId: room.districtId,
-        address: room.address,
-      });
-      if (!canAccess) {
-        throw new ApiError(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
-      }
-    }
     return room;
+  },
+
+  updateVerificationCheck: async (
+    roomId: string,
+    checkId: string,
+    managerId: string,
+    data: { status: VerificationCheckStatus; note?: string | null }
+  ) => {
+    await assertCommunityManagerCanAccessRoom(roomId, managerId);
+
+    const check = await prisma.verificationCheck.findFirst({
+      where: { id: checkId, verification: { roomId } },
+    });
+    if (!check) throw new ApiError(404, "Không tìm thấy tiêu chí đối khớp");
+
+    return prisma.verificationCheck.update({
+      where: { id: checkId },
+      data: {
+        status: data.status,
+        note: data.note?.trim() || null,
+        checkedById: managerId,
+        checkedAt: new Date(),
+      },
+    });
   },
 
   reviewByCommunityManager: async (
@@ -373,26 +547,7 @@ export const roomVerificationService = {
       };
     }
   ) => {
-    const room = await prisma.room.findUnique({
-      where: { id: roomId },
-      include: { verification: true },
-    });
-    if (!room) throw new ApiError(404, "Không tìm thấy phòng");
-    if (room.status !== RoomStatus.PENDING) throw new ApiError(409, "Chỉ có thể xác minh phòng đang chờ duyệt");
-    if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== managerId) {
-      throw new ApiError(403, "Hồ sơ này đã được phân công cho nhân viên khác");
-    }
-    if (!room.verification?.assignedManagerId) {
-      const canAccess = await communityManagerAreaService.managerCanAccessRoom(managerId, {
-        city: room.city,
-        district: room.district,
-        districtId: room.districtId,
-        address: room.address,
-      });
-      if (!canAccess) {
-        throw new ApiError(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
-      }
-    }
+    const room = await assertCommunityManagerCanAccessRoom(roomId, managerId);
     if (data.action === "recommend_approval" && Object.values(data.checklist).some((value) => !value)) {
       throw new ApiError(400, "Cần hoàn tất toàn bộ checklist trước khi đề xuất duyệt");
     }

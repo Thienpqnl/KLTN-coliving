@@ -1,4 +1,4 @@
-import { Prisma, Role, RoomStatus, ServiceRegion, UserStatus } from "@prisma/client";
+import { Role, RoomStatus, ServiceRegion, UserStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 
@@ -80,12 +80,18 @@ const southernCities = new Set([
 type AreaScope = {
   region?: ServiceRegion | null;
   city?: string | null;
+  provinceCode?: string | null;
+  ward?: string | null;
+  wardCode?: string | null;
   district?: string | null;
   districtId?: string | null;
 };
 
 type RoomLocation = {
   city?: string | null;
+  provinceCode?: string | null;
+  ward?: string | null;
+  wardCode?: string | null;
   district?: string | null;
   districtId?: string | null;
   address?: string | null;
@@ -137,6 +143,12 @@ function locationIncludes(roomValue?: string | null, areaValue?: string | null) 
   return roomKey === areaKey || roomKey.includes(areaKey) || areaKey.includes(roomKey);
 }
 
+function codesMatch(left?: string | null, right?: string | null) {
+  const leftCode = normalizeLocation(left);
+  const rightCode = normalizeLocation(right);
+  return Boolean(leftCode && rightCode && leftCode === rightCode);
+}
+
 export function inferServiceRegion(city?: string | null): ServiceRegion | null {
   const normalizedCity = normalizeLocation(city);
   const cityKey = canonicalLocationKey(city);
@@ -144,6 +156,13 @@ export function inferServiceRegion(city?: string | null): ServiceRegion | null {
   if (cityKey === "ho-chi-minh") return ServiceRegion.SOUTH;
   if (cityKey === "ha-noi" || cityKey === "hai-phong") return ServiceRegion.NORTH;
   if (cityKey === "da-nang" || cityKey === "hue") return ServiceRegion.CENTRAL;
+  if (normalizedCity.includes("ho chi minh") || normalizedCity.includes("sai gon") || normalizedCity.includes("saigon")) {
+    return ServiceRegion.SOUTH;
+  }
+  if (normalizedCity.includes("ha noi") || normalizedCity.includes("hanoi")) return ServiceRegion.NORTH;
+  if (normalizedCity.includes("da nang") || normalizedCity.includes("danang") || normalizedCity.includes("hue")) {
+    return ServiceRegion.CENTRAL;
+  }
   if (northernCities.has(normalizedCity)) return ServiceRegion.NORTH;
   if (centralCities.has(normalizedCity)) return ServiceRegion.CENTRAL;
   if (southernCities.has(normalizedCity)) return ServiceRegion.SOUTH;
@@ -151,11 +170,33 @@ export function inferServiceRegion(city?: string | null): ServiceRegion | null {
 }
 
 function isGlobalScope(area: AreaScope) {
-  return !area.region && !area.city && !area.district && !area.districtId;
+  return !area.region
+    && !area.city
+    && !area.provinceCode
+    && !area.ward
+    && !area.wardCode
+    && !area.district
+    && !area.districtId;
 }
 
 export function areaMatchesRoom(area: AreaScope, room: RoomLocation) {
   if (isGlobalScope(area)) return true;
+
+  if (area.wardCode) {
+    return codesMatch(area.wardCode, room.wardCode);
+  }
+
+  if (area.ward) {
+    return locationIncludes(room.ward, area.ward) || locationIncludes(room.address, area.ward);
+  }
+
+  if (area.provinceCode) {
+    return codesMatch(area.provinceCode, room.provinceCode);
+  }
+
+  if (area.city) {
+    return locationIncludes(room.city, area.city) || locationIncludes(room.address, area.city);
+  }
 
   if (area.districtId) {
     return normalizeLocation(area.districtId) === normalizeLocation(room.districtId);
@@ -165,51 +206,11 @@ export function areaMatchesRoom(area: AreaScope, room: RoomLocation) {
     return locationIncludes(room.district, area.district) || locationIncludes(room.address, area.district);
   }
 
-  if (area.city) {
-    return locationIncludes(room.city, area.city) || locationIncludes(room.address, area.city);
-  }
-
   if (area.region) {
     return area.region === inferServiceRegion(room.city) || area.region === inferServiceRegion(room.address);
   }
 
   return false;
-}
-
-function buildAreaRoomWhere(areas: AreaScope[]): Prisma.RoomWhereInput | null {
-  const or: Prisma.RoomWhereInput[] = [];
-
-  for (const area of areas) {
-    if (isGlobalScope(area)) return {};
-    if (area.districtId) {
-      or.push({ districtId: { equals: area.districtId, mode: Prisma.QueryMode.insensitive } });
-      continue;
-    }
-    if (area.district) {
-      or.push({ district: { equals: area.district, mode: Prisma.QueryMode.insensitive } });
-      continue;
-    }
-    if (area.city) {
-      or.push({ city: { equals: area.city, mode: Prisma.QueryMode.insensitive } });
-      continue;
-    }
-    if (area.region) {
-      const cities =
-        area.region === ServiceRegion.NORTH
-          ? northernCities
-          : area.region === ServiceRegion.CENTRAL
-            ? centralCities
-            : southernCities;
-
-      or.push({
-        OR: Array.from(cities).map((city) => ({
-          city: { contains: city, mode: Prisma.QueryMode.insensitive },
-        })),
-      });
-    }
-  }
-
-  return or.length ? { OR: or } : null;
 }
 
 export const communityManagerAreaService = {
@@ -224,7 +225,7 @@ export const communityManagerAreaService = {
         phone: true,
         status: true,
         communityManagerAreas: {
-          orderBy: [{ region: "asc" }, { city: "asc" }, { district: "asc" }],
+          orderBy: [{ region: "asc" }, { city: "asc" }, { ward: "asc" }, { district: "asc" }],
         },
         _count: {
           select: {
@@ -243,6 +244,9 @@ export const communityManagerAreaService = {
     areas: Array<{
       region?: ServiceRegion | null;
       city?: string | null;
+      provinceCode?: string | null;
+      ward?: string | null;
+      wardCode?: string | null;
       district?: string | null;
       districtId?: string | null;
       isActive?: boolean;
@@ -266,6 +270,9 @@ export const communityManagerAreaService = {
             managerId,
             region: area.region || null,
             city: area.city?.trim() || null,
+            provinceCode: area.provinceCode?.trim() || null,
+            ward: area.ward?.trim() || null,
+            wardCode: area.wardCode?.trim() || null,
             district: area.district?.trim() || null,
             districtId: area.districtId?.trim() || null,
             isActive: area.isActive ?? true,
@@ -284,7 +291,7 @@ export const communityManagerAreaService = {
           phone: true,
           status: true,
           communityManagerAreas: {
-            orderBy: [{ region: "asc" }, { city: "asc" }, { district: "asc" }],
+            orderBy: [{ region: "asc" }, { city: "asc" }, { ward: "asc" }, { district: "asc" }],
           },
         },
       });
@@ -305,6 +312,9 @@ export const communityManagerAreaService = {
           select: {
             region: true,
             city: true,
+            provinceCode: true,
+            ward: true,
+            wardCode: true,
             district: true,
             districtId: true,
           },
@@ -336,26 +346,17 @@ export const communityManagerAreaService = {
       })[0];
   },
 
-  buildManagerRoomScopeWhere: async (managerId: string): Promise<Prisma.RoomWhereInput | null> => {
-    const areas = await prisma.communityManagerArea.findMany({
-      where: { managerId, isActive: true },
-      select: { region: true, city: true, district: true, districtId: true },
-    });
-
-    return buildAreaRoomWhere(areas);
-  },
-
   getManagerActiveAreas: async (managerId: string) => {
     return prisma.communityManagerArea.findMany({
       where: { managerId, isActive: true },
-      select: { region: true, city: true, district: true, districtId: true },
+      select: { region: true, city: true, provinceCode: true, ward: true, wardCode: true, district: true, districtId: true },
     });
   },
 
   managerCanAccessRoom: async (managerId: string, room: RoomLocation) => {
     const areas = await prisma.communityManagerArea.findMany({
       where: { managerId, isActive: true },
-      select: { region: true, city: true, district: true, districtId: true },
+      select: { region: true, city: true, provinceCode: true, ward: true, wardCode: true, district: true, districtId: true },
     });
 
     return areas.some((area) => areaMatchesRoom(area, room));

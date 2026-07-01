@@ -16,6 +16,16 @@ type Checklist = {
   legalOccupancyPassed: boolean;
 };
 type RoomDocument = { id: string; type: string; fileUrl: string; status: string; note?: string | null };
+type VerificationCheckStatus = "PENDING" | "MATCHED" | "MISMATCHED" | "NEEDS_REVIEW" | "UNVERIFIABLE";
+type VerificationCheck = {
+  id: string;
+  type: string;
+  status: VerificationCheckStatus;
+  sourceValue?: string | null;
+  targetValue?: string | null;
+  note?: string | null;
+  checkedAt?: string | null;
+};
 type ManagedRoom = {
   id: string;
   title: string;
@@ -34,6 +44,7 @@ type ManagedRoom = {
     inspectionDate?: string | null;
     inspectionImages?: string[] | null;
     documents: RoomDocument[];
+    checks?: VerificationCheck[];
   }) | null;
 };
 
@@ -67,6 +78,25 @@ const documentLabels: Record<string, string> = {
   OTHER: "Tài liệu khác",
 };
 
+const checkLabels: Record<string, string> = {
+  OWNER_PHONE: "Số điện thoại chủ nhà",
+  OWNER_IDENTITY_DOCUMENT: "Danh tính chủ nhà",
+  OWNERSHIP_DOCUMENT: "Quyền cho thuê/sở hữu",
+  ROOM_ADDRESS: "Địa chỉ phòng",
+  MAP_LOCATION: "Vị trí bản đồ",
+  ROOM_IMAGES: "Ảnh phòng",
+  LEGAL_DECLARATION: "Cam kết pháp lý",
+  ROOM_DETAILS: "Thông tin phòng",
+};
+
+const checkStatusLabels: Record<VerificationCheckStatus, string> = {
+  PENDING: "Chờ kiểm tra",
+  MATCHED: "Khớp",
+  MISMATCHED: "Không khớp",
+  NEEDS_REVIEW: "Cần xem xét",
+  UNVERIFIABLE: "Không xác minh được",
+};
+
 export default function CommunityManagerPage() {
   const { token } = useAuth();
   const [rooms, setRooms] = useState<ManagedRoom[]>([]);
@@ -78,6 +108,7 @@ export default function CommunityManagerPage() {
   const [inspectionImagesText, setInspectionImagesText] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [savingCheckId, setSavingCheckId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const inspectionImages = useMemo(
@@ -174,6 +205,42 @@ export default function CommunityManagerPage() {
     }
   };
 
+  const updateCheck = (checkId: string, patch: Partial<VerificationCheck>) => {
+    setSelected((current) => {
+      if (!current?.verification) return current;
+      return {
+        ...current,
+        verification: {
+          ...current.verification,
+          checks: (current.verification.checks || []).map((check) =>
+            check.id === checkId ? { ...check, ...patch } : check
+          ),
+        },
+      };
+    });
+  };
+
+  const saveCheck = async (check: VerificationCheck) => {
+    if (!selected || !token) return;
+    setSavingCheckId(check.id);
+    try {
+      const response = await fetch(`/api/community-manager/rooms/${selected.id}/checks/${check.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        credentials: "include",
+        body: JSON.stringify({ status: check.status, note: check.note || null }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Không thể cập nhật tiêu chí đối khớp");
+      updateCheck(check.id, result.data as VerificationCheck);
+      setError("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Không thể cập nhật tiêu chí đối khớp");
+    } finally {
+      setSavingCheckId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm">
@@ -242,6 +309,55 @@ export default function CommunityManagerPage() {
                       {documentLabels[document.type] || document.type}<ExternalLink className="h-4 w-4" />
                     </a>
                   ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="mb-2 font-black">Tra cứu & đối khớp hồ sơ</h3>
+                <div className="space-y-3">
+                  {(selected.verification?.checks || []).map((check) => (
+                    <div key={check.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="text-sm font-black text-slate-900">{checkLabels[check.type] || check.type}</p>
+                          <p className="mt-1 text-xs text-slate-500">Nguồn: {check.sourceValue || "Chưa có dữ liệu"}</p>
+                          <p className="mt-1 text-xs text-slate-500">Đối chiếu: {check.targetValue || "Chưa có dữ liệu"}</p>
+                        </div>
+                        <select
+                          value={check.status}
+                          onChange={(event) => updateCheck(check.id, { status: event.target.value as VerificationCheckStatus })}
+                          className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-orange-100"
+                        >
+                          {Object.entries(checkStatusLabels).map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <textarea
+                        value={check.note || ""}
+                        onChange={(event) => updateCheck(check.id, { note: event.target.value })}
+                        rows={2}
+                        placeholder="Ghi chú kết quả đối khớp"
+                        className="mt-3 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-orange-100"
+                      />
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => saveCheck(check)}
+                          disabled={savingCheckId === check.id}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {savingCheckId === check.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                          Lưu đối khớp
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(selected.verification?.checks || []).length === 0 && (
+                    <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
+                      Chưa có tiêu chí đối khớp cho hồ sơ này.
+                    </div>
+                  )}
                 </div>
               </div>
 

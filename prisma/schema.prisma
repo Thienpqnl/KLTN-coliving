@@ -43,6 +43,7 @@ model User {
   reviewedRoomVerifications RoomVerification[]       @relation("RoomVerificationReviewer")
   managedRoomVerifications  RoomVerification[]       @relation("RoomVerificationManager")
   communityManagerAreas     CommunityManagerArea[]
+  verificationChecks        VerificationCheck[]       @relation("VerificationCheckReviewer")
   phoneOtps                 PhoneOtp[]
   resourceBookings        ResourceBooking[]
   createdActivities       SharedSpaceActivity[] @relation("ActivityCreator")
@@ -97,6 +98,9 @@ model Room {
   description         String
   address             String
   city                String?
+  provinceCode        String?
+  ward                String?
+  wardCode            String?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   allowPets           Boolean?          @default(false)
@@ -275,11 +279,34 @@ model RoomVerification {
   reviewer                     User?                      @relation("RoomVerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
   assignedManager              User?                      @relation("RoomVerificationManager", fields: [assignedManagerId], references: [id], onDelete: SetNull)
   documents                    RoomVerificationDocument[]
+  checks                       VerificationCheck[]
 
   @@index([reviewerId])
   @@index([assignedManagerId])
   @@index([managerRecommendation])
   @@index([submittedAt])
+}
+
+model VerificationCheck {
+  id             String                  @id @default(uuid())
+  verificationId String
+  type           VerificationCheckType
+  status         VerificationCheckStatus @default(PENDING)
+  sourceValue    String?
+  targetValue    String?
+  note           String?
+  checkedById    String?
+  checkedAt      DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  verification   RoomVerification        @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  checkedBy      User?                   @relation("VerificationCheckReviewer", fields: [checkedById], references: [id], onDelete: SetNull)
+
+  @@unique([verificationId, type])
+  @@index([verificationId])
+  @@index([type])
+  @@index([status])
+  @@index([checkedById])
 }
 
 model PhoneOtp {
@@ -303,6 +330,9 @@ model CommunityManagerArea {
   managerId String
   region    ServiceRegion?
   city      String?
+  provinceCode String?
+  ward      String?
+  wardCode  String?
   district  String?
   districtId String?
   isActive  Boolean       @default(true)
@@ -313,9 +343,12 @@ model CommunityManagerArea {
   @@index([managerId])
   @@index([region])
   @@index([city])
+  @@index([provinceCode])
+  @@index([ward])
+  @@index([wardCode])
   @@index([district])
   @@index([districtId])
-  @@unique([managerId, region, city, district, districtId], name: "CommunityManagerArea_unique_scope")
+  @@unique([managerId, region, city, provinceCode, ward, wardCode, district, districtId], name: "CommunityManagerArea_unique_scope")
 }
 
 model RoomVerificationDocument {
@@ -530,6 +563,25 @@ enum CommunityManagerRecommendation {
   NEEDS_REVISION
   RECOMMEND_APPROVAL
   RECOMMEND_REJECTION
+}
+
+enum VerificationCheckType {
+  OWNER_PHONE
+  OWNER_IDENTITY_DOCUMENT
+  OWNERSHIP_DOCUMENT
+  ROOM_ADDRESS
+  MAP_LOCATION
+  ROOM_IMAGES
+  LEGAL_DECLARATION
+  ROOM_DETAILS
+}
+
+enum VerificationCheckStatus {
+  PENDING
+  MATCHED
+  MISMATCHED
+  NEEDS_REVIEW
+  UNVERIFIABLE
 }
 
 enum BookingStatus {
