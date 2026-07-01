@@ -7,7 +7,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
-import { communityManagerAreaService } from "@/lib/services/community-manager-area.service";
+import { areaMatchesRoom, communityManagerAreaService } from "@/lib/services/community-manager-area.service";
 
 const verificationInclude = {
   documents: { orderBy: { createdAt: "desc" as const } },
@@ -200,6 +200,7 @@ export const roomVerificationService = {
       city: room.city,
       district: room.district,
       districtId: room.districtId,
+      address: room.address,
     });
     const now = new Date();
 
@@ -295,37 +296,40 @@ export const roomVerificationService = {
     page: number;
     limit: number;
   }) => {
-    const scopeWhere = await communityManagerAreaService.buildManagerRoomScopeWhere(filters.managerId);
-    const assignmentWhere: Prisma.RoomWhereInput[] = [
-      { verification: { is: { assignedManagerId: filters.managerId } } },
-    ];
-
-    if (scopeWhere) {
-      assignmentWhere.push({
-        AND: [
-          scopeWhere,
-          { verification: { is: { assignedManagerId: null } } },
-        ],
-      });
-    }
-
+    const areas = await communityManagerAreaService.getManagerActiveAreas(filters.managerId);
     const where: Prisma.RoomWhereInput = {
       ...buildAdminRoomWhere({ status: filters.status || RoomStatus.PENDING, search: filters.search }),
-      OR: assignmentWhere,
+      verification: {
+        is: {
+          OR: [{ assignedManagerId: filters.managerId }, { assignedManagerId: null }],
+        },
+      },
     };
 
-    const [rooms, total] = await Promise.all([
-      prisma.room.findMany({
-        where,
-        include: adminRoomInclude,
-        orderBy: [{ verification: { submittedAt: "desc" } }, { createdAt: "desc" }],
-        skip: (filters.page - 1) * filters.limit,
-        take: filters.limit,
-      }),
-      prisma.room.count({ where }),
-    ]);
+    const rooms = await prisma.room.findMany({
+      where,
+      include: adminRoomInclude,
+      orderBy: [{ verification: { submittedAt: "desc" } }, { createdAt: "desc" }],
+    });
 
-    return { rooms, total, page: filters.page, limit: filters.limit, totalPages: Math.max(1, Math.ceil(total / filters.limit)) };
+    const accessibleRooms = rooms.filter((room) => {
+      if (room.verification?.assignedManagerId === filters.managerId) return true;
+      if (room.verification?.assignedManagerId) return false;
+
+      return areas.some((area) =>
+        areaMatchesRoom(area, {
+          city: room.city,
+          district: room.district,
+          districtId: room.districtId,
+          address: room.address,
+        })
+      );
+    });
+
+    const total = accessibleRooms.length;
+    const pagedRooms = accessibleRooms.slice((filters.page - 1) * filters.limit, filters.page * filters.limit);
+
+    return { rooms: pagedRooms, total, page: filters.page, limit: filters.limit, totalPages: Math.max(1, Math.ceil(total / filters.limit)) };
   },
 
   getDetailForCommunityManager: async (roomId: string, managerId: string) => {
@@ -340,6 +344,7 @@ export const roomVerificationService = {
         city: room.city,
         district: room.district,
         districtId: room.districtId,
+        address: room.address,
       });
       if (!canAccess) {
         throw new ApiError(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
@@ -382,6 +387,7 @@ export const roomVerificationService = {
         city: room.city,
         district: room.district,
         districtId: room.districtId,
+        address: room.address,
       });
       if (!canAccess) {
         throw new ApiError(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");

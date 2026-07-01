@@ -88,22 +88,62 @@ type RoomLocation = {
   city?: string | null;
   district?: string | null;
   districtId?: string | null;
+  address?: string | null;
 };
 
 function normalizeLocation(value?: string | null) {
   return (value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/^(tp|thanh pho|tinh|quan|huyen|thi xa)\s+/i, "")
+    .replace(/^(tp|tp\.|thanh pho|tinh|quan|huyen|thi xa)\s+/i, "")
+    .replace(/\b(city|province|district|ward|vietnam|viet nam)\b/gi, "")
     .replace(/[.,]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
 }
 
+function canonicalLocationKey(value?: string | null) {
+  const normalized = normalizeLocation(value);
+  if (!normalized) return "";
+
+  if (
+    [
+      "ho chi minh",
+      "hcm",
+      "tp hcm",
+      "tphcm",
+      "sai gon",
+      "saigon",
+      "ho chi minh city",
+    ].includes(normalized)
+  ) {
+    return "ho-chi-minh";
+  }
+
+  if (["ha noi", "hanoi"].includes(normalized)) return "ha-noi";
+  if (["da nang", "danang"].includes(normalized)) return "da-nang";
+  if (["can tho", "cantho"].includes(normalized)) return "can-tho";
+  if (["hai phong", "haiphong"].includes(normalized)) return "hai-phong";
+  if (["thua thien hue", "hue"].includes(normalized)) return "hue";
+
+  return normalized.replace(/\s+/g, "-");
+}
+
+function locationIncludes(roomValue?: string | null, areaValue?: string | null) {
+  const roomKey = canonicalLocationKey(roomValue);
+  const areaKey = canonicalLocationKey(areaValue);
+  if (!roomKey || !areaKey) return false;
+  return roomKey === areaKey || roomKey.includes(areaKey) || areaKey.includes(roomKey);
+}
+
 export function inferServiceRegion(city?: string | null): ServiceRegion | null {
   const normalizedCity = normalizeLocation(city);
+  const cityKey = canonicalLocationKey(city);
   if (!normalizedCity) return null;
+  if (cityKey === "ho-chi-minh") return ServiceRegion.SOUTH;
+  if (cityKey === "ha-noi" || cityKey === "hai-phong") return ServiceRegion.NORTH;
+  if (cityKey === "da-nang" || cityKey === "hue") return ServiceRegion.CENTRAL;
   if (northernCities.has(normalizedCity)) return ServiceRegion.NORTH;
   if (centralCities.has(normalizedCity)) return ServiceRegion.CENTRAL;
   if (southernCities.has(normalizedCity)) return ServiceRegion.SOUTH;
@@ -122,15 +162,15 @@ export function areaMatchesRoom(area: AreaScope, room: RoomLocation) {
   }
 
   if (area.district) {
-    return normalizeLocation(area.district) === normalizeLocation(room.district);
+    return locationIncludes(room.district, area.district) || locationIncludes(room.address, area.district);
   }
 
   if (area.city) {
-    return normalizeLocation(area.city) === normalizeLocation(room.city);
+    return locationIncludes(room.city, area.city) || locationIncludes(room.address, area.city);
   }
 
   if (area.region) {
-    return area.region === inferServiceRegion(room.city);
+    return area.region === inferServiceRegion(room.city) || area.region === inferServiceRegion(room.address);
   }
 
   return false;
@@ -303,6 +343,13 @@ export const communityManagerAreaService = {
     });
 
     return buildAreaRoomWhere(areas);
+  },
+
+  getManagerActiveAreas: async (managerId: string) => {
+    return prisma.communityManagerArea.findMany({
+      where: { managerId, isActive: true },
+      select: { region: true, city: true, district: true, districtId: true },
+    });
   },
 
   managerCanAccessRoom: async (managerId: string, room: RoomLocation) => {
