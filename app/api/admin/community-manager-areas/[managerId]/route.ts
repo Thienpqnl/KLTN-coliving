@@ -8,6 +8,9 @@ import { communityManagerAreaService } from "@/lib/services/community-manager-ar
 const areaSchema = z.object({
   region: z.nativeEnum(ServiceRegion).nullable().optional(),
   city: z.string().trim().max(120).nullable().optional(),
+  provinceCode: z.string().trim().max(80).nullable().optional(),
+  ward: z.string().trim().max(120).nullable().optional(),
+  wardCode: z.string().trim().max(80).nullable().optional(),
   district: z.string().trim().max(120).nullable().optional(),
   districtId: z.string().trim().max(80).nullable().optional(),
   isActive: z.boolean().optional(),
