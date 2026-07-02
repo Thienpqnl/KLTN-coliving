@@ -29,6 +29,10 @@ export async function PUT(
     const isHostOrAdmin = user.role === "HOST" || user.role === "ADMIN";
     
     if (isHostOrAdmin && (status === "APPROVED" || status === "CANCELLED")) {
+      if (booking.status === status) {
+        throw new ApiError(409, `Lịch đặt này đã ở trạng thái ${status === "APPROVED" ? "đã duyệt" : "đã hủy"}`);
+      }
+
       const updatedBooking = await prisma.resourceBooking.update({
         where: { id: bookingId },
         data: { status },
@@ -56,7 +60,11 @@ export async function PUT(
     }
 
     if (status === "CANCELLED" && booking.userId === user.userId) {
-       const updated = await prisma.resourceBooking.update({
+      if (booking.status === "CANCELLED") {
+        throw new ApiError(409, "Lịch đặt này đã được hủy trước đó");
+      }
+
+      const updated = await prisma.resourceBooking.update({
         where: { id: bookingId },
         data: { status: "CANCELLED" },
       });

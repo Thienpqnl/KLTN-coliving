@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
     const result = await AdminService.getAllUsers({
       page,
       limit,
-      role: role || undefined,
-      status: status || undefined,
+      role: (role as any) || undefined,
+      status: (status as any) || undefined,
       search: search || undefined,
     });
 

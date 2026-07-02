@@ -14,7 +14,7 @@ const resourceCreateSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { roomId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
@@ -23,13 +23,16 @@ export async function POST(
       throw new ApiError(403, "Chỉ chủ phòng mới có quyền thêm tài nguyên không gian chung");
     }
     
-    const roomId = params.roomId;
+    const { id: roomId } = await params;
     const body = await request.json();
     const data = resourceCreateSchema.parse(body);
     
     const newResource = await prisma.sharedResource.create({
       data: {
         roomId,
+        ownerId: user.userId,
+        status: "ACTIVE",
+        description: "",
         ...data
       }
     });

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { handleApiError, successResponse } from "@/lib/api-error";
+import { handleApiError, successResponse, ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 
 // PUT /api/utility-bills/[billId]/approve - Approve payment proof (host only)
@@ -27,7 +27,11 @@ export async function PUT(
     }
 
     if (!bill.paymentProofUrl) {
-      return handleApiError(new Error("No payment proof submitted"));
+      throw new ApiError(400, "Chưa có minh chứng thanh toán để duyệt");
+    }
+
+    if (bill.status === 'PAID') {
+      throw new ApiError(409, "Hóa đơn này đã được xác nhận thanh toán trước đó");
     }
 
     const updatedBill = await prisma.utilityBill.update({

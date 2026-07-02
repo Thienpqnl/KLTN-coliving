@@ -6,11 +6,11 @@ import { Footer } from "@/app/host/footer"
 import { HostProtectedRoute } from "@/components/HostProtectedRoute"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { sharedSpaceClientService, SharedResource, ResourceBooking } from "@/lib/services/shared-space-client.service"
-import { apiClient } from "@/lib/api/client"
 import { Button } from "@/components/ui/button"
 import { Package2, Plus, Edit, Trash2, Search, Monitor, Home, Zap, Droplets, CheckCircle, Clock, Image as ImageIcon } from "lucide-react"
 import ApprovalModal from "@/app/rooms/components/ApprovalModal"
 import { getResourceRealTimeStatus } from '@/lib/utils/resource-status';
+import { apiClient } from "@/lib/api/client"
 
 interface Room {
   id: string;
@@ -27,6 +27,7 @@ function ResourceManagementContent() {
   const [selectedRoom, setSelectedRoom] = useState<string>("")
   const [approvalBooking, setApprovalBooking] = useState<ResourceBooking | null>(null)
   const [showApprovalModal, setShowApprovalModal] = useState(false)
+  const [pageFeedback, setPageFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
   
   const [showUtilityBills, setShowUtilityBills] = useState(false)
   const [utilityBills, setUtilityBills] = useState<any[]>([])
@@ -43,33 +44,6 @@ function ResourceManagementContent() {
   // State mới cho danh sách phòng lấy từ API
   const [rooms, setRooms] = useState<Room[]>([])
   const [roomsLoading, setRoomsLoading] = useState(true)
-
-  // Fetch host's rooms from API
-  useEffect(() => {
-    async function fetchRooms() {
-      try {
-        setRoomsLoading(true)
-        const response = await fetch('/api/rooms-upload')
-        if (!response.ok) {
-          throw new Error('Failed to fetch rooms')
-        }
-        const result = await response.json()
-        
-        // Cấu trúc trả về là { success: true, data: { rooms: [...] } }
-        if (result.success && result.data?.rooms) {
-          setRooms(result.data.rooms)
-        } else {
-          setRooms([])
-        }
-      } catch (error) {
-        console.error("Error loading rooms:", error)
-        setRooms([])
-      } finally {
-        setRoomsLoading(false)
-      }
-    }
-    fetchRooms()
-  }, [])
 
   // Form state ban đầu
   const initialFormState = {
@@ -96,20 +70,15 @@ function ResourceManagementContent() {
   const fetchUtilityBills = async () => {
     if (!selectedRoom) return
     try {
-      const response = await fetch(`/api/rooms/${selectedRoom}/contract`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.data) {
-          const contractId = data.data.id
-          const billsResponse = await fetch(`/api/contracts/${contractId}/utility-bills`)
-          if (billsResponse.ok) {
-            const billsData = await billsResponse.json()
-            if (billsData.success) {
-              setUtilityBills(billsData.data)
-            }
-          }
-        }
+      const contract = await apiClient.get<{ id: string }>(`/rooms/${selectedRoom}/contract`)
+      const contractId = contract?.id
+      if (!contractId) {
+        setUtilityBills([])
+        return
       }
+
+      const billsData = await apiClient.get<any[]>(`/contracts/${contractId}/utility-bills`)
+      setUtilityBills(Array.isArray(billsData) ? billsData : [])
     } catch (error) {
       console.error("Error fetching utility bills:", error)
     }
@@ -124,63 +93,62 @@ function ResourceManagementContent() {
   // Create utility bill
   const handleCreateUtilityBill = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedRoom) return alert("Vui lòng chọn phòng")
+    if (!selectedRoom) {
+      setPageFeedback({ type: "error", message: "Vui lòng chọn phòng" })
+      return
+    }
     try {
-      const response = await fetch(`/api/rooms/${selectedRoom}/contract`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.data) {
-          const contractId = data.data.id
-          const billResponse = await fetch(`/api/contracts/${contractId}/utility-bills`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...utilityForm,
-              electricityUsage: parseFloat(utilityForm.electricityUsage) || 0,
-              waterUsage: parseFloat(utilityForm.waterUsage) || 0
-            })
-          })
-          if (billResponse.ok) {
-            alert("Đã tạo hóa đơn điện nước thành công!")
-            setShowUtilityForm(false)
-            setUtilityForm({
-              month: new Date().getMonth() + 1,
-              year: new Date().getFullYear(),
-              electricityUsage: '',
-              waterUsage: '',
-              notes: ''
-            })
-            fetchUtilityBills()
-          }
-        }
+      setPageFeedback(null)
+      const contract = await apiClient.get<{ id: string }>(`/rooms/${selectedRoom}/contract`)
+      const contractId = contract?.id
+      if (!contractId) {
+        alert("Không tìm thấy hợp đồng của phòng")
+        return
       }
-    } catch (error) {
-      alert("Lỗi khi tạo hóa đơn")
+
+      await apiClient.post(`/contracts/${contractId}/utility-bills`, {
+        ...utilityForm,
+        electricityUsage: parseFloat(utilityForm.electricityUsage) || 0,
+        waterUsage: parseFloat(utilityForm.waterUsage) || 0
+      })
+
+      setPageFeedback({ type: "success", message: "Đã tạo hóa đơn điện nước thành công!" })
+      setShowUtilityForm(false)
+      setUtilityForm({
+        month: new Date().getMonth() + 1,
+        year: new Date().getFullYear(),
+        electricityUsage: '',
+        waterUsage: '',
+        notes: ''
+      })
+      fetchUtilityBills()
+    } catch (error: any) {
+      setPageFeedback({ type: "error", message: error?.message || "Lỗi khi tạo hóa đơn" })
     }
   }
 
   // Approve payment proof
   const handleApproveProof = async (billId: string) => {
     try {
-      const response = await fetch(`/api/utility-bills/${billId}/approve`, {
-        method: 'PUT'
-      })
-      if (response.ok) {
-        alert("Đã xác nhận thanh toán!")
-        fetchUtilityBills()
-      }
-    } catch (error) {
-      alert("Lỗi khi xác nhận thanh toán")
+      setPageFeedback(null)
+      await apiClient.put(`/utility-bills/${billId}/approve`, {})
+      setPageFeedback({ type: "success", message: "Đã xác nhận thanh toán!" })
+      fetchUtilityBills()
+    } catch (error: any) {
+      setPageFeedback({ type: "error", message: error?.message || "Lỗi khi xác nhận thanh toán" })
     }
   }
 
-  // Fetch danh sách phòng từ API khi component mount
   useEffect(() => {
     const fetchRooms = async () => {
       try {
         setRoomsLoading(true)
-        const data = await apiClient.get<Room[]>('/host/rooms')
-        setRooms(data)
+        const response = await apiClient.get<{ rooms: Room[] }>('/rooms-upload')
+        const roomList = Array.isArray(response?.rooms) ? response.rooms : []
+        if (!Array.isArray(response?.rooms)) {
+          console.warn('Unexpected rooms response:', response)
+        }
+        setRooms(roomList)
       } catch (error) {
         console.error("Error fetching rooms:", error)
         setRooms([])
@@ -219,12 +187,16 @@ function ResourceManagementContent() {
   // Xử lý Thêm tài nguyên thực tế qua API
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.roomId) return alert("Vui lòng lựa chọn phòng chỉ định!")
+    if (!formData.roomId) {
+      setPageFeedback({ type: "error", message: "Vui lòng lựa chọn phòng chỉ định!" })
+      return
+    }
     try {
       setSubmitting(true)
+      setPageFeedback(null)
       await sharedSpaceClientService.createResource(formData)
       
-      alert("Tạo tài nguyên dùng chung thành công!")
+      setPageFeedback({ type: "success", message: "Tạo tài nguyên dùng chung thành công!" })
       setShowForm(false)
       setFormData(initialFormState)
       
@@ -235,7 +207,7 @@ function ResourceManagementContent() {
         loadResources()
       }, 100)
     } catch (error: any) {
-      alert(error.message || "Gặp lỗi trong quá trình tạo tài nguyên.")
+      setPageFeedback({ type: "error", message: error.message || "Gặp lỗi trong quá trình tạo tài nguyên." })
     } finally {
       setSubmitting(false)
     }
@@ -245,12 +217,13 @@ function ResourceManagementContent() {
   const handleDelete = async (resourceId: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa tài nguyên này? Tất cả dữ liệu đặt lịch liên quan sẽ bị ảnh hưởng.")) {
       try {
+        setPageFeedback(null)
         await sharedSpaceClientService.deleteResource(resourceId)
-        alert("Đã xóa tài nguyên thành công.")
+        setPageFeedback({ type: "success", message: "Đã xóa tài nguyên thành công." })
         // Cập nhật nhanh danh sách hiển thị cục bộ không cần reload trang
         setResources(prev => prev.filter(res => res.id !== resourceId))
       } catch (error: any) {
-        alert(error.message || "Không thể xóa tài nguyên vào lúc này.")
+        setPageFeedback({ type: "error", message: error.message || "Không thể xóa tài nguyên vào lúc này." })
       }
     }
   }
@@ -288,6 +261,12 @@ function ResourceManagementContent() {
               </Button>
             </div>
           </header>
+
+          {pageFeedback && (
+            <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm shadow-sm ${pageFeedback.type === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
+              {pageFeedback.message}
+            </div>
+          )}
 
           {/* Filters */}
           <div className="mb-6 rounded-2xl border border-white/70 bg-white/75 p-4 shadow-xl shadow-slate-200/60 backdrop-blur">
@@ -608,6 +587,9 @@ function ResourceManagementContent() {
                       <div key={booking.id} className="flex items-center justify-between p-2 bg-amber-50 border border-amber-200 rounded-lg">
                         <div className="flex-1 min-w-0 mr-2">
                           <p className="text-xs font-bold text-amber-800 truncate">{booking.title}</p>
+                          <p className="text-[10px] text-amber-600 truncate">
+                            Người đặt: {booking.user?.fullName || booking.user?.name || "Không rõ"}
+                          </p>
                           <p className="text-[10px] text-amber-600">
                             {new Date(booking.startTime).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})} - 
                             {new Date(booking.endTime).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}

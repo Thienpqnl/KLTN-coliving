@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { handleApiError, successResponse } from "@/lib/api-error";
+import { handleApiError, successResponse, ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -33,11 +33,20 @@ export async function POST(
       return handleApiError(new Error("Only renter can submit payment proof"));
     }
 
+    if (bill.status === 'PAID') {
+      throw new ApiError(409, "Hóa đơn này đã được xác nhận thanh toán, không thể gửi minh chứng mới");
+    }
+
+    if (bill.paymentProofUrl) {
+      throw new ApiError(409, "Bạn đã gửi minh chứng cho hóa đơn này rồi");
+    }
+
     const updatedBill = await prisma.utilityBill.update({
       where: { id: billId },
       data: {
         paymentProofUrl: data.paymentProofUrl,
         paymentProofSubmittedAt: new Date(),
+        status: 'PENDING',
       },
     });
 

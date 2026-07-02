@@ -36,9 +36,8 @@ export function AddTenantModal({ roomId, onClose, onSuccess }: AddTenantModalPro
 
     try {
       setSearchLoading(true);
-      // Assuming there's a search users endpoint
-      const results = await apiClient.get(`/api/users/search?q=${encodeURIComponent(query)}`);
-      setUsers(results);
+      const results = await apiClient.get<UserOption[]>(`/api/users/search?q=${encodeURIComponent(query)}`);
+      setUsers(Array.isArray(results) ? results : []);
     } catch (err) {
       console.error('Failed to search users:', err);
       setUsers([]);

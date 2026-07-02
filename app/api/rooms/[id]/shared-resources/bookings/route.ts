@@ -1,9 +1,10 @@
 // app/api/rooms/[id]/shared-resources/bookings/route.ts
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { handleApiError, successResponse } from "@/lib/api-error";
+import { handleApiError, successResponse, ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { hasBookingConflict } from "@/lib/utils/shared-space-conflicts";
 
 const createBookingSchema = z.object({
   resourceId: z.string().uuid("ID tài nguyên không hợp lệ"),
@@ -28,6 +29,15 @@ export async function GET(
         resourceBookings: {
           where: { status: { not: "CANCELLED" } }, // Chỉ lấy booking còn hiệu lực
           orderBy: { startTime: "asc" },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                fullName: true,
+              },
+            },
+          },
         },
       },
       orderBy: { name: "asc" },
@@ -50,45 +60,62 @@ export async function POST(
     
     const validated = createBookingSchema.parse(body);
 
-    // Kiểm tra trùng lặp thời gian
-    const conflict = await prisma.resourceBooking.findFirst({
-      where: {
-        resourceId: validated.resourceId,
-        status: { in: ["PENDING", "APPROVED"] },
-        OR: [
-          { startTime: { lt: validated.endTime }, endTime: { gt: validated.startTime } },
-        ],
-      },
-    });
+    const booking = await prisma.$transaction(async (tx) => {
+      const lockedResourceRows = await tx.$queryRaw<{ id: string }[]>
+        `SELECT id FROM shared_resources WHERE id = ${validated.resourceId} FOR UPDATE`;
 
-    if (conflict) {
-      return handleApiError(new Error("Khung giờ này đã được đặt hoặc đang chờ duyệt"));
-    }
+      if (lockedResourceRows.length === 0) {
+        throw new ApiError(404, "Tài nguyên không tồn tại");
+      }
 
-    // Kiểm tra giới hạn thời gian tối đa của tài nguyên
-    const resource = await prisma.sharedResource.findUnique({
-      where: { id: validated.resourceId },
-    });
+      const resource = await tx.sharedResource.findUnique({
+        where: { id: validated.resourceId },
+      });
 
-    if (!resource) {
-      return handleApiError(new Error("Tài nguyên không tồn tại"));
-    }
+      if (!resource) {
+        throw new ApiError(404, "Tài nguyên không tồn tại");
+      }
 
-    const durationMinutes = (validated.endTime.getTime() - validated.startTime.getTime()) / (1000 * 60);
-    if (durationMinutes > resource.maxDurationMinutes) {
-      return handleApiError(new Error(`Thời gian đặt vượt quá mức tối đa (${resource.maxDurationMinutes} phút)`));
-    }
+      if (resource.status === "MAINTENANCE") {
+        throw new ApiError(409, "Tài nguyên hiện đang bảo trì, không thể đặt lịch");
+      }
 
-    const booking = await prisma.resourceBooking.create({
-      data: {
-        resourceId: validated.resourceId,
-        userId: user.userId,
-        title: validated.title,
-        startTime: validated.startTime,
-        endTime: validated.endTime,
-        status: "PENDING",
-      },
-      include: { resource: true },
+      const durationMinutes = (validated.endTime.getTime() - validated.startTime.getTime()) / (1000 * 60);
+      if (durationMinutes > resource.maxDurationMinutes) {
+        throw new ApiError(400, `Thời gian đặt vượt quá mức tối đa (${resource.maxDurationMinutes} phút)`);
+      }
+
+      if (validated.startTime < new Date()) {
+        throw new ApiError(400, "Không thể đặt lịch trong quá khứ");
+      }
+
+      const existingBookings = await tx.resourceBooking.findMany({
+        where: {
+          resourceId: validated.resourceId,
+          status: { in: ["PENDING", "APPROVED"] },
+        },
+        select: {
+          startTime: true,
+          endTime: true,
+          status: true,
+        },
+      });
+
+      if (hasBookingConflict(validated.startTime, validated.endTime, existingBookings)) {
+        throw new ApiError(409, "Khung giờ này đã bị trùng với lịch đặt khác hoặc đang chờ duyệt");
+      }
+
+      return tx.resourceBooking.create({
+        data: {
+          resourceId: validated.resourceId,
+          userId: user.userId,
+          title: validated.title,
+          startTime: validated.startTime,
+          endTime: validated.endTime,
+          status: "PENDING",
+        },
+        include: { resource: true },
+      });
     });
 
     return successResponse(booking, 201);

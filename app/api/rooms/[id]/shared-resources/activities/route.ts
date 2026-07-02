@@ -14,11 +14,12 @@ const activityCreateSchema = z.object({
 });
 
 // GET: Lấy toàn bộ Lịch trực nhật (DUTY) & Bảng tin (ANNOUNCEMENT, ISSUE) của phòng
-export async function GET(request: NextRequest, { params }: { params: { roomId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await getAuthUser(request);
+    const { id: roomId } = await params;
     const activities = await prisma.sharedSpaceActivity.findMany({
-      where: { roomId: params.roomId },
+      where: { roomId },
       include: {
         assignee: { select: { fullName: true } },
         creator: { select: { fullName: true } }
@@ -34,11 +35,11 @@ export async function GET(request: NextRequest, { params }: { params: { roomId: 
 // POST: Tạo mới hoạt động (Thông báo hoặc Báo sự cố)
 export async function POST(
   request: NextRequest,
-  { params }: { params: { roomId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
-    const roomId = params.roomId;
+    const { id: roomId } = await params;
     
     // Kiểm tra user có phải thành viên đang ở phòng này không
     const isOccupant = await prisma.occupancy.findUnique({

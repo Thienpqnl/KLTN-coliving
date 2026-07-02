@@ -302,7 +302,7 @@ export class AdminService {
   // Update user role
   static async updateUserRole(
     userId: string,
-    newRole: string,
+    newRole: Role,
     adminId: string,
     reason?: string
   ) {

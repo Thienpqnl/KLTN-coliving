@@ -4,7 +4,7 @@ import React, { useState, useEffect, use } from 'react';
 import { sharedSpaceClientService, SharedResource, SharedActivity } from '@/lib/services/shared-space-client.service';
 import { useAuth } from '@/lib/hooks/useAuth';
 import BookingModal from '../../components/BookingModal';
-import { Zap, Droplets, Calculator, Image as ImageIcon, Upload } from 'lucide-react';
+import { Zap, Droplets, Calculator, Image as ImageIcon, Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { uploadImage } from '@/lib/upload';
 
@@ -36,6 +36,7 @@ export default function SharedSpacePage({ params }: PageProps) {
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pageFeedback, setPageFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const hoursGrid = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00"];
   useEffect(() => {
     const today = new Date();
@@ -128,10 +129,14 @@ export default function SharedSpacePage({ params }: PageProps) {
 
   const handleSubmitPaymentProof = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedBillForPayment || !paymentProofFile) return alert("Vui lòng chọn ảnh minh chứng");
+    if (!selectedBillForPayment || !paymentProofFile) {
+      setPageFeedback({ type: "error", message: "Vui lòng chọn ảnh minh chứng" });
+      return;
+    }
     
     try {
       setIsUploading(true);
+      setPageFeedback(null);
       // Upload image to Cloudinary
       const imageUrl = await uploadImage(paymentProofFile);
       
@@ -142,16 +147,18 @@ export default function SharedSpacePage({ params }: PageProps) {
       });
       
       if (response.ok) {
-        alert("Đã gửi minh chứng thanh toán thành công!");
+        setPageFeedback({ type: "success", message: "Đã gửi minh chứng thanh toán thành công!" });
         setShowPaymentProofModal(false);
         setPaymentProofFile(null);
         setSelectedBillForPayment(null);
+        setPreviewUrl(null);
         fetchContractData(); // Refresh bills
       } else {
-        alert("Lỗi khi gửi minh chứng thanh toán");
+        const errorData = await response.json().catch(() => ({}));
+        setPageFeedback({ type: "error", message: errorData.error || errorData.message || "Lỗi khi gửi minh chứng thanh toán" });
       }
     } catch (error) {
-      alert("Lỗi khi upload ảnh hoặc gửi minh chứng thanh toán");
+      setPageFeedback({ type: "error", message: "Lỗi khi upload ảnh hoặc gửi minh chứng thanh toán" });
     } finally {
       setIsUploading(false);
     }
@@ -164,6 +171,13 @@ export default function SharedSpacePage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-slate-800 flex font-sans antialiased selection:bg-amber-200">
       
+      {pageFeedback && (
+        <div className={`fixed top-4 right-4 z-[70] max-w-md rounded-xl border px-4 py-3 shadow-lg flex items-start gap-2 ${pageFeedback.type === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
+          {pageFeedback.type === "error" ? <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> : <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />}
+          <span className="text-sm">{pageFeedback.message}</span>
+        </div>
+      )}
+
       {/* SIDEBAR TRÁI */}
       <aside className="w-64 bg-white border-r border-slate-100 p-6 flex flex-col justify-between shrink-0 hidden md:flex">
         <div className="space-y-7">

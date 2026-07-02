@@ -1,7 +1,7 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { X, CalendarClock, User, FileText, CheckCircle, XCircle } from "lucide-react"
+import { X, CalendarClock, User, FileText, CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import { sharedSpaceClientService, ResourceBooking, SharedResource } from "@/lib/services/shared-space-client.service"
 
 interface ApprovalModalProps {
@@ -14,17 +14,25 @@ interface ApprovalModalProps {
 
 export default function ApprovalModal({ isOpen, onClose, booking, resource, onSuccess }: ApprovalModalProps) {
   const [loading, setLoading] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFeedback(null)
+    }
+  }, [isOpen])
 
   if (!isOpen || !booking) return null
 
   const handleAction = async (status: 'APPROVED' | 'CANCELLED') => {
     try {
       setLoading(true)
+      setFeedback(null)
       await sharedSpaceClientService.updateBookingStatus(booking.id, status)
       onSuccess()
       onClose()
     } catch (err: any) {
-      alert(err.message || "Có lỗi xảy ra")
+      setFeedback({ type: "error", message: err.message || "Có lỗi xảy ra" })
     } finally {
       setLoading(false)
     }
@@ -49,6 +57,13 @@ export default function ApprovalModal({ isOpen, onClose, booking, resource, onSu
 
         {/* Body - Chi tiết Booking */}
         <div className="p-6 space-y-5">
+          {feedback && (
+            <div className={`rounded-xl border px-3 py-2.5 text-sm flex items-start gap-2 ${feedback.type === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{feedback.message}</span>
+            </div>
+          )}
+
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
               <User className="w-4 h-4 text-blue-600 shrink-0" />

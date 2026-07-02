@@ -313,13 +313,13 @@ export default function RecommendedRooms() {
                   )}
 
                   {/* Amenities */}
-                  {room.roomDetails?.amenities?.length > 0 && (
+                  {(room.roomDetails?.amenities?.length ?? 0) > 0 && (
                     <div className="mb-4">
                       <p className="text-xs font-semibold text-slate-600 mb-2">
                          Tiện ích:
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {room.roomDetails.amenities.slice(0, 3).map((a, idx) => (
+                        {room.roomDetails?.amenities.slice(0, 3).map((a, idx) => (
                           <span
                             key={idx}
                             className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-xs px-3 py-1 rounded-full font-medium"
@@ -327,9 +327,9 @@ export default function RecommendedRooms() {
                             {a.amenity.name}
                           </span>
                         ))}
-                        {room.roomDetails.amenities.length > 3 && (
+                        {(room.roomDetails?.amenities?.length ?? 0) > 3 && (
                           <span className="inline-flex items-center bg-slate-100 text-slate-700 text-xs px-3 py-1 rounded-full font-medium">
-                            +{room.roomDetails.amenities.length - 3} khác
+                            +{(room.roomDetails?.amenities?.length ?? 0) - 3} khác
                           </span>
                         )}
                       </div>

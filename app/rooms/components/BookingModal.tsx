@@ -59,11 +59,24 @@ export default function BookingModal({ isOpen, onClose, resources, roomId, onSuc
       const startMinutes = new Date(startTime);
       const endMinutes = new Date(startMinutes.getTime() + parseInt(duration) * 60000);
 
+      const startDate = new Date(startMinutes);
+      const endDate = new Date(endMinutes);
+
+      if (startDate >= endDate) {
+        setError("Thời gian kết thúc phải sau thời gian bắt đầu");
+        return;
+      }
+
+      if (selectedResource?.status === 'MAINTENANCE') {
+        setError("Tài nguyên này hiện đang bảo trì, vui lòng chọn tài nguyên khác");
+        return;
+      }
+
       await sharedSpaceClientService.createBooking(roomId, {
         resourceId: selectedResourceId,
         title,
-        startTime: startMinutes.toISOString(),
-        endTime: endMinutes.toISOString(),
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
       });
       
       onSuccess();
