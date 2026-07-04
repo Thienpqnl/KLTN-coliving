@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse, ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import  NotificationService  from "@/lib/services/notification.service";
 
 // PUT /api/utility-bills/[billId]/approve - Approve payment proof (host only)
 export async function PUT(
@@ -41,6 +42,21 @@ export async function PUT(
         approvedAt: new Date(),
       },
     });
+
+    try {
+      await NotificationService.sendPushNotificationToUser(
+        bill.contract.renterId,
+        "Minh chứng thanh toán đã được duyệt",
+        `Hóa đơn ${bill.month}/${bill.year} đã được xác nhận thanh toán. Cảm ơn bạn đã hoàn tất minh chứng.`,
+        {
+          billId,
+          contractId: bill.contractId,
+          type: "UTILITY_BILL_APPROVED",
+        }
+      );
+    } catch (pushError) {
+      console.error("Không thể gửi thông báo FCM cho tenant:", pushError);
+    }
 
     return successResponse(updatedBill);
   } catch (error) {

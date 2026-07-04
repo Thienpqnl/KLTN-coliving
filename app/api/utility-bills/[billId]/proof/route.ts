@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse, ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import NotificationService from "@/lib/services/notification.service";
 import { z } from "zod";
 
 const submitProofSchema = z.object({
@@ -49,6 +50,21 @@ export async function POST(
         status: 'PENDING',
       },
     });
+
+    try {
+      await NotificationService.sendPushNotificationToUser(
+        bill.contract.hostId,
+        "Có minh chứng thanh toán điện nước mới",
+        `Người thuê đã gửi minh chứng thanh toán cho hóa đơn ${bill.month}/${bill.year}. Vui lòng kiểm tra.`,
+        {
+          billId,
+          contractId: bill.contractId,
+          type: "UTILITY_BILL_PROOF_SUBMITTED",
+        }
+      );
+    } catch (pushError) {
+      console.error("Không thể gửi thông báo FCM cho host:", pushError);
+    }
 
     return successResponse(updatedBill);
   } catch (error) {

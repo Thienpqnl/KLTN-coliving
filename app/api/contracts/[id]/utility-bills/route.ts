@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import  NotificationService  from "@/lib/services/notification.service";
 import { z } from "zod";
 
 const createBillSchema = z.object({
@@ -62,8 +63,6 @@ export async function POST(
     if (contract.hostId !== user.userId && user.role !== 'ADMIN') {
       return handleApiError(new Error("Only host can create utility bills"));
     }
-
-    // Calculate costs based on contract rates
     const electricityUsage = data.electricityUsage || 0;
     const waterUsage = data.waterUsage || 0;
     
@@ -86,6 +85,21 @@ export async function POST(
         notes: data.notes,
       },
     });
+
+    try {
+      await NotificationService.sendPushNotificationToUser(
+        contract.renterId,
+        "Bạn có hóa đơn điện nước mới",
+        `Hóa đơn điện nước tháng ${data.month}/${data.year} đã được tạo. Vui lòng kiểm tra và thanh toán.`,
+        {
+          billId: bill.id,
+          contractId,
+          type: "NEW_UTILITY_BILL",
+        }
+      );
+    } catch (pushError) {
+      console.error("Không thể gửi thông báo FCM cho tenant:", pushError);
+    }
 
     return successResponse(bill, 201);
   } catch (error) {

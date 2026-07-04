@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      include: { preference: true },
+      include: { userPreferences: true },
     });
 
     if (!user) {
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (!user.preference) {
+    if (!user.userPreferences) {
       return NextResponse.json(
         { error: "Vui lòng điền thông tin sở thích trước", recommendations: [] },
         { status: 400 }

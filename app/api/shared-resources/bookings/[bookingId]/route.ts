@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse, ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import NotificationService from "@/lib/services/notification.service";
 import { z } from "zod";
 
 const updateStatusSchema = z.object({
@@ -42,6 +43,24 @@ export async function PUT(
         where: { id: bookingId },
         data: { status }
       });
+
+      if (status === "APPROVED") {
+        try {
+          await NotificationService.sendPushNotificationToUser(
+            booking.userId,
+            "Yêu cầu thuê tài nguyên đã được duyệt",
+            `Yêu cầu "${booking.title ?? "đặt lịch"}" cho tài nguyên đã được duyệt.`,
+            {
+              bookingId,
+              resourceId: booking.resourceId,
+              type: "RESOURCE_BOOKING_APPROVED",
+            }
+          );
+        } catch (pushError) {
+          console.error("Không thể gửi thông báo FCM cho tenant:", pushError);
+        }
+      }
+
       return successResponse(updated);
     }
     
