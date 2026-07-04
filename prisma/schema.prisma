@@ -8,45 +8,46 @@ datasource db {
 }
 
 model User {
-  id                                                        String                   @id @default(uuid())
-  email                                                     String                   @unique
-  password                                                  String
-  fullName                                                  String
-  createdAt                                                 DateTime                 @default(now())
-  address                                                   String?
-  avatarUrl                                                 String?
-  birthDate                                                 DateTime?
-  gender                                                    String?
-  name                                                      String
-  phone                                                     String?
-  role                                                      Role                     @default(CUSTOMER)
-  status                                                    UserStatus               @default(ACTIVE)
-  updatedAt                                                 DateTime                 @updatedAt
-  latitude                                                  Float?
-  longitude                                                 Float?
-  phoneVerified                                             Boolean                  @default(false)
-  phoneVerifiedAt                                           DateTime?
-  adminActions                                              AdminLog[]               @relation("AdminAction")
-  affectedLogs                                              AdminLog[]               @relation("AffectedUser")
-  bookings                                                  Booking[]
-  CommunityManagerArea                                      CommunityManagerArea[]
-  hostedContracts                                           Contract[]               @relation("ContractHost")
-  rentedContracts                                           Contract[]               @relation("ContractRenter")
-  contractEvents                                            ContractEvent[]
-  favorites                                                 FavoriteRoom[]
-  invoices                                                  Invoice[]
-  PhoneOtp                                                  PhoneOtp[]
-  reviews                                                   Review[]
-  rooms                                                     Room[]
-  RoomInteraction                                           RoomInteraction[]
-  RoomVerification_RoomVerification_assignedManagerIdToUser RoomVerification[]       @relation("RoomVerification_assignedManagerIdToUser")
-  reviewedRoomVerifications                                 RoomVerification[]       @relation("RoomVerificationReviewer")
-  VerificationCheck                                         VerificationCheck[]
-  occupancies                                               Occupancy[]
-  resourceBookings          ResourceBooking[]
-  deviceTokens              UserDeviceToken[]
-  createdActivities         SharedSpaceActivity[] @relation("ActivityCreator")
-  assignedActivities        SharedSpaceActivity[] @relation("ActivityAssignee")
+  id                        String                   @id @default(uuid())
+  email                     String                   @unique
+  password                  String
+  fullName                  String
+  createdAt                 DateTime                 @default(now())
+  address                   String?
+  avatarUrl                 String?
+  birthDate                 DateTime?
+  gender                    String?
+  name                      String
+  phone                     String?
+  phoneVerified             Boolean                  @default(false)
+  phoneVerifiedAt           DateTime?
+  role                      Role                     @default(CUSTOMER)
+  status                    UserStatus               @default(ACTIVE)
+  updatedAt                 DateTime                 @updatedAt
+  latitude                  Float?
+  longitude                 Float?
+  adminActions              AdminLog[]               @relation("AdminAction")
+  affectedLogs              AdminLog[]               @relation("AffectedUser")
+  bookings                  Booking[]
+  hostedContracts           Contract[]               @relation("ContractHost")
+  rentedContracts           Contract[]               @relation("ContractRenter")
+  contractEvents            ContractEvent[]
+  favorites                 FavoriteRoom[]
+  invoices                  Invoice[]
+  reviews                   Review[]
+  rooms                     Room[]
+  RoomInteraction           RoomInteraction[]
+  occupancies               Occupancy[]
+  lifestyleProfile          user_lifestyle_profiles?
+  preference                user_preferences?
+  reviewedRoomVerifications RoomVerification[]       @relation("RoomVerificationReviewer")
+  managedRoomVerifications  RoomVerification[]       @relation("RoomVerificationManager")
+  communityManagerAreas     CommunityManagerArea[]
+  verificationChecks        VerificationCheck[]       @relation("VerificationCheckReviewer")
+  phoneOtps                 PhoneOtp[]
+  resourceBookings        ResourceBooking[]
+  createdActivities       SharedSpaceActivity[] @relation("ActivityCreator")
+  assignedActivities      SharedSpaceActivity[] @relation("ActivityAssignee")
   userPreferences      user_preferences? 
   userLifestyleProfile user_lifestyle_profiles? 
   @@map("User")
@@ -106,52 +107,52 @@ model user_lifestyle_profiles {
 }
 
 model Room {
-  id                    String                @id @default(uuid())
-  title                 String
-  description           String
-  address               String
-  city                  String?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  allowPets             Boolean?              @default(false)
-  allowSmoking          Boolean?              @default(false)
-  areaText              String?
-  areaValue             Decimal?              @db.Decimal(10, 2)
-  cleanlinessRequired   String?
-  curfewPolicy          String?
-  currentOccupants      Int?                  @default(0)
-  district              String?
-  districtId            String?
-  expired_date          String?
-  guestPolicy           String?
-  maxOccupants          Int?                  @default(1)
-  noiseTolerance        String?
-  ownerId               String?
-  posted_date           String?
-  preferredGender       String?
-  preferredOccupation   String?
-  preferredSleepHabit   String?
-  priceText             String?
-  priceValue            BigInt?
-  roomId                String?
-  sourceUrl             String?
-  status                RoomStatus            @default(DRAFT)
-  latitude              Float?
-  longitude             Float?
-  provinceCode          String?
-  ward                  String?
-  wardCode              String?
-  bookings              Booking[]
-  contracts             Contract[]
-  favoritedBy           FavoriteRoom[]
-  reviews               Review[]
-  owner                 User?                 @relation(fields: [ownerId], references: [id])
-  amenities             RoomAmenity[]
-  images                RoomImage[]
-  RoomInteraction       RoomInteraction[]
-  verification          RoomVerification?
-  occupancies           Occupancy[]
-  sharedResources       SharedResource[]
+  id                  String            @id @default(uuid())
+  title               String
+  description         String
+  address             String
+  city                String?
+  provinceCode        String?
+  ward                String?
+  wardCode            String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  allowPets           Boolean?          @default(false)
+  allowSmoking        Boolean?          @default(false)
+  areaText            String?
+  areaValue           Decimal?          @db.Decimal(10, 2)
+  cleanlinessRequired String?
+  curfewPolicy        String?
+  currentOccupants    Int?              @default(0)
+  district            String?
+  districtId          String?
+  expired_date        String?
+  guestPolicy         String?
+  maxOccupants        Int?              @default(1)
+  noiseTolerance      String?
+  ownerId             String?
+  posted_date         String?
+  preferredGender     String?
+  preferredOccupation String?
+  preferredSleepHabit String?
+  priceText           String?
+  priceValue          BigInt?
+  roomId              String?
+  sourceUrl           String?
+  status              RoomStatus        @default(DRAFT)
+  latitude            Float?
+  longitude           Float?
+  bookings            Booking[]
+  contracts           Contract[]
+  favoritedBy         FavoriteRoom[]
+  reviews             Review[]
+  owner               User?             @relation(fields: [ownerId], references: [id])
+  amenities           RoomAmenity[]
+  images              RoomImage[]
+  RoomInteraction     RoomInteraction[]
+  occupancies         Occupancy[]
+  verification        RoomVerification?
+  sharedResources      SharedResource[]
   sharedSpaceActivities SharedSpaceActivity[]
 
   @@map("Room")
@@ -257,48 +258,114 @@ model Review {
 }
 
 model RoomVerification {
-  id                                            String                         @id @default(uuid())
-  roomId                                        String                         @unique
-  reviewerId                                    String?
-  submittedAt                                   DateTime?
-  reviewedAt                                    DateTime?
-  revisionReason                                String?
-  rejectionReason                               String?
-  adminNote                                     String?
-  identityPassed                                Boolean                        @default(false)
-  ownershipPassed                               Boolean                        @default(false)
-  addressPassed                                 Boolean                        @default(false)
-  imagesPassed                                  Boolean                        @default(false)
-  detailsPassed                                 Boolean                        @default(false)
-  createdAt                                     DateTime                       @default(now())
-  updatedAt                                     DateTime                       @updatedAt
-  informationAccurateConfirmed                  Boolean                        @default(false)
-  legalResponsibilityAccepted                   Boolean                        @default(false)
-  verificationConsentAccepted                   Boolean                        @default(false)
-  declarationAcceptedAt                         DateTime?
-  declarationVersion                            String?
-  declarationIpAddress                          String?
-  declarationUserAgent                          String?
-  assignedManagerId                             String?
-  managerAssignedAt                             DateTime?
-  managerReviewedAt                             DateTime?
-  managerNote                                   String?
-  inspectionDate                                DateTime?
-  inspectionImages                              Json?
-  managerRecommendation                         CommunityManagerRecommendation @default(PENDING)
-  facilityPassed                                Boolean                        @default(false)
-  safetyPassed                                  Boolean                        @default(false)
-  legalOccupancyPassed                          Boolean                        @default(false)
-  User_RoomVerification_assignedManagerIdToUser User?                          @relation("RoomVerification_assignedManagerIdToUser", fields: [assignedManagerId], references: [id])
-  reviewer                                      User?                          @relation("RoomVerificationReviewer", fields: [reviewerId], references: [id])
-  room                                          Room                           @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  documents                                     RoomVerificationDocument[]
-  VerificationCheck                             VerificationCheck[]
+  id                           String                     @id @default(uuid())
+  roomId                       String                     @unique
+  reviewerId                   String?
+  assignedManagerId            String?
+  submittedAt                  DateTime?
+  managerAssignedAt            DateTime?
+  managerReviewedAt            DateTime?
+  reviewedAt                   DateTime?
+  revisionReason               String?
+  rejectionReason              String?
+  adminNote                    String?
+  managerNote                  String?
+  inspectionDate               DateTime?
+  inspectionImages             Json?
+  managerRecommendation        CommunityManagerRecommendation @default(PENDING)
+  identityPassed               Boolean                    @default(false)
+  ownershipPassed              Boolean                    @default(false)
+  addressPassed                Boolean                    @default(false)
+  imagesPassed                 Boolean                    @default(false)
+  detailsPassed                Boolean                    @default(false)
+  facilityPassed               Boolean                    @default(false)
+  safetyPassed                 Boolean                    @default(false)
+  legalOccupancyPassed         Boolean                    @default(false)
+  informationAccurateConfirmed Boolean                    @default(false)
+  legalResponsibilityAccepted  Boolean                    @default(false)
+  verificationConsentAccepted  Boolean                    @default(false)
+  declarationAcceptedAt        DateTime?
+  declarationVersion           String?
+  declarationIpAddress         String?
+  declarationUserAgent         String?
+  createdAt                    DateTime                   @default(now())
+  updatedAt                    DateTime                   @updatedAt
+  room                         Room                       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reviewer                     User?                      @relation("RoomVerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  assignedManager              User?                      @relation("RoomVerificationManager", fields: [assignedManagerId], references: [id], onDelete: SetNull)
+  documents                    RoomVerificationDocument[]
+  checks                       VerificationCheck[]
 
   @@index([reviewerId])
+  @@index([assignedManagerId])
+  @@index([managerRecommendation])
   @@index([submittedAt])
   @@index([assignedManagerId])
   @@index([managerRecommendation])
+}
+
+model VerificationCheck {
+  id             String                  @id @default(uuid())
+  verificationId String
+  type           VerificationCheckType
+  status         VerificationCheckStatus @default(PENDING)
+  sourceValue    String?
+  targetValue    String?
+  note           String?
+  checkedById    String?
+  checkedAt      DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  verification   RoomVerification        @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  checkedBy      User?                   @relation("VerificationCheckReviewer", fields: [checkedById], references: [id], onDelete: SetNull)
+
+  @@unique([verificationId, type])
+  @@index([verificationId])
+  @@index([type])
+  @@index([status])
+  @@index([checkedById])
+}
+
+model PhoneOtp {
+  id          String    @id @default(uuid())
+  userId      String
+  phone       String
+  codeHash    String
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  attemptCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([phone])
+  @@index([expiresAt])
+}
+
+model CommunityManagerArea {
+  id        String        @id @default(uuid())
+  managerId String
+  region    ServiceRegion?
+  city      String?
+  provinceCode String?
+  ward      String?
+  wardCode  String?
+  district  String?
+  districtId String?
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  manager   User          @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@index([managerId])
+  @@index([region])
+  @@index([city])
+  @@index([provinceCode])
+  @@index([ward])
+  @@index([wardCode])
+  @@index([district])
+  @@index([districtId])
+  @@unique([managerId, region, city, provinceCode, ward, wardCode, district, districtId], name: "CommunityManagerArea_unique_scope")
 }
 
 model RoomVerificationDocument {
@@ -616,6 +683,12 @@ enum Role {
   COMMUNITY_MANAGER
 }
 
+enum ServiceRegion {
+  NORTH
+  CENTRAL
+  SOUTH
+}
+
 enum UserStatus {
   ACTIVE
   LOCKED
@@ -644,6 +717,32 @@ enum VerificationDocumentStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum CommunityManagerRecommendation {
+  PENDING
+  NEEDS_REVISION
+  RECOMMEND_APPROVAL
+  RECOMMEND_REJECTION
+}
+
+enum VerificationCheckType {
+  OWNER_PHONE
+  OWNER_IDENTITY_DOCUMENT
+  OWNERSHIP_DOCUMENT
+  ROOM_ADDRESS
+  MAP_LOCATION
+  ROOM_IMAGES
+  LEGAL_DECLARATION
+  ROOM_DETAILS
+}
+
+enum VerificationCheckStatus {
+  PENDING
+  MATCHED
+  MISMATCHED
+  NEEDS_REVIEW
+  UNVERIFIABLE
 }
 
 enum BookingStatus {
@@ -711,14 +810,6 @@ enum ServiceRegion {
   NORTH
   CENTRAL
   SOUTH
-}
-
-enum VerificationCheckStatus {
-  PENDING
-  MATCHED
-  MISMATCHED
-  NEEDS_REVIEW
-  UNVERIFIABLE
 }
 
 enum VerificationCheckType {

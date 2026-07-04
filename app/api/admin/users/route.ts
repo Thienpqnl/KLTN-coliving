@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Role, UserStatus } from "@prisma/client";
 import { AdminService } from "@/lib/services/admin.service";
 import { ApiError } from "@/lib/api-error";
 import { getAuthUser } from "@/lib/auth";
@@ -13,8 +14,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
-    const role = searchParams.get("role") as string | null;
-    const status = searchParams.get("status") as string | null;
+    const roleParam = searchParams.get("role");
+    const statusParam = searchParams.get("status");
+    const role = roleParam && Object.values(Role).includes(roleParam as Role) ? (roleParam as Role) : undefined;
+    const status = statusParam && Object.values(UserStatus).includes(statusParam as UserStatus) ? (statusParam as UserStatus) : undefined;
     const search = searchParams.get("search");
 
     const result = await AdminService.getAllUsers({

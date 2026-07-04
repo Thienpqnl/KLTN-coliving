@@ -1,5 +1,5 @@
 import{ prisma } from "@/lib/prisma";
-import { UserStatus, Role } from "@prisma/client";
+import { Prisma, UserStatus, Role } from "@prisma/client";
 
 export class AdminService {
   // Get all users with optional filtering
@@ -14,7 +14,7 @@ export class AdminService {
     const limit = filters?.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
     if (filters?.role) where.role = filters.role;
     if (filters?.status) where.status = filters.status;
     if (filters?.search) {
@@ -148,7 +148,7 @@ export class AdminService {
 
   // Get user statistics
   static async getUserStats() {
-    const [total, tenants, landlords, locked, deleted, newThisMonth] =
+    const [total, tenants, landlords, communityManagers, locked, deleted, newThisMonth] =
       await Promise.all([
         prisma.user.count(),
         prisma.user.count({
@@ -156,6 +156,9 @@ export class AdminService {
         }),
         prisma.user.count({
           where: { role: Role.HOST, status: UserStatus.ACTIVE },
+        }),
+        prisma.user.count({
+          where: { role: Role.COMMUNITY_MANAGER, status: UserStatus.ACTIVE },
         }),
         prisma.user.count({ where: { status: UserStatus.LOCKED } }),
         prisma.user.count({ where: { status: UserStatus.DELETED } }),
@@ -175,6 +178,7 @@ export class AdminService {
       total,
       tenants,
       landlords,
+      communityManagers,
       locked,
       deleted,
       newThisMonth,
@@ -265,7 +269,7 @@ export class AdminService {
     const limit = filters?.limit || 50;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.AdminLogWhereInput = {};
     if (filters?.action) where.action = filters.action;
     if (filters?.targetType) where.targetType = filters.targetType;
     if (filters?.adminId) where.adminId = filters.adminId;
@@ -312,7 +316,7 @@ export class AdminService {
     const oldRole = user.role;
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { role: newRole },
+      data: { role: newRole as Role },
     });
 
     // Log the action

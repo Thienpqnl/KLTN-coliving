@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { AdminService } from "@/lib/services/admin.service";
 import { ApiError } from "@/lib/api-error";
 import { getAuthUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Role } from "@prisma/client";
 
 const updateUserSchema = z.object({
   action: z.enum(["lock", "unlock", "delete", "update_role"]),
   reason: z.string().optional(),
-  newRole: z.enum(["CUSTOMER", "HOST", "ADMIN"]).optional(),
+  newRole: z.enum(["CUSTOMER", "HOST", "ADMIN", "COMMUNITY_MANAGER"]).optional(),
 });
 
 export async function PATCH(
@@ -91,7 +92,10 @@ export async function GET(
     if (payload.role !== "ADMIN")
       throw new ApiError(403, "Forbidden: Admin only");
 
+<<<<<<< HEAD
     const { prisma } = await import("@/lib/prisma");
+=======
+>>>>>>> 1620de41d81319d2e254ce8229cdcd397cc3d5c5
     const { id } = await params;
 
     const user = await prisma.user.findUnique({
@@ -102,6 +106,7 @@ export async function GET(
         name: true,
         fullName: true,
         phone: true,
+        phoneVerified: true,
         role: true,
         status: true,
         createdAt: true,

@@ -131,6 +131,7 @@ export default function UserManagement() {
   const openActionModal = (user: User, type: typeof actionType) => {
     setSelectedUser(user)
     setActionType(type)
+    setNewRole(type === "update_role" ? user.role : null)
     setActionModal(true)
   }
 
@@ -166,6 +167,7 @@ export default function UserManagement() {
             <option value="">Tất cả vai trò</option>
             <option value="CUSTOMER">Người thuê</option>
             <option value="HOST">Chủ nhà</option>
+            <option value="COMMUNITY_MANAGER">Quản lý cộng đồng</option>
             <option value="ADMIN">Admin</option>
           </select>
           <select

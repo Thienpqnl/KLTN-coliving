@@ -32,6 +32,14 @@ type AdminRoom = {
     revisionReason?: string | null;
     rejectionReason?: string | null;
     adminNote?: string | null;
+    managerNote?: string | null;
+    managerRecommendation?: string | null;
+    managerReviewedAt?: string | null;
+    inspectionDate?: string | null;
+    facilityPassed?: boolean;
+    safetyPassed?: boolean;
+    legalOccupancyPassed?: boolean;
+    assignedManager?: { fullName?: string | null; name?: string | null; email: string; phone?: string | null } | null;
     informationAccurateConfirmed: boolean;
     legalResponsibilityAccepted: boolean;
     verificationConsentAccepted: boolean;
@@ -256,6 +264,17 @@ export default function AdminRoomsPage() {
                     <p>IP: {selected.verification.declarationIpAddress || "Không ghi nhận"}</p>
                   </div>
                 )}
+              </div>
+
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                <h3 className="font-bold text-orange-950">Kết quả xác minh của Community Manager</h3>
+                <div className="mt-3 space-y-2 text-sm text-orange-900">
+                  <p><strong>Nhân viên:</strong> {selected.verification?.assignedManager?.fullName || selected.verification?.assignedManager?.name || selected.verification?.assignedManager?.email || "Chưa phân công"}</p>
+                  <p><strong>Khuyến nghị:</strong> {selected.verification?.managerRecommendation || "PENDING"}</p>
+                  <p><strong>Ngày kiểm tra:</strong> {selected.verification?.inspectionDate ? new Date(selected.verification.inspectionDate).toLocaleDateString("vi-VN") : "Chưa cập nhật"}</p>
+                  <p><strong>Cơ sở vật chất:</strong> {selected.verification?.facilityPassed ? "Đạt" : "Chưa đạt"} · <strong>An toàn:</strong> {selected.verification?.safetyPassed ? "Đạt" : "Chưa đạt"} · <strong>Pháp lý cư trú:</strong> {selected.verification?.legalOccupancyPassed ? "Đạt" : "Chưa đạt"}</p>
+                  {selected.verification?.managerNote && <p className="rounded-lg bg-white/70 p-3 leading-relaxed">{selected.verification.managerNote}</p>}
+                </div>
               </div>
 
               <div className="space-y-2">

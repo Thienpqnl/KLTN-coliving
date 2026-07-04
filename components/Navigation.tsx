@@ -158,6 +158,14 @@ export function Navigation() {
                         onClick={closeAccountMenu}
                       />
                     )}
+                    {user.role === 'COMMUNITY_MANAGER' && (
+                      <AccountMenuLink
+                        href="/community-manager"
+                        icon={<LayoutDashboard className="h-4 w-4" />}
+                        label="Dashboard cộng đồng"
+                        onClick={closeAccountMenu}
+                      />
+                    )}
                     <AccountMenuLink
                       href="/profile"
                       icon={<UserRound className="h-4 w-4" />}
