@@ -45,11 +45,10 @@ model User {
   communityManagerAreas     CommunityManagerArea[]
   verificationChecks        VerificationCheck[]       @relation("VerificationCheckReviewer")
   phoneOtps                 PhoneOtp[]
+  deviceTokens              UserDeviceToken[]
   resourceBookings        ResourceBooking[]
   createdActivities       SharedSpaceActivity[] @relation("ActivityCreator")
   assignedActivities      SharedSpaceActivity[] @relation("ActivityAssignee")
-  userPreferences      user_preferences? 
-  userLifestyleProfile user_lifestyle_profiles? 
   @@map("User")
 }
 
@@ -300,8 +299,6 @@ model RoomVerification {
   @@index([assignedManagerId])
   @@index([managerRecommendation])
   @@index([submittedAt])
-  @@index([assignedManagerId])
-  @@index([managerRecommendation])
 }
 
 model VerificationCheck {
@@ -592,70 +589,6 @@ model UtilityBill {
   @@map("utility_bills")
 }
 
-model CommunityManagerArea {
-  id           String         @id
-  managerId    String
-  region       ServiceRegion?
-  city         String?
-  district     String?
-  districtId   String?
-  isActive     Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime
-  provinceCode String?
-  ward         String?
-  wardCode     String?
-  User         User           @relation(fields: [managerId], references: [id], onDelete: Cascade)
-
-  @@unique([managerId, region, city, provinceCode, ward, wardCode, district, districtId], map: "CommunityManagerArea_unique_scope")
-  @@index([city])
-  @@index([districtId])
-  @@index([district])
-  @@index([managerId])
-  @@index([provinceCode])
-  @@index([region])
-  @@index([wardCode])
-  @@index([ward])
-}
-
-model PhoneOtp {
-  id           String    @id
-  userId       String
-  phone        String
-  codeHash     String
-  expiresAt    DateTime
-  verifiedAt   DateTime?
-  attemptCount Int       @default(0)
-  createdAt    DateTime  @default(now())
-  User         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([expiresAt])
-  @@index([phone])
-  @@index([userId])
-}
-
-model VerificationCheck {
-  id               String                  @id
-  verificationId   String
-  type             VerificationCheckType
-  status           VerificationCheckStatus @default(PENDING)
-  sourceValue      String?
-  targetValue      String?
-  note             String?
-  checkedById      String?
-  checkedAt        DateTime?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime
-  User             User?                   @relation(fields: [checkedById], references: [id])
-  RoomVerification RoomVerification        @relation(fields: [verificationId], references: [id], onDelete: Cascade)
-
-  @@unique([verificationId, type])
-  @@index([checkedById])
-  @@index([status])
-  @@index([type])
-  @@index([verificationId])
-}
-
 enum SmokingType {
   NO
   OCCASIONALLY
@@ -797,28 +730,4 @@ enum InteractionType {
   FAVORITE
   BOOKING_REQ
   CONTRACT
-}
-
-enum CommunityManagerRecommendation {
-  PENDING
-  NEEDS_REVISION
-  RECOMMEND_APPROVAL
-  RECOMMEND_REJECTION
-}
-
-enum ServiceRegion {
-  NORTH
-  CENTRAL
-  SOUTH
-}
-
-enum VerificationCheckType {
-  OWNER_PHONE
-  OWNER_IDENTITY_DOCUMENT
-  OWNERSHIP_DOCUMENT
-  ROOM_ADDRESS
-  MAP_LOCATION
-  ROOM_IMAGES
-  LEGAL_DECLARATION
-  ROOM_DETAILS
 }
