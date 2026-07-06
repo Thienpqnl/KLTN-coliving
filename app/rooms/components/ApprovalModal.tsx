@@ -31,7 +31,8 @@ export default function ApprovalModal({ isOpen, onClose, booking, resource, onSu
       await sharedSpaceClientService.updateBookingStatus(booking.id, status)
       onSuccess()
       onClose()
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (!(err instanceof Error)) throw err;
       setFeedback({ type: "error", message: err.message || "Có lỗi xảy ra" })
     } finally {
       setLoading(false)
@@ -97,7 +98,7 @@ export default function ApprovalModal({ isOpen, onClose, booking, resource, onSu
                 <FileText className="w-4 h-4 text-amber-600" />
                 <p className="text-xs text-amber-700 font-bold uppercase">Mục đích sử dụng</p>
               </div>
-              <p className="text-sm text-slate-700 italic">"{booking.title}"</p>
+              <p className="text-sm text-slate-700 italic">&ldquo;{booking.title}&rdquo;</p>
             </div>
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">

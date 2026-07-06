@@ -132,10 +132,11 @@ export default function PreferenceQuestionnaire() {
         throw new Error(errorMsg);
       }
 
-      const result = await response.json();
+      await response.json();
       alert("Lưu thành công! Đang tìm phòng phù hợp cho bạn...");
       router.push("/rooms/recommendations");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (!(error instanceof Error)) throw error;
       alert(`❌ Lỗi: ${error.message}`);
       console.error(error);
     } finally {
