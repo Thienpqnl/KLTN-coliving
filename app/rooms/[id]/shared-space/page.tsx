@@ -12,6 +12,23 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+interface ContractSummary {
+  id: string;
+  electricityRate?: number | null;
+  waterRate?: number | null;
+}
+
+interface UtilityBill {
+  id: string;
+  month: number;
+  year: number;
+  electricityUsage?: number;
+  waterUsage?: number;
+  totalCost?: number;
+  status: string;
+  paymentProofUrl?: string | null;
+}
+
 export default function SharedSpacePage({ params }: PageProps) {
   const resolvedParams = use(params);
   const roomId = resolvedParams.id;
@@ -26,13 +43,13 @@ export default function SharedSpacePage({ params }: PageProps) {
   const [showBookingModal, setShowBookingModal] = useState(false);
   
   // Utility bill state
-  const [contract, setContract] = useState<any>(null);
+  const [contract, setContract] = useState<ContractSummary | null>(null);
   const [showUtilityCalculator, setShowUtilityCalculator] = useState(false);
   const [electricityUsage, setElectricityUsage] = useState('');
   const [waterUsage, setWaterUsage] = useState('');
-  const [utilityBills, setUtilityBills] = useState<any[]>([]);
+  const [utilityBills, setUtilityBills] = useState<UtilityBill[]>([]);
   const [showPaymentProofModal, setShowPaymentProofModal] = useState(false);
-  const [selectedBillForPayment, setSelectedBillForPayment] = useState<any>(null);
+  const [selectedBillForPayment, setSelectedBillForPayment] = useState<UtilityBill | null>(null);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

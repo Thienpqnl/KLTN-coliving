@@ -92,10 +92,6 @@ export async function GET(
     if (payload.role !== "ADMIN")
       throw new ApiError(403, "Forbidden: Admin only");
 
-<<<<<<< HEAD
-    const { prisma } = await import("@/lib/prisma");
-=======
->>>>>>> 1620de41d81319d2e254ce8229cdcd397cc3d5c5
     const { id } = await params;
 
     const user = await prisma.user.findUnique({

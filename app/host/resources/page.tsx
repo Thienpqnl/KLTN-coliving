@@ -17,6 +17,19 @@ interface Room {
   title: string;
 }
 
+interface UtilityBill {
+  id: string;
+  month: number;
+  year: number;
+  electricityUsage?: number;
+  waterUsage?: number;
+  totalCost?: number;
+  notes?: string | null;
+  status: string;
+  paymentProofUrl?: string | null;
+  approvedAt?: string | null;
+}
+
 function ResourceManagementContent() {
   const { user } = useAuth()
   const [resources, setResources] = useState<SharedResource[]>([])
@@ -30,7 +43,7 @@ function ResourceManagementContent() {
   const [pageFeedback, setPageFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
   
   const [showUtilityBills, setShowUtilityBills] = useState(false)
-  const [utilityBills, setUtilityBills] = useState<any[]>([])
+  const [utilityBills, setUtilityBills] = useState<UtilityBill[]>([])
   const [showUtilityForm, setShowUtilityForm] = useState(false)
   const [utilityForm, setUtilityForm] = useState({
     month: new Date().getMonth() + 1,
@@ -39,7 +52,6 @@ function ResourceManagementContent() {
     waterUsage: '',
     notes: ''
   })
-  const [selectedBillForProof, setSelectedBillForProof] = useState<any>(null)
   const [activeLightBoxImg, setActiveLightBoxImg] = useState<string | null>(null);
   // State mới cho danh sách phòng lấy từ API
   const [rooms, setRooms] = useState<Room[]>([])
@@ -77,7 +89,7 @@ function ResourceManagementContent() {
         return
       }
 
-      const billsData = await apiClient.get<any[]>(`/contracts/${contractId}/utility-bills`)
+      const billsData = await apiClient.get<UtilityBill[]>(`/contracts/${contractId}/utility-bills`)
       setUtilityBills(Array.isArray(billsData) ? billsData : [])
     } catch (error) {
       console.error("Error fetching utility bills:", error)
@@ -122,7 +134,8 @@ function ResourceManagementContent() {
         notes: ''
       })
       fetchUtilityBills()
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (!(error instanceof Error)) throw error;
       setPageFeedback({ type: "error", message: error?.message || "Lỗi khi tạo hóa đơn" })
     }
   }
@@ -134,7 +147,8 @@ function ResourceManagementContent() {
       await apiClient.put(`/utility-bills/${billId}/approve`, {})
       setPageFeedback({ type: "success", message: "Đã xác nhận thanh toán!" })
       fetchUtilityBills()
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (!(error instanceof Error)) throw error;
       setPageFeedback({ type: "error", message: error?.message || "Lỗi khi xác nhận thanh toán" })
     }
   }
@@ -206,7 +220,8 @@ function ResourceManagementContent() {
       setTimeout(() => {
         loadResources()
       }, 100)
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (!(error instanceof Error)) throw error;
       setPageFeedback({ type: "error", message: error.message || "Gặp lỗi trong quá trình tạo tài nguyên." })
     } finally {
       setSubmitting(false)
@@ -222,7 +237,8 @@ function ResourceManagementContent() {
         setPageFeedback({ type: "success", message: "Đã xóa tài nguyên thành công." })
         // Cập nhật nhanh danh sách hiển thị cục bộ không cần reload trang
         setResources(prev => prev.filter(res => res.id !== resourceId))
-      } catch (error: any) {
+      } catch (error: unknown) {
+        if (!(error instanceof Error)) throw error;
         setPageFeedback({ type: "error", message: error.message || "Không thể xóa tài nguyên vào lúc này." })
       }
     }
@@ -445,7 +461,7 @@ function ResourceManagementContent() {
                                   src={bill.paymentProofUrl} 
                                   alt="Payment proof" 
                                   className="w-full h-full object-cover transition duration-300 group-hover:scale-110 group-hover:brightness-90"
-                                  onClick={() => setActiveLightBoxImg(bill.paymentProofUrl)}
+                                  onClick={() => setActiveLightBoxImg(bill.paymentProofUrl ?? null)}
                                 />
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition duration-200 pointer-events-none">
                                   <span className="text-white text-xs font-bold"> Xem</span>
@@ -478,7 +494,7 @@ function ResourceManagementContent() {
                                 src={bill.paymentProofUrl} 
                                 alt="Past Payment proof" 
                                 className="w-14 h-14 object-cover rounded-md border border-slate-200 opacity-70 hover:opacity-100 transition cursor-zoom-in"
-                                onClick={() => setActiveLightBoxImg(bill.paymentProofUrl)}
+                                onClick={() => setActiveLightBoxImg(bill.paymentProofUrl ?? null)}
                               />
                             </div>
                           )}

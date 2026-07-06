@@ -5,10 +5,17 @@ import { handleApiError } from "@/lib/api-error";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
 if (typeof BigInt !== 'undefined') {
-  // @ts-ignore
-  BigInt.prototype.toJSON = function () {
-    return this.toString();
-  };
+  Object.defineProperty(BigInt.prototype, "toJSON", {
+    value() {
+      return this.toString();
+    },
+    configurable: true,
+  });
+}
+
+interface RoomRecommendation {
+  roomId: string;
+  [key: string]: unknown;
 }
 export async function GET(req: NextRequest) {
   try {
@@ -22,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      include: { userPreferences: true },
+      include: { preference: true },
     });
 
     if (!user) {
@@ -32,7 +39,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (!user.userPreferences) {
+    if (!user.preference) {
       return NextResponse.json(
         { error: "Vui lòng điền thông tin sở thích trước", recommendations: [] },
         { status: 400 }
@@ -60,10 +67,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const recommendations = await response.json();
+    const recommendations = (await response.json()) as RoomRecommendation[];
 
     // Lấy chi tiết các phòng từ database
-    const roomIds = recommendations.map((r: any) => r.roomId);
+    const roomIds = recommendations.map((recommendation) => recommendation.roomId);
     const rooms = await prisma.room.findMany({
       where: { id: { in: roomIds }, status: "AVAILABLE" },
       include: {
@@ -74,7 +81,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Merge recommendation scores với room details
-    const result = recommendations.map((rec: any) => {
+    const result = recommendations.map((rec) => {
       const room = rooms.find((r) => r.id === rec.roomId);
       return {
         ...rec,

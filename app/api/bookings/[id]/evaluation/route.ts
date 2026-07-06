@@ -42,7 +42,7 @@ export async function GET(
     }
 
     // Call AI API to get landlord evaluation
-    let evaluation: any = null;
+    let evaluation: unknown = null;
     try {
       const response = await fetch(
         `${AI_API_BASE_URL}/landlord/evaluate-applicant/${booking.userId}/${booking.roomId}`,

@@ -86,7 +86,8 @@ export default function BookingModal({ isOpen, onClose, resources, roomId, onSuc
       setTitle("");
       setStartTime("");
       setDuration("60");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (!(err instanceof Error)) throw err;
       setError(err.message || "Có lỗi xảy ra khi đặt lịch");
     } finally {
       setLoading(false);

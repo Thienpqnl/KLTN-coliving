@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
           ? "✅ Token is valid and has ADMIN role" 
           : `❌ Token has role: ${payload.role}`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       return NextResponse.json({
         status: "error",
         message: "Invalid token",
-        error: err.message,
+        error: err instanceof Error ? err.message : String(err),
       }, { status: 401 });
     }
   } catch (error) {
