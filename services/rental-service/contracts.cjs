@@ -283,6 +283,24 @@ async function getContract(prisma, identity, contractId) {
   return { status: 200, payload: sanitizeForJson(contract) };
 }
 
+async function getActiveContractByRoom(prisma, identity, roomId) {
+  const denied = requireAuthenticated(identity);
+  if (denied) return denied;
+  const contract = await prisma.contract.findFirst({
+    where: {
+      roomId,
+      status: "ACTIVE",
+      OR: [{ hostId: identity.userId }, { renterId: identity.userId }],
+    },
+    include: {
+      host: { select: { id: true, fullName: true, email: true } },
+      renter: { select: { id: true, fullName: true, email: true } },
+      room: { select: { id: true, title: true, address: true } },
+    },
+  });
+  return { status: 200, payload: sanitizeForJson(contract ?? null) };
+}
+
 async function createContract(prisma, identity, input) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
@@ -755,6 +773,7 @@ module.exports = {
   contractStats,
   createContract,
   deleteContract,
+  getActiveContractByRoom,
   getContract,
   listContracts,
   renewContract,

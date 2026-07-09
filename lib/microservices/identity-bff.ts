@@ -6,8 +6,10 @@ import {
 } from "@/lib/microservices/service-client";
 import {
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
   serviceIdentityHeaders,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 type IdentityProxyOptions = {
@@ -32,7 +34,11 @@ export async function tryProxyIdentityServiceRaw({
   fallbackMessage,
 }: IdentityProxyOptions): Promise<NextResponse | null> {
   const identityServiceUrl = getServiceUrl("IDENTITY");
-  if (!identityServiceUrl) return null;
+  if (!identityServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Identity Service", "IDENTITY_SERVICE_URL is not configured")
+      : null;
+  }
 
   const headers = new Headers();
   if (identity) {
@@ -68,6 +74,9 @@ export async function tryProxyIdentityServiceRaw({
     }
 
     const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Identity Service", reason);
+    }
     console.warn(`[BFF] Identity Service unavailable (${reason}); using local identity implementation.`);
     return null;
   }

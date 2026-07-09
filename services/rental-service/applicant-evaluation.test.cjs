@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { evaluateApplicant } = require("./applicant-evaluation.cjs");
+const { getActiveContractByRoom } = require("./contracts.cjs");
 
 test("evaluateApplicant validates host ownership", async () => {
   const prisma = {
@@ -26,6 +27,28 @@ test("evaluateApplicant validates host ownership", async () => {
   );
 
   assert.equal(result.status, 403);
+});
+
+test("getActiveContractByRoom returns active contract for host or renter", async () => {
+  let where;
+  const prisma = {
+    contract: {
+      findFirst: async (args) => {
+        where = args.where;
+        return { id: "contract-1", roomId: "room-1", status: "ACTIVE" };
+      },
+    },
+  };
+
+  const result = await getActiveContractByRoom(
+    prisma,
+    { userId: "host-1" },
+    "room-1",
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(result.payload.id, "contract-1");
+  assert.deepEqual(where.OR, [{ hostId: "host-1" }, { renterId: "host-1" }]);
 });
 
 test("evaluateApplicant returns fallback evaluation when AI is unavailable", async () => {

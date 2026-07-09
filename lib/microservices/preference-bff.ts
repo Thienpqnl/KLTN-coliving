@@ -6,8 +6,10 @@ import {
 } from "@/lib/microservices/service-client";
 import {
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
   serviceIdentityHeaders,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 type PreferenceProxyOptions = {
@@ -31,7 +33,11 @@ export async function tryProxyPreferenceServiceRaw({
   fallbackMessage,
 }: PreferenceProxyOptions): Promise<NextResponse | null> {
   const preferenceServiceUrl = getServiceUrl("PREFERENCE");
-  if (!preferenceServiceUrl) return null;
+  if (!preferenceServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Preference Service", "PREFERENCE_SERVICE_URL is not configured")
+      : null;
+  }
 
   try {
     const data = await requestServiceJson<unknown>(
@@ -59,6 +65,9 @@ export async function tryProxyPreferenceServiceRaw({
     }
 
     const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Preference Service", reason);
+    }
     console.warn(`[BFF] Preference Service unavailable (${reason}); using local preference implementation.`);
     return null;
   }

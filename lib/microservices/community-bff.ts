@@ -7,8 +7,10 @@ import {
 } from "@/lib/microservices/service-client";
 import {
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
   serviceIdentityHeaders,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 type CommunityProxyOptions = {
@@ -35,7 +37,11 @@ export async function tryProxyCommunityService({
   fallbackMessage,
 }: CommunityProxyOptions): Promise<NextResponse | null> {
   const communityServiceUrl = getServiceUrl("COMMUNITY");
-  if (!communityServiceUrl) return null;
+  if (!communityServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Community Service", "COMMUNITY_SERVICE_URL is not configured")
+      : null;
+  }
 
   try {
     const data = await requestServiceJson<unknown>(
@@ -63,6 +69,9 @@ export async function tryProxyCommunityService({
       );
     }
     const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Community Service", reason);
+    }
     console.warn(`[BFF] Community Service unavailable (${reason}); using local community implementation.`);
     return null;
   }

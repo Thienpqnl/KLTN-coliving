@@ -7,8 +7,10 @@ import {
 } from "@/lib/microservices/service-client";
 import {
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
   serviceIdentityHeaders,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 type RentalProxyOptions = {
@@ -35,7 +37,11 @@ export async function tryProxyRentalService({
   fallbackMessage,
 }: RentalProxyOptions): Promise<NextResponse | null> {
   const rentalServiceUrl = getServiceUrl("RENTAL");
-  if (!rentalServiceUrl) return null;
+  if (!rentalServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Rental Service", "RENTAL_SERVICE_URL is not configured")
+      : null;
+  }
 
   try {
     const data = await requestServiceJson<unknown>(
@@ -64,6 +70,9 @@ export async function tryProxyRentalService({
     }
 
     const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Rental Service", reason);
+    }
     console.warn(
       `[BFF] Rental Service unavailable (${reason}); using local rental implementation.`,
     );
@@ -79,7 +88,11 @@ export async function tryProxyRentalServiceRaw({
   fallbackMessage,
 }: RentalProxyOptions): Promise<NextResponse | null> {
   const rentalServiceUrl = getServiceUrl("RENTAL");
-  if (!rentalServiceUrl) return null;
+  if (!rentalServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Rental Service", "RENTAL_SERVICE_URL is not configured")
+      : null;
+  }
 
   try {
     const data = await requestServiceJson<unknown>(
@@ -110,6 +123,9 @@ export async function tryProxyRentalServiceRaw({
     }
 
     const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Rental Service", reason);
+    }
     console.warn(
       `[BFF] Rental Service unavailable (${reason}); using local rental implementation.`,
     );

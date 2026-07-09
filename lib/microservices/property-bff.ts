@@ -7,8 +7,10 @@ import {
 } from "@/lib/microservices/service-client";
 import {
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
   serviceIdentityHeaders,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 type PropertyProxyOptions = {
@@ -35,7 +37,11 @@ export async function tryProxyPropertyService({
   fallbackMessage,
 }: PropertyProxyOptions): Promise<NextResponse | null> {
   const propertyServiceUrl = getServiceUrl("PROPERTY");
-  if (!propertyServiceUrl) return null;
+  if (!propertyServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Property Service", "PROPERTY_SERVICE_URL is not configured")
+      : null;
+  }
 
   try {
     const data = await requestServiceJson<unknown>(
@@ -64,6 +70,9 @@ export async function tryProxyPropertyService({
     }
 
     const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Property Service", reason);
+    }
     console.warn(
       `[BFF] Property Service unavailable (${reason}); using local verification implementation.`,
     );
@@ -79,7 +88,11 @@ export async function tryProxyPropertyServiceRaw({
   fallbackMessage,
 }: PropertyProxyOptions): Promise<NextResponse | null> {
   const propertyServiceUrl = getServiceUrl("PROPERTY");
-  if (!propertyServiceUrl) return null;
+  if (!propertyServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Property Service", "PROPERTY_SERVICE_URL is not configured")
+      : null;
+  }
 
   try {
     const data = await requestServiceJson<unknown>(
@@ -110,6 +123,9 @@ export async function tryProxyPropertyServiceRaw({
     }
 
     const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Property Service", reason);
+    }
     console.warn(
       `[BFF] Property Service unavailable (${reason}); using local implementation.`,
     );

@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { ServiceHttpError } from "./service-client";
 
 export function getBearerAuthorization(request: NextRequest) {
@@ -43,4 +44,19 @@ export function serviceErrorPayload(
   return error.payload !== null && typeof error.payload === "object"
     ? error.payload
     : { message: fallbackMessage };
+}
+
+export function isMicroserviceStrictMode() {
+  return process.env.MICROSERVICE_STRICT === "true";
+}
+
+export function serviceUnavailableResponse(serviceName: string, reason: string) {
+  return NextResponse.json(
+    {
+      error: "SERVICE_UNAVAILABLE",
+      message: `${serviceName} chưa sẵn sàng. Vui lòng khởi động service này để chạy đúng kiến trúc microservice.`,
+      reason,
+    },
+    { status: 503 },
+  );
 }

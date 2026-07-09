@@ -8,6 +8,11 @@ extracted service when its URL is configured and otherwise execute the existing
 local implementation. A service timeout or connection failure also falls back
 to local code until the corresponding migration phase is signed off.
 
+For thesis/demo runs, set `MICROSERVICE_STRICT=true`. In strict mode the BFF
+returns `503 SERVICE_UNAVAILABLE` when a required service URL is missing or a
+service cannot be reached, making the microservice dependency explicit instead
+of silently using local fallback code.
+
 ## Target bounded contexts
 
 | Service | Port | Responsibility |
@@ -16,6 +21,7 @@ to local code until the corresponding migration phase is signed off.
 | Property | 4002 | Rooms, amenities, capacity rules, room verification |
 | Rental | 4003 | Bookings, occupancy, contracts, deposits, utility bills |
 | Community | 4004 | Reviews, favorites, shared resources, notifications |
+| Preference | 4005 | User room preferences and recommendation input profile |
 | AI Matching | 8000 | Room and roommate recommendations, compatibility |
 
 Booking, occupancy and contracts stay in the same Rental bounded context so a
@@ -69,13 +75,21 @@ and device-token registration. The existing `/api/favorites/*`,
 browser-facing contract. Firebase push delivery still happens in the BFF; the
 Community Service returns notification intents for actions that need FCM.
 
+Preference Service currently owns user room-preference storage and update flows.
+The existing `/api/preferences` route remains the browser-facing contract while
+the BFF forwards reads and writes to `PREFERENCE_SERVICE_URL` when configured.
+
 ## Local operation
 
 1. Keep `.env` as the source for database and Supabase secrets.
 2. Run `docker compose -f docker-compose.microservices.yml up --build`.
-3. Set `PROPERTY_SERVICE_URL=http://localhost:4002` and
-   `RENTAL_SERVICE_URL=http://localhost:4003` and
+3. Set `IDENTITY_SERVICE_URL=http://localhost:4001`,
+   `PROPERTY_SERVICE_URL=http://localhost:4002`,
+   `RENTAL_SERVICE_URL=http://localhost:4003`,
+   `COMMUNITY_SERVICE_URL=http://localhost:4004`,
+   `PREFERENCE_SERVICE_URL=http://localhost:4005` and
    `AI_SERVICE_URL=http://localhost:8000` for Next.js.
 4. Run `npm run dev` as usual.
 
-Without `PROPERTY_SERVICE_URL`, Next.js queries Prisma exactly as before.
+Without a service URL, Next.js queries Prisma exactly as before unless
+`MICROSERVICE_STRICT=true` is enabled.

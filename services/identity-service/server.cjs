@@ -18,6 +18,11 @@ const {
   updateProfile,
 } = require("./auth.cjs");
 const { requestPhoneOtp, verifyPhoneOtp } = require("./phone-otp.cjs");
+const {
+  deleteLegacyAccount,
+  getLegacyProfile,
+  updateLegacyProfile,
+} = require("./user-profile.cjs");
 
 const app = express();
 const prisma = new PrismaClient();
@@ -155,6 +160,40 @@ app.get("/v1/profile", async (request, response) => {
   } catch (error) {
     console.error("[identity-service] GET /v1/profile failed", error);
     return response.status(500).json({ message: "Cannot load profile" });
+  }
+});
+
+app.get("/v1/users/profile", async (request, response) => {
+  try {
+    const result = await getLegacyProfile(prisma, requestIdentity(request));
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] GET /v1/users/profile failed", error);
+    return response.status(500).json({ message: "Cannot load user profile" });
+  }
+});
+
+app.put("/v1/users/profile", async (request, response) => {
+  try {
+    const result = await updateLegacyProfile(
+      prisma,
+      requestIdentity(request),
+      request.body || {},
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] PUT /v1/users/profile failed", error);
+    return response.status(500).json({ message: "Cannot update user profile" });
+  }
+});
+
+app.delete("/v1/users/profile", async (request, response) => {
+  try {
+    const result = await deleteLegacyAccount(prisma, requestIdentity(request));
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] DELETE /v1/users/profile failed", error);
+    return response.status(500).json({ message: "Cannot delete account" });
   }
 });
 

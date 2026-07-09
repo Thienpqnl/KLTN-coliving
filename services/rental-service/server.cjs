@@ -30,6 +30,7 @@ const {
   contractStats,
   createContract,
   deleteContract,
+  getActiveContractByRoom,
   getContract,
   listContracts,
   renewContract,
@@ -255,6 +256,15 @@ app.get("/v1/contracts/:id", async (request, response) => {
   } catch (error) {
     console.error("[rental-service] GET /v1/contracts/:id failed", error);
     return response.status(500).json({ message: "Cannot load contract" });
+  }
+});
+
+app.get("/v1/rooms/:id/contract", async (request, response) => {
+  try {
+    return sendResult(response, await getActiveContractByRoom(prisma, requestIdentity(request), request.params.id));
+  } catch (error) {
+    console.error("[rental-service] GET /v1/rooms/:id/contract failed", error);
+    return response.status(500).json({ message: "Cannot load active room contract" });
   }
 });
 
