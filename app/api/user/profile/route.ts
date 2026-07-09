@@ -9,7 +9,9 @@ import {
 import {
   getBearerAuthorization,
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 const profileSelect = {
@@ -58,6 +60,13 @@ function forwardedError(error: unknown) {
   );
 }
 
+function missingIdentityServiceResponse() {
+  return serviceUnavailableResponse(
+    "Identity Service",
+    "IDENTITY_SERVICE_URL is not configured",
+  );
+}
+
 export async function GET(request: NextRequest) {
   if (!getBearerAuthorization(request)) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -65,11 +74,18 @@ export async function GET(request: NextRequest) {
 
   try {
     try {
+      if (!getServiceUrl("IDENTITY") && isMicroserviceStrictMode()) {
+        return missingIdentityServiceResponse();
+      }
       const remote = await callIdentity<unknown>(request, "GET");
       if (remote) return NextResponse.json(remote);
     } catch (error) {
       const response = forwardedError(error);
       if (response) return response;
+      const reason = error instanceof Error ? error.message : "Unknown error";
+      if (isMicroserviceStrictMode()) {
+        return serviceUnavailableResponse("Identity Service", reason);
+      }
       console.warn("[BFF] Identity Service unavailable; using local profile GET.");
     }
 
@@ -95,11 +111,18 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     try {
+      if (!getServiceUrl("IDENTITY") && isMicroserviceStrictMode()) {
+        return missingIdentityServiceResponse();
+      }
       const remote = await callIdentity<unknown>(request, "PUT", body);
       if (remote) return NextResponse.json(remote);
     } catch (error) {
       const response = forwardedError(error);
       if (response) return response;
+      const reason = error instanceof Error ? error.message : "Unknown error";
+      if (isMicroserviceStrictMode()) {
+        return serviceUnavailableResponse("Identity Service", reason);
+      }
       console.warn("[BFF] Identity Service unavailable; using local profile PUT.");
     }
 

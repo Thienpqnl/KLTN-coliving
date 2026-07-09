@@ -4,6 +4,10 @@ import {
   getServiceUrl,
   requestServiceJson,
 } from '@/lib/microservices/service-client';
+import {
+  isMicroserviceStrictMode,
+  serviceUnavailableResponse,
+} from '@/lib/microservices/bff-service';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -54,6 +58,12 @@ async function getRoomsFromLocalDatabase(): Promise<MapRoom[]> {
 
 export async function GET() {
   const propertyServiceUrl = getServiceUrl('PROPERTY');
+  if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+    return serviceUnavailableResponse(
+      'Property Service',
+      'PROPERTY_SERVICE_URL is not configured',
+    );
+  }
 
   if (propertyServiceUrl) {
     try {
@@ -66,6 +76,9 @@ export async function GET() {
       return NextResponse.json(rooms);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Unknown error';
+      if (isMicroserviceStrictMode()) {
+        return serviceUnavailableResponse('Property Service', reason);
+      }
       console.warn(
         `[BFF] Property Service unavailable (${reason}); using local rooms/map implementation.`,
       );

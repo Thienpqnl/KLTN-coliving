@@ -2,7 +2,11 @@ import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
 import { getServiceUrl, requestServiceJson } from "@/lib/microservices/service-client";
-import { serviceIdentityHeaders } from "@/lib/microservices/bff-service";
+import {
+  isMicroserviceStrictMode,
+  serviceIdentityHeaders,
+  serviceUnavailableResponse,
+} from "@/lib/microservices/bff-service";
 import { roomService } from "@/lib/services/room.service";
 
 export async function GET(request: NextRequest) {
@@ -13,6 +17,13 @@ export async function GET(request: NextRequest) {
     }
 
     const propertyServiceUrl = getServiceUrl("PROPERTY");
+    if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Property Service",
+        "PROPERTY_SERVICE_URL is not configured",
+      );
+    }
+
     if (propertyServiceUrl) {
       try {
         const rooms = await requestServiceJson<unknown[]>(
@@ -27,6 +38,9 @@ export async function GET(request: NextRequest) {
         return successResponse({ rooms });
       } catch (error) {
         const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Property Service", reason);
+        }
         console.warn(`[BFF] Property Service unavailable (${reason}); using local rooms-upload implementation.`);
       }
     }

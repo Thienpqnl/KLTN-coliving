@@ -2,7 +2,11 @@ import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse } from "@/lib/api-error";
 import { getServiceUrl, requestServiceJson } from "@/lib/microservices/service-client";
-import { serviceIdentityHeaders } from "@/lib/microservices/bff-service";
+import {
+  isMicroserviceStrictMode,
+  serviceIdentityHeaders,
+  serviceUnavailableResponse,
+} from "@/lib/microservices/bff-service";
 import { amenityService } from "@/lib/services/amenity.service";
 import { amenityCreateSchema } from "@/lib/validation";
 
@@ -11,7 +15,11 @@ async function proxyAmenities(
   options: { identity?: { userId: string; role?: string }; method?: string; body?: unknown } = {},
 ) {
   const propertyServiceUrl = getServiceUrl("PROPERTY");
-  if (!propertyServiceUrl) return null;
+  if (!propertyServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Property Service", "PROPERTY_SERVICE_URL is not configured")
+      : null;
+  }
 
   const headers = new Headers();
   if (options.identity) {
@@ -30,6 +38,9 @@ async function proxyAmenities(
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Property Service", reason);
+    }
     console.warn(`[BFF] Property Service amenities unavailable (${reason}); using local implementation.`);
     return null;
   }
@@ -38,6 +49,7 @@ async function proxyAmenities(
 export async function GET() {
   try {
     const proxied = await proxyAmenities("/v1/amenities");
+    if (proxied instanceof Response) return proxied;
     if (proxied) return successResponse(proxied);
 
     return successResponse(await amenityService.getAll());
@@ -56,6 +68,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       body: data,
     });
+    if (proxied instanceof Response) return proxied;
     if (proxied) return successResponse(proxied, 201);
 
     return successResponse(await amenityService.create(data), 201);

@@ -10,7 +10,9 @@ import {
 import {
   getBearerAuthorization,
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 type CurrentUser = {
@@ -40,6 +42,13 @@ export async function GET(request: NextRequest) {
   if (!authorization) return noStoreJson({ message: "Unauthorized" }, 401);
 
   const identityServiceUrl = getServiceUrl("IDENTITY");
+  if (!identityServiceUrl && isMicroserviceStrictMode()) {
+    return serviceUnavailableResponse(
+      "Identity Service",
+      "IDENTITY_SERVICE_URL is not configured",
+    );
+  }
+
   if (identityServiceUrl) {
     try {
       const user = await requestServiceJson<CurrentUser>(
@@ -64,6 +73,9 @@ export async function GET(request: NextRequest) {
       }
 
       const reason = error instanceof Error ? error.message : "Unknown error";
+      if (isMicroserviceStrictMode()) {
+        return serviceUnavailableResponse("Identity Service", reason);
+      }
       console.warn(
         `[BFF] Identity Service unavailable (${reason}); using local auth/me implementation.`,
       );

@@ -8,7 +8,9 @@ import {
 } from "@/lib/microservices/service-client";
 import {
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 type ServicePayload = {
@@ -18,7 +20,11 @@ type ServicePayload = {
 
 async function tryRentalAdmin(path: string, options: RequestInit = {}) {
   const rentalServiceUrl = getServiceUrl("RENTAL");
-  if (!rentalServiceUrl) return null;
+  if (!rentalServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Rental Service", "RENTAL_SERVICE_URL is not configured")
+      : null;
+  }
   try {
     const data = await requestServiceJson<unknown>(
       "rental-service",
@@ -36,6 +42,9 @@ async function tryRentalAdmin(path: string, options: RequestInit = {}) {
       return successResponse({ error: payload.error || payload.message || "Không thể xử lý hợp đồng" }, error.status);
     }
     const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Rental Service", reason);
+    }
     console.warn(`[BFF] Rental Service unavailable (${reason}); using local admin contract implementation.`);
     return null;
   }

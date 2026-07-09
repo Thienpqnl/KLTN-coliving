@@ -10,8 +10,10 @@ import {
 } from "@/lib/microservices/service-client";
 import {
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
   serviceIdentityHeaders,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 export async function POST(request: NextRequest) {
@@ -26,6 +28,13 @@ export async function POST(request: NextRequest) {
     const data = roomCreateSchema.parse(body);
 
     const propertyServiceUrl = getServiceUrl("PROPERTY");
+    if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Property Service",
+        "PROPERTY_SERVICE_URL is not configured",
+      );
+    }
+
     if (propertyServiceUrl) {
       try {
         const room = await requestServiceJson<unknown>(
@@ -57,6 +66,10 @@ export async function POST(request: NextRequest) {
             error.status,
             payload.errors,
           );
+        }
+        const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Property Service", reason);
         }
         console.warn("[BFF] Property Service unavailable; using local room creation.");
       }

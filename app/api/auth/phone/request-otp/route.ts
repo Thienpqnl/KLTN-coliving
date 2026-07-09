@@ -12,7 +12,9 @@ import {
 import {
   getBearerAuthorization,
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 const schema = z.object({ phone: z.string().min(9).max(20) });
@@ -29,6 +31,13 @@ export async function POST(request: NextRequest) {
     const { phone } = schema.parse(await request.json());
 
     const identityServiceUrl = getServiceUrl("IDENTITY");
+    if (!identityServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Identity Service",
+        "IDENTITY_SERVICE_URL is not configured",
+      );
+    }
+
     if (identityServiceUrl) {
       try {
         const result = await requestServiceJson<{
@@ -50,6 +59,10 @@ export async function POST(request: NextRequest) {
             message?: string;
           };
           return errorResponse(payload.message || "Không thể gửi OTP", error.status);
+        }
+        const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Identity Service", reason);
         }
         console.warn("[BFF] Identity Service unavailable; using local OTP request.");
       }

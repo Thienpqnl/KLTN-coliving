@@ -8,10 +8,12 @@ extracted service when its URL is configured and otherwise execute the existing
 local implementation. A service timeout or connection failure also falls back
 to local code until the corresponding migration phase is signed off.
 
-For thesis/demo runs, set `MICROSERVICE_STRICT=true`. In strict mode the BFF
-returns `503 SERVICE_UNAVAILABLE` when a required service URL is missing or a
-service cannot be reached, making the microservice dependency explicit instead
-of silently using local fallback code.
+The default runtime mode is strict microservice mode. When
+`MICROSERVICE_STRICT` is unset or set to `true`, the BFF returns
+`503 SERVICE_UNAVAILABLE` when a required service URL is missing or a service
+cannot be reached, making the microservice dependency explicit instead of
+silently using local fallback code. Set `MICROSERVICE_STRICT=false` only for
+local debugging when you intentionally want to use the legacy fallback code.
 
 ## Target bounded contexts
 
@@ -91,5 +93,6 @@ the BFF forwards reads and writes to `PREFERENCE_SERVICE_URL` when configured.
    `AI_SERVICE_URL=http://localhost:8000` for Next.js.
 4. Run `npm run dev` as usual.
 
-Without a service URL, Next.js queries Prisma exactly as before unless
-`MICROSERVICE_STRICT=true` is enabled.
+Without a service URL, Next.js returns `503 SERVICE_UNAVAILABLE` by default.
+Set `MICROSERVICE_STRICT=false` only when you intentionally want Next.js to use
+the legacy Prisma fallback while developing locally.

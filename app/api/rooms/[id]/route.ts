@@ -15,8 +15,10 @@ import {
 } from "@/lib/microservices/service-client";
 import {
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
   serviceIdentityHeaders,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 function propertyError(error: unknown, fallbackMessage: string) {
@@ -42,6 +44,12 @@ export async function GET(
     const { id } = await params;
     const authUser = await optionalAuthUser(request);
     const propertyServiceUrl = getServiceUrl("PROPERTY");
+    if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Property Service",
+        "PROPERTY_SERVICE_URL is not configured",
+      );
+    }
 
     if (propertyServiceUrl) {
       try {
@@ -61,6 +69,10 @@ export async function GET(
       } catch (error) {
         const response = propertyError(error, "Không tìm thấy phòng");
         if (response) return response;
+        const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Property Service", reason);
+        }
         console.warn("[BFF] Property Service unavailable; using local room detail.");
       }
     }
@@ -87,6 +99,12 @@ export async function PUT(
     const { id } = await params;
     const data = roomUpdateSchema.parse(await request.json());
     const propertyServiceUrl = getServiceUrl("PROPERTY");
+    if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Property Service",
+        "PROPERTY_SERVICE_URL is not configured",
+      );
+    }
 
     if (propertyServiceUrl) {
       try {
@@ -107,6 +125,10 @@ export async function PUT(
       } catch (error) {
         const response = propertyError(error, "Không thể cập nhật phòng");
         if (response) return response;
+        const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Property Service", reason);
+        }
         console.warn("[BFF] Property Service unavailable; using local room update.");
       }
     }
@@ -135,6 +157,12 @@ export async function DELETE(
     const authUser = await getAuthUser(request);
     const { id } = await params;
     const propertyServiceUrl = getServiceUrl("PROPERTY");
+    if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Property Service",
+        "PROPERTY_SERVICE_URL is not configured",
+      );
+    }
 
     if (propertyServiceUrl) {
       try {
@@ -152,6 +180,10 @@ export async function DELETE(
       } catch (error) {
         const response = propertyError(error, "Không thể xóa phòng");
         if (response) return response;
+        const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Property Service", reason);
+        }
         console.warn("[BFF] Property Service unavailable; using local room deletion.");
       }
     }

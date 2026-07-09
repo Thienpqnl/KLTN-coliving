@@ -9,7 +9,9 @@ import {
 } from "@/lib/microservices/service-client";
 import {
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 type LoginResult = {
@@ -67,6 +69,13 @@ export async function POST(request: Request) {
     }
 
     const identityServiceUrl = getServiceUrl("IDENTITY");
+    if (!identityServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Identity Service",
+        "IDENTITY_SERVICE_URL is not configured",
+      );
+    }
+
     if (identityServiceUrl) {
       try {
         const result = await requestServiceJson<LoginResult>(
@@ -93,6 +102,9 @@ export async function POST(request: Request) {
         }
 
         const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Identity Service", reason);
+        }
         console.warn(
           `[BFF] Identity Service unavailable (${reason}); using local login implementation.`,
         );

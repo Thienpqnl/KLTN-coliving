@@ -10,7 +10,9 @@ import {
 import {
   getBearerAuthorization,
   isForwardableServiceError,
+  isMicroserviceStrictMode,
   serviceErrorPayload,
+  serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
 export async function PUT(request: NextRequest) {
@@ -26,6 +28,12 @@ export async function PUT(request: NextRequest) {
     const { currentPassword, newPassword } = body;
     const identityServiceUrl = getServiceUrl("IDENTITY");
     const authorization = getBearerAuthorization(request);
+    if (!identityServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Identity Service",
+        "IDENTITY_SERVICE_URL is not configured",
+      );
+    }
 
     if (identityServiceUrl && authorization) {
       try {
@@ -53,6 +61,10 @@ export async function PUT(request: NextRequest) {
             serviceErrorPayload(error, "Không thể đổi mật khẩu"),
             { status: error.status },
           );
+        }
+        const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Identity Service", reason);
         }
         console.warn(
           "[BFF] Identity Service unavailable; using local change-password implementation.",

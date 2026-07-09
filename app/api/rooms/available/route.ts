@@ -5,6 +5,10 @@ import {
   getServiceUrl,
   requestServiceJson,
 } from "@/lib/microservices/service-client";
+import {
+  isMicroserviceStrictMode,
+  serviceUnavailableResponse,
+} from "@/lib/microservices/bff-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,6 +34,13 @@ export async function GET(request: NextRequest) {
     }
 
     const propertyServiceUrl = getServiceUrl("PROPERTY");
+    if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Property Service",
+        "PROPERTY_SERVICE_URL is not configured",
+      );
+    }
+
     if (propertyServiceUrl) {
       try {
         const rooms = await requestServiceJson<unknown[]>(
@@ -41,6 +52,9 @@ export async function GET(request: NextRequest) {
         return successResponse(rooms);
       } catch (error) {
         const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Property Service", reason);
+        }
         console.warn(
           `[BFF] Property Service unavailable (${reason}); using local available-rooms implementation.`,
         );

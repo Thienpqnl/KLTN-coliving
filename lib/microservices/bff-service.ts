@@ -47,7 +47,7 @@ export function serviceErrorPayload(
 }
 
 export function isMicroserviceStrictMode() {
-  return process.env.MICROSERVICE_STRICT === "true";
+  return process.env.MICROSERVICE_STRICT !== "false";
 }
 
 export function serviceUnavailableResponse(serviceName: string, reason: string) {
