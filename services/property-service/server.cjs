@@ -1,6 +1,13 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const { requestIdentity, requireInternalService } = require("./internal-auth.cjs");
+const {
+  createAmenity,
+  deleteAmenity,
+  getAmenityById,
+  listAmenities,
+  updateAmenity,
+} = require("./amenities.cjs");
 const { findAvailableRooms, findRoomById, listRooms } = require("./rooms.cjs");
 const {
   createRoom,
@@ -8,6 +15,10 @@ const {
   listHostRooms,
   updateRoom,
 } = require("./room-commands.cjs");
+const {
+  listManagersWithAreas,
+  replaceManagerAreas,
+} = require("./community-manager-area.cjs");
 const {
   addDocument,
   deleteDocument: deleteVerificationDocument,
@@ -34,6 +45,69 @@ app.get("/health", (_request, response) => {
 });
 
 app.use("/v1", requireInternalService);
+
+app.get("/v1/amenities", async (_request, response) => {
+  try {
+    const result = await listAmenities(prisma);
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[property-service] GET /v1/amenities failed", error);
+    return response.status(500).json({ message: "Cannot load amenities" });
+  }
+});
+
+app.post("/v1/amenities", async (request, response) => {
+  try {
+    const result = await createAmenity(
+      prisma,
+      requestIdentity(request),
+      request.body || {},
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[property-service] POST /v1/amenities failed", error);
+    return response.status(500).json({ message: "Cannot create amenity" });
+  }
+});
+
+app.get("/v1/amenities/:id", async (request, response) => {
+  try {
+    const result = await getAmenityById(prisma, request.params.id);
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[property-service] GET /v1/amenities/:id failed", error);
+    return response.status(500).json({ message: "Cannot load amenity" });
+  }
+});
+
+app.put("/v1/amenities/:id", async (request, response) => {
+  try {
+    const result = await updateAmenity(
+      prisma,
+      requestIdentity(request),
+      request.params.id,
+      request.body || {},
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[property-service] PUT /v1/amenities/:id failed", error);
+    return response.status(500).json({ message: "Cannot update amenity" });
+  }
+});
+
+app.delete("/v1/amenities/:id", async (request, response) => {
+  try {
+    const result = await deleteAmenity(
+      prisma,
+      requestIdentity(request),
+      request.params.id,
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[property-service] DELETE /v1/amenities/:id failed", error);
+    return response.status(500).json({ message: "Cannot delete amenity" });
+  }
+});
 
 app.get("/v1/rooms/map", async (_request, response) => {
   try {
@@ -353,6 +427,34 @@ app.patch("/v1/admin/rooms/:id", async (request, response) => {
   } catch (error) {
     console.error("[property-service] PATCH /v1/admin/rooms/:id failed", error);
     return response.status(500).json({ message: "Cannot review room as admin" });
+  }
+});
+
+app.get("/v1/admin/community-manager-areas", async (request, response) => {
+  try {
+    const result = await listManagersWithAreas(
+      prisma,
+      requestIdentity(request),
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[property-service] GET /v1/admin/community-manager-areas failed", error);
+    return response.status(500).json({ message: "Cannot load community manager areas" });
+  }
+});
+
+app.put("/v1/admin/community-manager-areas/:managerId", async (request, response) => {
+  try {
+    const result = await replaceManagerAreas(
+      prisma,
+      requestIdentity(request),
+      request.params.managerId,
+      request.body?.areas || [],
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[property-service] PUT /v1/admin/community-manager-areas/:managerId failed", error);
+    return response.status(500).json({ message: "Cannot update community manager areas" });
   }
 });
 

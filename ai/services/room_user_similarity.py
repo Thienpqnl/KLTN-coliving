@@ -20,13 +20,19 @@ from utils.loader_supabase import (
     load_occupancy_from_supabase
 )
 
+NP_BOOL_TYPES = tuple(
+    value
+    for value in (getattr(np, "bool_", None), getattr(np, "bool8", None))
+    if value is not None
+)
+
 def convert_to_native_types(obj):
     """Convert numpy types to native Python types for JSON serialization"""
     if isinstance(obj, (np.integer, np.int64, np.int32, np.int16, np.int8)):
         return int(obj)
     elif isinstance(obj, (np.floating, np.float64, np.float32)):
         return float(obj)
-    elif isinstance(obj, (np.bool_, np.bool8)):
+    elif NP_BOOL_TYPES and isinstance(obj, NP_BOOL_TYPES):
         return bool(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
@@ -38,6 +44,18 @@ def convert_to_native_types(obj):
         return convert_to_native_types(obj.to_dict())
     return obj
 
+def ensure_column(df, column_name, aliases=None):
+    aliases = aliases or []
+    if column_name in df.columns:
+        return df
+    for alias in aliases:
+        if alias in df.columns:
+            return df.rename(columns={alias: column_name})
+    return df
+
+def missing_columns(df, required_columns):
+    return [column for column in required_columns if column not in df.columns]
+
 def get_detailed_compatibility(userId: str, roomId: str):
     try:
         # 1. Load Data
@@ -47,6 +65,30 @@ def get_detailed_compatibility(userId: str, roomId: str):
         users_df = users_df.loc[:, ~users_df.columns.duplicated()]
         rooms_df = rooms_df.loc[:, ~rooms_df.columns.duplicated()]
         occupancy_df = load_occupancy_from_supabase()
+
+        users_df = ensure_column(users_df, "userId", ["id", "user_id", "userID"])
+        rooms_df = ensure_column(rooms_df, "roomId", ["id", "room_id", "roomID"])
+        occupancy_df = ensure_column(occupancy_df, "roomId", ["room_id", "roomID"])
+        occupancy_df = ensure_column(occupancy_df, "userId", ["user_id", "userID"])
+
+        user_missing = missing_columns(users_df, ["userId"])
+        room_missing = missing_columns(rooms_df, ["roomId"])
+        occupancy_missing = missing_columns(occupancy_df, ["roomId", "userId"])
+        if user_missing or room_missing:
+            return {
+                "error": "AI data source is missing required identifier columns",
+                "userId": userId,
+                "roomId": roomId,
+                "missing": {
+                    "users": user_missing,
+                    "rooms": room_missing,
+                    "occupancy": occupancy_missing,
+                },
+            }
+
+        if occupancy_missing:
+            occupancy_df = pd.DataFrame(columns=["roomId", "userId"])
+
         user_row = users_df.loc[users_df['userId'] == userId]
         room_row = rooms_df.loc[rooms_df['roomId'] == roomId]
         

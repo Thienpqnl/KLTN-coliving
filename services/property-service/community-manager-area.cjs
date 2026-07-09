@@ -234,9 +234,121 @@ async function findBestManagerForRoom(prisma, room) {
     })[0];
 }
 
+async function listManagersWithAreas(prisma, identity) {
+  if (identity.role !== "ADMIN") {
+    return {
+      status: 403,
+      payload: { message: "Chỉ admin được quản lý khu vực phụ trách" },
+    };
+  }
+
+  const managers = await prisma.user.findMany({
+    where: { role: "COMMUNITY_MANAGER" },
+    select: {
+      id: true,
+      name: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      status: true,
+      communityManagerAreas: {
+        orderBy: [
+          { region: "asc" },
+          { city: "asc" },
+          { ward: "asc" },
+          { district: "asc" },
+        ],
+      },
+      _count: {
+        select: {
+          managedRoomVerifications: {
+            where: { room: { status: "PENDING" } },
+          },
+        },
+      },
+    },
+    orderBy: [{ status: "asc" }, { fullName: "asc" }, { email: "asc" }],
+  });
+
+  return { status: 200, payload: managers };
+}
+
+async function replaceManagerAreas(prisma, identity, managerId, areas) {
+  if (identity.role !== "ADMIN") {
+    return {
+      status: 403,
+      payload: { message: "Chỉ admin được quản lý khu vực phụ trách" },
+    };
+  }
+
+  const manager = await prisma.user.findUnique({
+    where: { id: managerId },
+    select: { id: true, role: true },
+  });
+
+  if (!manager) {
+    return {
+      status: 404,
+      payload: { message: "Không tìm thấy nhân viên quản lý cộng đồng" },
+    };
+  }
+
+  if (manager.role !== "COMMUNITY_MANAGER") {
+    return {
+      status: 400,
+      payload: { message: "Chỉ có thể gán khu vực cho tài khoản Community Manager" },
+    };
+  }
+
+  const managerWithAreas = await prisma.$transaction(async (tx) => {
+    await tx.communityManagerArea.deleteMany({ where: { managerId } });
+
+    if (areas.length > 0) {
+      await tx.communityManagerArea.createMany({
+        data: areas.map((area) => ({
+          managerId,
+          region: area.region || null,
+          city: area.city?.trim() || null,
+          provinceCode: area.provinceCode?.trim() || null,
+          ward: area.ward?.trim() || null,
+          wardCode: area.wardCode?.trim() || null,
+          district: area.district?.trim() || null,
+          districtId: area.districtId?.trim() || null,
+          isActive: area.isActive ?? true,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return tx.user.findUnique({
+      where: { id: managerId },
+      select: {
+        id: true,
+        name: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        status: true,
+        communityManagerAreas: {
+          orderBy: [
+            { region: "asc" },
+            { city: "asc" },
+            { ward: "asc" },
+            { district: "asc" },
+          ],
+        },
+      },
+    });
+  });
+
+  return { status: 200, payload: managerWithAreas };
+}
+
 module.exports = {
   areaMatchesRoom,
   findBestManagerForRoom,
   getManagerActiveAreas,
+  listManagersWithAreas,
   managerCanAccessRoom,
+  replaceManagerAreas,
 };

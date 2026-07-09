@@ -1,6 +1,13 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { requireInternalService } = require("../shared/internal-auth.cjs");
+const { requestIdentity, requireInternalService } = require("../shared/internal-auth.cjs");
+const {
+  createAdmin,
+  getUserById,
+  getUserStats,
+  listUsers,
+  updateUserAction,
+} = require("./admin-users.cjs");
 const {
   changePassword,
   getCurrentUser,
@@ -23,6 +30,69 @@ app.get("/health", (_request, response) => {
 });
 
 app.use("/v1", requireInternalService);
+
+app.get("/v1/admin/users", async (request, response) => {
+  try {
+    const result = await listUsers(prisma, requestIdentity(request), request.query);
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] GET /v1/admin/users failed", error);
+    return response.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/v1/admin/users/:id", async (request, response) => {
+  try {
+    const result = await getUserById(
+      prisma,
+      requestIdentity(request),
+      request.params.id,
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] GET /v1/admin/users/:id failed", error);
+    return response.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.patch("/v1/admin/users/:id", async (request, response) => {
+  try {
+    const result = await updateUserAction(
+      prisma,
+      requestIdentity(request),
+      request.params.id,
+      request.body || {},
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] PATCH /v1/admin/users/:id failed", error);
+    return response.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/v1/admin/stats/users", async (request, response) => {
+  try {
+    const result = await getUserStats(prisma, requestIdentity(request));
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] GET /v1/admin/stats/users failed", error);
+    return response.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/v1/admin/create-admin", async (request, response) => {
+  try {
+    const result = await createAdmin(
+      prisma,
+      request.body || {},
+      process.env.ADMIN_SECRET_KEY || "your-secret-key",
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] POST /v1/admin/create-admin failed", error);
+    return response.status(500).json({ error: "Internal server error" });
+  }
+});
 
 app.post("/v1/auth/login", async (request, response) => {
   try {

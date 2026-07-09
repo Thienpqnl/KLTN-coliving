@@ -1,0 +1,109 @@
+const assert = require("node:assert/strict");
+const test = require("node:test");
+const {
+  createReview,
+  listHostReviews,
+  updateReviewStatus,
+} = require("./reviews.cjs");
+
+const roomId = "11111111-1111-4111-8111-111111111111";
+
+test("createReview rejects room owner and users without booking or contract", async () => {
+  const ownerPrisma = {
+    room: {
+      findUnique: async () => ({ id: roomId, ownerId: "user-1" }),
+    },
+  };
+
+  const ownerResult = await createReview(
+    ownerPrisma,
+    { userId: "user-1" },
+    { roomId, rating: 5 },
+  );
+  assert.equal(ownerResult.status, 400);
+
+  const noEligibilityPrisma = {
+    room: {
+      findUnique: async () => ({ id: roomId, ownerId: "host-1" }),
+    },
+    booking: { findFirst: async () => null },
+    contract: { findFirst: async () => null },
+    review: { findUnique: async () => null },
+  };
+
+  const result = await createReview(
+    noEligibilityPrisma,
+    { userId: "user-1" },
+    { roomId, rating: 5 },
+  );
+  assert.equal(result.status, 400);
+});
+
+test("createReview creates visible review for eligible renter", async () => {
+  let createArgs;
+  const prisma = {
+    room: {
+      findUnique: async () => ({ id: roomId, ownerId: "host-1" }),
+    },
+    booking: { findFirst: async () => ({ id: "booking-1" }) },
+    contract: { findFirst: async () => null },
+    review: {
+      findUnique: async () => null,
+      create: async (args) => {
+        createArgs = args;
+        return { id: "review-1", ...args.data };
+      },
+    },
+  };
+
+  const result = await createReview(
+    prisma,
+    { userId: "user-1" },
+    { roomId, rating: 5, comment: "Tot" },
+  );
+
+  assert.equal(result.status, 201);
+  assert.equal(createArgs.data.userId, "user-1");
+  assert.equal(createArgs.data.roomId, roomId);
+});
+
+test("listHostReviews only allows host or admin", async () => {
+  const denied = await listHostReviews({}, { userId: "user-1", role: "CUSTOMER" });
+  assert.equal(denied.status, 403);
+});
+
+test("updateReviewStatus is admin-only and writes moderation log", async () => {
+  const denied = await updateReviewStatus(
+    {},
+    { userId: "host-1", role: "HOST" },
+    "review-1",
+    { status: "HIDDEN" },
+  );
+  assert.equal(denied.status, 403);
+
+  const calls = [];
+  const prisma = {
+    review: {
+      findUnique: async () => ({
+        id: "review-1",
+        userId: "user-1",
+        status: "VISIBLE",
+        room: { id: roomId, title: "Studio" },
+      }),
+      update: async ({ data }) => ({ id: "review-1", ...data }),
+    },
+    adminLog: {
+      create: async ({ data }) => calls.push(data),
+    },
+  };
+
+  const result = await updateReviewStatus(
+    prisma,
+    { userId: "admin-1", role: "ADMIN" },
+    "review-1",
+    { status: "HIDDEN", reason: "Vi pham" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(calls[0].action, "moderate_review");
+});
