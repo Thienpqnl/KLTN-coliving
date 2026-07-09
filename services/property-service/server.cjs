@@ -9,7 +9,7 @@ const {
   updateAmenity,
 } = require("./amenities.cjs");
 const { getRoomPublicStats, getRoomStats } = require("./admin-stats.cjs");
-const { findAvailableRooms, findRoomById, listRooms } = require("./rooms.cjs");
+const { findAvailableRooms, findRoomById, findRoomsByIds, listRooms } = require("./rooms.cjs");
 const {
   createRoom,
   deleteRoom,
@@ -188,6 +188,18 @@ app.get("/v1/rooms/available", async (request, response) => {
     return response.status(500).json({
       error: "PROPERTY_QUERY_FAILED",
       message: "Cannot load available rooms",
+    });
+  }
+});
+
+app.post("/v1/rooms/batch", async (request, response) => {
+  try {
+    return response.json(await findRoomsByIds(prisma, request.body?.ids || []));
+  } catch (error) {
+    console.error("[property-service] POST /v1/rooms/batch failed", error);
+    return response.status(500).json({
+      error: "PROPERTY_QUERY_FAILED",
+      message: "Cannot load rooms",
     });
   }
 });
