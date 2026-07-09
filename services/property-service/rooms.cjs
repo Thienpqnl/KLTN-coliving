@@ -175,9 +175,26 @@ async function findRoomById(prisma, id, identity = {}) {
   return normalizeRoom(room);
 }
 
+async function findRoomsByIds(prisma, ids = []) {
+  const roomIds = Array.isArray(ids)
+    ? [...new Set(ids.map(String).filter(Boolean))]
+    : [];
+  if (roomIds.length === 0) return [];
+
+  const rooms = await prisma.room.findMany({
+    where: { id: { in: roomIds }, status: "AVAILABLE" },
+    include: roomDetailInclude,
+  });
+  const order = new Map(roomIds.map((id, index) => [id, index]));
+  return rooms
+    .map(normalizeRoom)
+    .sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
+}
+
 module.exports = {
   findAvailableRooms,
   findRoomById,
+  findRoomsByIds,
   listRooms,
   normalizeRoom,
   roomDetailInclude,

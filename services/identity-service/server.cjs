@@ -13,6 +13,7 @@ const {
   changePassword,
   getCurrentUser,
   getProfile,
+  getUserSummaries,
   login,
   register,
   updateProfile,
@@ -170,6 +171,16 @@ app.get("/v1/users/profile", async (request, response) => {
   } catch (error) {
     console.error("[identity-service] GET /v1/users/profile failed", error);
     return response.status(500).json({ message: "Cannot load user profile" });
+  }
+});
+
+app.post("/v1/users/summaries", async (request, response) => {
+  try {
+    const result = await getUserSummaries(prisma, request.body?.ids || []);
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] POST /v1/users/summaries failed", error);
+    return response.status(500).json({ message: "Cannot load user summaries" });
   }
 });
 

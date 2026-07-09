@@ -240,11 +240,38 @@ async function changePassword(prisma, authorization, input) {
   };
 }
 
+async function getUserSummaries(prisma, ids = []) {
+  const userIds = Array.isArray(ids)
+    ? [...new Set(ids.map(String).filter(Boolean))]
+    : [];
+  if (userIds.length === 0) return { status: 200, payload: [] };
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: {
+      id: true,
+      name: true,
+      fullName: true,
+      email: true,
+      avatarUrl: true,
+      preference: true,
+    },
+  });
+  const order = new Map(userIds.map((id, index) => [id, index]));
+  return {
+    status: 200,
+    payload: users.sort(
+      (left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0),
+    ),
+  };
+}
+
 module.exports = {
   changePassword,
   editableProfileSelect,
   getCurrentUser,
   getProfile,
+  getUserSummaries,
   login,
   register,
   updateProfile,

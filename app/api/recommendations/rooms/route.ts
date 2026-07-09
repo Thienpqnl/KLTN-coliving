@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
+import {
+  getServiceUrl,
+  requestServiceJson,
+} from "@/lib/microservices/service-client";
+import {
+  serviceIdentityHeaders,
+  serviceUnavailableResponse,
+} from "@/lib/microservices/bff-service";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
-if (typeof BigInt !== 'undefined') {
-  Object.defineProperty(BigInt.prototype, "toJSON", {
-    value() {
-      return this.toString();
-    },
-    configurable: true,
-  });
-}
 
 interface RoomRecommendation {
   roomId: string;
@@ -24,85 +23,88 @@ type AIEnvelope<T> = {
   error?: string | null;
 };
 
+function serviceUrlOrUnavailable(
+  name: "PREFERENCE" | "PROPERTY",
+  label: string,
+) {
+  const url = getServiceUrl(name);
+  return url || serviceUnavailableResponse(label, `${name}_SERVICE_URL is not configured`);
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const payload = await getAuthUser(req);
-    if (!payload?.userId) {
-      return NextResponse.json(
-        { error: "Không được phép truy cập" },
-        { status: 401 }
-      );
-    }
+    const authUser = await getAuthUser(req);
+    const preferenceServiceUrl = serviceUrlOrUnavailable("PREFERENCE", "Preference Service");
+    if (preferenceServiceUrl instanceof Response) return preferenceServiceUrl;
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      include: { preference: true },
-    });
+    const preference = await requestServiceJson<Record<string, unknown>>(
+      "preference-service",
+      preferenceServiceUrl,
+      "/v1/preferences",
+      {
+        headers: serviceIdentityHeaders({
+          userId: authUser.userId,
+          role: authUser.role,
+        }),
+        timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
+      },
+    );
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "Người dùng không tìm thấy" },
-        { status: 404 }
-      );
-    }
-
-    if (!user.preference) {
+    if (!preference || !preference.id) {
       return NextResponse.json(
         { error: "Vui lòng điền thông tin sở thích trước", recommendations: [] },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const topK = req.nextUrl.searchParams.get("top_k") || "10";
-
-    // Gọi Python AI Service
-    console.log(`[AI] Requesting recommendations for user ${user.id}`);
-    const response = await fetch(
-      `${AI_SERVICE_URL}/v1/recommend-room/${user.id}?top_k=${topK}`,
+    const aiResponse = await fetch(
+      `${AI_SERVICE_URL}/v1/recommend-room/${authUser.userId}?top_k=${topK}`,
       {
         method: "GET",
         headers: { "Content-Type": "application/json" },
-      }
+        cache: "no-store",
+      },
     );
 
-    if (!response.ok) {
-      console.error(
-        `[AI] Service error: ${response.status} ${response.statusText}`
-      );
-      throw new Error(
-        `AI Service error: ${response.status} ${response.statusText}`
+    if (!aiResponse.ok) {
+      return serviceUnavailableResponse(
+        "AI Service",
+        `${aiResponse.status} ${aiResponse.statusText}`,
       );
     }
 
-    const aiPayload = (await response.json()) as AIEnvelope<RoomRecommendation[]>;
-    if (aiPayload.success === false) {
+    const aiPayload = (await aiResponse.json()) as AIEnvelope<RoomRecommendation[]>;
+    const recommendations = Array.isArray(aiPayload.data) ? aiPayload.data : [];
+    if (aiPayload.success === false || recommendations.length === 0) {
       return NextResponse.json([]);
     }
-    const recommendations: RoomRecommendation[] = Array.isArray(aiPayload.data) ? aiPayload.data : [];
 
-    // Lấy chi tiết các phòng từ database
     const roomIds = recommendations.map((recommendation) => recommendation.roomId);
-    const rooms = await prisma.room.findMany({
-      where: { id: { in: roomIds }, status: "AVAILABLE" },
-      include: {
-        amenities: { include: { amenity: true } },
-        images: true,
-        owner: { select: { name: true, email: true, phone: true } },
+    const propertyServiceUrl = serviceUrlOrUnavailable("PROPERTY", "Property Service");
+    if (propertyServiceUrl instanceof Response) return propertyServiceUrl;
+
+    const rooms = await requestServiceJson<Array<{ id: string }>>(
+      "property-service",
+      propertyServiceUrl,
+      "/v1/rooms/batch",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids: roomIds }),
+        timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
       },
-    });
+    );
 
-    // Merge recommendation scores với room details
-    const result = recommendations.map((rec) => {
-      const room = rooms.find((r) => r.id === rec.roomId);
-      return {
-        ...rec,
-        roomDetails: room,
-      };
-    });
-
-    return NextResponse.json(result);
+    const roomMap = new Map(rooms.map((room) => [room.id, room]));
+    return NextResponse.json(
+      recommendations.map((recommendation) => ({
+        ...recommendation,
+        roomDetails: roomMap.get(recommendation.roomId) || null,
+      })),
+    );
   } catch (error) {
-    console.error("[ERROR]", error);
+    console.error("[recommendations/rooms]", error);
     return handleApiError(error);
   }
 }

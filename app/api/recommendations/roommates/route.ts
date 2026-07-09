@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
-import { prisma } from "@/lib/prisma";
+import {
+  getServiceUrl,
+  requestServiceJson,
+} from "@/lib/microservices/service-client";
+import { serviceUnavailableResponse } from "@/lib/microservices/bff-service";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
 
@@ -19,6 +23,14 @@ type AIRoommateMatch = {
   accept_pets?: boolean;
 };
 
+type UserSummary = {
+  id: string;
+  name: string | null;
+  fullName: string | null;
+  email: string;
+  avatarUrl: string | null;
+};
+
 type AIEnvelope<T> = {
   success?: boolean;
   data?: T;
@@ -28,73 +40,78 @@ type AIEnvelope<T> = {
 export async function GET(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    const user = await prisma.user.findUnique({
-      where: { id: authUser.userId },
-      select: { id: true },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "Nguoi dung khong tim thay" }, { status: 404 });
-    }
-
     const roomId = req.nextUrl.searchParams.get("room_id");
     if (!roomId) {
-      return NextResponse.json({ error: "room_id la bat buoc" }, { status: 400 });
+      return NextResponse.json({ error: "room_id là bắt buộc" }, { status: 400 });
     }
 
-    const response = await fetch(
-      `${AI_SERVICE_URL}/v1/match-roommates/${user.id}/${roomId}`,
+    const aiResponse = await fetch(
+      `${AI_SERVICE_URL}/v1/match-roommates/${authUser.userId}/${roomId}`,
       {
         method: "GET",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
       },
     );
 
-    if (!response.ok) {
-      throw new Error(`AI Service error: ${response.status} ${response.statusText}`);
+    if (!aiResponse.ok) {
+      return serviceUnavailableResponse(
+        "AI Service",
+        `${aiResponse.status} ${aiResponse.statusText}`,
+      );
     }
 
-    const payload = (await response.json()) as AIEnvelope<AIRoommateMatch[]>;
-    const roommates = payload.success === false || !Array.isArray(payload.data)
-      ? []
-      : payload.data;
+    const payload = (await aiResponse.json()) as AIEnvelope<AIRoommateMatch[]>;
+    const roommates =
+      payload.success === false || !Array.isArray(payload.data) ? [] : payload.data;
+    if (roommates.length === 0) return NextResponse.json([]);
 
-    if (roommates.length === 0) {
-      return NextResponse.json([]);
+    const identityServiceUrl = getServiceUrl("IDENTITY");
+    if (!identityServiceUrl) {
+      return serviceUnavailableResponse(
+        "Identity Service",
+        "IDENTITY_SERVICE_URL is not configured",
+      );
     }
 
     const roommateIds = roommates.map((roommate) => roommate.roommate_id);
-    const roommateUsers = await prisma.user.findMany({
-      where: { id: { in: roommateIds } },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatarUrl: true,
-        preference: true,
+    const users = await requestServiceJson<UserSummary[]>(
+      "identity-service",
+      identityServiceUrl,
+      "/v1/users/summaries",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids: roommateIds }),
+        timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
       },
-    });
+    );
+    const userMap = new Map(users.map((user) => [user.id, user]));
 
-    const result = roommates.map((mate) => {
-      const userInfo = roommateUsers.find((item) => item.id === mate.roommate_id);
-      return {
-        roommate_id: mate.roommate_id,
-        compatibility_score: mate.compatibility_score ?? 0,
-        compatibility_reasons: mate.compatibility_reasons ?? [],
-        name: userInfo?.name || mate.name || "Nguoi dung an danh",
-        avatar: userInfo?.avatarUrl || mate.avatar || "/default-avatar.png",
-        age: mate.age,
-        occupation: mate.occupation || "Chua cap nhat",
-        cleanliness_level: mate.cleanliness_level ?? 0,
-        social_level: mate.social_level ?? 0,
-        accept_smoking: mate.accept_smoking ?? false,
-        accept_pets: mate.accept_pets ?? false,
-      };
-    });
-
-    return NextResponse.json(result);
+    return NextResponse.json(
+      roommates.map((mate) => {
+        const userInfo = userMap.get(mate.roommate_id);
+        return {
+          roommate_id: mate.roommate_id,
+          compatibility_score: mate.compatibility_score ?? 0,
+          compatibility_reasons: mate.compatibility_reasons ?? [],
+          name:
+            userInfo?.name ||
+            userInfo?.fullName ||
+            mate.name ||
+            "Người dùng ẩn danh",
+          avatar: userInfo?.avatarUrl || mate.avatar || "/default-avatar.png",
+          age: mate.age,
+          occupation: mate.occupation || "Chưa cập nhật",
+          cleanliness_level: mate.cleanliness_level ?? 0,
+          social_level: mate.social_level ?? 0,
+          accept_smoking: mate.accept_smoking ?? false,
+          accept_pets: mate.accept_pets ?? false,
+        };
+      }),
+    );
   } catch (error) {
-    console.error("[ERROR]", error);
+    console.error("[recommendations/roommates]", error);
     return handleApiError(error);
   }
 }
