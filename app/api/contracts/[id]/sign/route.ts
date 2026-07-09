@@ -4,6 +4,7 @@ import { contractService } from "@/lib/services/contract.service";
 import { getAuthUser } from "@/lib/auth";
 import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
 import { getRequestMetadata } from "@/lib/request-metadata";
+import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
 
 const schema = z.object({
   signatureName: z.string().trim().min(2, "Vui lòng nhập đầy đủ họ tên"),
@@ -22,14 +23,25 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
     const { id } = await params;
     const data = schema.parse(await request.json());
-    const contract = await contractService.sign(id, {
-      actorId: authUser.userId,
-      role: authUser.role,
+    const payload = {
       signatureName: data.signatureName,
       citizenId: data.citizenId,
       ...getRequestMetadata(request),
+    };
+    const proxied = await tryProxyRentalService({
+      identity: authUser,
+      path: `/v1/contracts/${id}/sign`,
+      method: "POST",
+      body: payload,
+      fallbackMessage: "Không thể ký hợp đồng",
     });
-    return successResponse(contract);
+    if (proxied) return proxied;
+
+    return successResponse(await contractService.sign(id, {
+      actorId: authUser.userId,
+      role: authUser.role,
+      ...payload,
+    }));
   } catch (error) {
     return handleApiError(error);
   }

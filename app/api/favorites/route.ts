@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse } from "@/lib/api-error";
+import { tryProxyCommunityService } from "@/lib/microservices/community-bff";
 
 type FavoriteRoomRow = {
   id: string;
@@ -17,6 +18,12 @@ type FavoriteRoomRow = {
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
+    const proxied = await tryProxyCommunityService({
+      identity: user,
+      path: "/v1/favorites",
+      fallbackMessage: "Không thể tải danh sách yêu thích",
+    });
+    if (proxied) return proxied;
 
     const favorites = await prisma.$queryRaw<FavoriteRoomRow[]>`
       SELECT

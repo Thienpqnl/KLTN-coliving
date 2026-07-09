@@ -2,7 +2,19 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { roomCreateSchema } from "@/lib/validation";
 import { getAuthUser } from "@/lib/auth";
-import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
+import { ApiError, errorResponse, handleApiError, successResponse } from "@/lib/api-error";
+import {
+  getServiceUrl,
+  requestServiceJson,
+  ServiceHttpError,
+} from "@/lib/microservices/service-client";
+import {
+  isForwardableServiceError,
+  isMicroserviceStrictMode,
+  serviceErrorPayload,
+  serviceIdentityHeaders,
+  serviceUnavailableResponse,
+} from "@/lib/microservices/bff-service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +26,54 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const data = roomCreateSchema.parse(body);
+
+    const propertyServiceUrl = getServiceUrl("PROPERTY");
+    if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Property Service",
+        "PROPERTY_SERVICE_URL is not configured",
+      );
+    }
+
+    if (propertyServiceUrl) {
+      try {
+        const room = await requestServiceJson<unknown>(
+          "property-service",
+          propertyServiceUrl,
+          "/v1/rooms",
+          {
+            method: "POST",
+            headers: {
+              ...Object.fromEntries(serviceIdentityHeaders(authUser)),
+              "content-type": "application/json",
+            },
+            body: JSON.stringify(data),
+            timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
+          },
+        );
+        return successResponse(room, 201);
+      } catch (error) {
+        if (
+          isForwardableServiceError(error) &&
+          error instanceof ServiceHttpError
+        ) {
+          const payload = serviceErrorPayload(error, "Không thể tạo phòng") as {
+            message?: string;
+            errors?: Record<string, string[]>;
+          };
+          return errorResponse(
+            payload.message || "Không thể tạo phòng",
+            error.status,
+            payload.errors,
+          );
+        }
+        const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Property Service", reason);
+        }
+        console.warn("[BFF] Property Service unavailable; using local room creation.");
+      }
+    }
 
     const imageArray = data.image || [];
 

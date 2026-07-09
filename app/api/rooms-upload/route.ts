@@ -1,20 +1,51 @@
 import { NextRequest } from "next/server";
-import { roomService } from "@/lib/services/room.service";
+import { getAuthUser } from "@/lib/auth";
 import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
-import { getAuthUser } from "@/lib/auth"; // giả sử bạn có hàm này
+import { getServiceUrl, requestServiceJson } from "@/lib/microservices/service-client";
+import {
+  isMicroserviceStrictMode,
+  serviceIdentityHeaders,
+  serviceUnavailableResponse,
+} from "@/lib/microservices/bff-service";
+import { roomService } from "@/lib/services/room.service";
 
 export async function GET(request: NextRequest) {
   try {
-    // 1. Lấy user từ token
     const user = await getAuthUser(request);
-    if (user.role !== "HOST") throw new ApiError(403, "Chỉ chủ nhà được truy cập");
+    if (user.role !== "HOST") {
+      throw new ApiError(403, "Chi chu nha duoc truy cap");
+    }
 
-    // 2. Lấy ownerId từ user
-    const ownerId = user.userId;
+    const propertyServiceUrl = getServiceUrl("PROPERTY");
+    if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Property Service",
+        "PROPERTY_SERVICE_URL is not configured",
+      );
+    }
 
-    // 3. Gọi service
-    const rooms = await roomService.getAllByOwnerId(ownerId);
+    if (propertyServiceUrl) {
+      try {
+        const rooms = await requestServiceJson<unknown[]>(
+          "property-service",
+          propertyServiceUrl,
+          "/v1/host/rooms",
+          {
+            headers: serviceIdentityHeaders({ userId: user.userId, role: user.role }),
+            timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
+          },
+        );
+        return successResponse({ rooms });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Property Service", reason);
+        }
+        console.warn(`[BFF] Property Service unavailable (${reason}); using local rooms-upload implementation.`);
+      }
+    }
 
+    const rooms = await roomService.getAllByOwnerId(user.userId);
     return successResponse({ rooms });
   } catch (error) {
     return handleApiError(error);

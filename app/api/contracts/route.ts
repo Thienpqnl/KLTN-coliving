@@ -6,6 +6,7 @@ import { getAuthUser } from "@/lib/auth";
 import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { getRequestMetadata } from "@/lib/request-metadata";
+import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
 
 const createContractSchema = z.object({
   bookingId: z.string().min(1, "Booking là bắt buộc"),
@@ -32,6 +33,13 @@ export async function GET(request: NextRequest) {
   try {
     const authUser = await getAuthUser(request);
     const searchParams = request.nextUrl.searchParams;
+    const proxied = await tryProxyRentalService({
+      identity: authUser,
+      path: `/v1/contracts?${searchParams.toString()}`,
+      fallbackMessage: "Không thể tải danh sách hợp đồng",
+    });
+    if (proxied) return proxied;
+
     const statusParam = searchParams.get("status");
     const status = statusParam && Object.values(ContractStatus).includes(statusParam as ContractStatus)
       ? statusParam as ContractStatus
@@ -59,6 +67,16 @@ export async function POST(request: NextRequest) {
     }
 
     const data = createContractSchema.parse(await request.json());
+    const proxied = await tryProxyRentalService({
+      identity: authUser,
+      path: "/v1/contracts",
+      method: "POST",
+      body: { ...data, ...getRequestMetadata(request) },
+      successStatus: 201,
+      fallbackMessage: "Không thể tạo hợp đồng",
+    });
+    if (proxied) return proxied;
+
     const booking = await prisma.booking.findUnique({
       where: { id: data.bookingId },
       include: {

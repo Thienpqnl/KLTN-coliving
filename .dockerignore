@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+ai/venv*
+ai/.venv
+**/__pycache__
+*.pyc
+.env*
+.tmp*
+coverage
+npm-debug.log*

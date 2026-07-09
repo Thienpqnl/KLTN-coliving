@@ -1,33 +1,69 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { contractService } from "@/lib/services/contract.service";
 import { handleApiError, successResponse } from "@/lib/api-error";
+import {
+  getServiceUrl,
+  requestServiceJson,
+  ServiceHttpError,
+} from "@/lib/microservices/service-client";
+import {
+  isForwardableServiceError,
+  isMicroserviceStrictMode,
+  serviceErrorPayload,
+  serviceUnavailableResponse,
+} from "@/lib/microservices/bff-service";
 
-/**
- * POST /api/admin/contracts/check-expiry
- * 
- * This endpoint checks and updates contract statuses:
- * - Updates ACTIVE contracts with endDate in the past to EXPIRED
- * 
- * Can be called manually or scheduled as a cron job
- * Optional: pass Authorization header for authentication
- */
+type ServicePayload = {
+  message?: string;
+  error?: string;
+};
+
+async function tryRentalAdmin(path: string, options: RequestInit = {}) {
+  const rentalServiceUrl = getServiceUrl("RENTAL");
+  if (!rentalServiceUrl) {
+    return isMicroserviceStrictMode()
+      ? serviceUnavailableResponse("Rental Service", "RENTAL_SERVICE_URL is not configured")
+      : null;
+  }
+  try {
+    const data = await requestServiceJson<unknown>(
+      "rental-service",
+      rentalServiceUrl,
+      path,
+      {
+        ...options,
+        timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
+      },
+    );
+    return successResponse(data);
+  } catch (error) {
+    if (isForwardableServiceError(error) && error instanceof ServiceHttpError) {
+      const payload = serviceErrorPayload(error, "Không thể xử lý hợp đồng") as ServicePayload;
+      return successResponse({ error: payload.error || payload.message || "Không thể xử lý hợp đồng" }, error.status);
+    }
+    const reason = error instanceof Error ? error.message : "Unknown error";
+    if (isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse("Rental Service", reason);
+    }
+    console.warn(`[BFF] Rental Service unavailable (${reason}); using local admin contract implementation.`);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Check for admin/cron job authorization
     const authHeader = request.headers.get("authorization");
+    const proxied = await tryRentalAdmin("/v1/admin/contracts/check-expiry", {
+      method: "POST",
+      headers: authHeader ? { authorization: authHeader } : undefined,
+    });
+    if (proxied) return proxied;
+
     const cronSecret = process.env.CRON_SECRET;
-
-    // If CRON_SECRET is set, validate it
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return successResponse(
-        { error: "Unauthorized: Invalid cron secret" },
-        401
-      );
+      return successResponse({ error: "Unauthorized: Invalid cron secret" }, 401);
     }
-
-    // Run the expiry check
     const updatedCount = await contractService.checkAndUpdateExpiredContracts();
-
     return successResponse({
       success: true,
       message: `Checked and updated contract statuses. ${updatedCount} contracts updated to EXPIRED.`,
@@ -40,21 +76,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/admin/contracts/stats
- * 
- * Get contract statistics
- */
 export async function GET(request: NextRequest) {
   try {
+    const proxied = await tryRentalAdmin(`/v1/admin/contracts?${request.nextUrl.searchParams.toString()}`);
+    if (proxied) return proxied;
+
     const roomId = request.nextUrl.searchParams.get("roomId");
-
     const stats = await contractService.getStats(roomId || undefined);
-
-    return successResponse({
-      stats,
-      timestamp: new Date().toISOString(),
-    });
+    return successResponse({ stats, timestamp: new Date().toISOString() });
   } catch (error) {
     return handleApiError(error);
   }

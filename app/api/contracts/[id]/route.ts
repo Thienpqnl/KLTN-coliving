@@ -4,6 +4,7 @@ import { contractService } from "@/lib/services/contract.service";
 import { getAuthUser } from "@/lib/auth";
 import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
 import { getRequestMetadata } from "@/lib/request-metadata";
+import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
 
 const updateContractSchema = z.object({
   endDate: z.string().datetime().optional(),
@@ -31,6 +32,13 @@ export async function GET(request: NextRequest, { params }: Params) {
   try {
     const authUser = await getAuthUser(request);
     const { id } = await params;
+    const proxied = await tryProxyRentalService({
+      identity: authUser,
+      path: `/v1/contracts/${id}`,
+      fallbackMessage: "Không thể tải hợp đồng",
+    });
+    if (proxied) return proxied;
+
     const contract = await contractService.getById(id);
     if (!canAccess(authUser, contract)) throw new ApiError(403, "Không được phép truy cập hợp đồng này");
     return successResponse(contract);
@@ -45,6 +53,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (authUser.role !== "HOST" && authUser.role !== "ADMIN") throw new ApiError(403, "Bạn không có quyền cập nhật hợp đồng");
     const { id } = await params;
     const data = updateContractSchema.parse(await request.json());
+    const proxied = await tryProxyRentalService({
+      identity: authUser,
+      path: `/v1/contracts/${id}`,
+      method: "PUT",
+      body: { ...data, ...getRequestMetadata(request) },
+      fallbackMessage: "Không thể cập nhật hợp đồng",
+    });
+    if (proxied) return proxied;
+
     const updated = await contractService.update(id, {
       ...data,
       endDate: data.endDate ? new Date(data.endDate) : undefined,
@@ -64,6 +81,15 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const authUser = await getAuthUser(request);
     if (authUser.role !== "HOST" && authUser.role !== "ADMIN") throw new ApiError(403, "Bạn không có quyền xóa hợp đồng");
     const { id } = await params;
+    const proxied = await tryProxyRentalService({
+      identity: authUser,
+      path: `/v1/contracts/${id}`,
+      method: "DELETE",
+      body: getRequestMetadata(request),
+      fallbackMessage: "Không thể xóa hợp đồng",
+    });
+    if (proxied) return proxied;
+
     await contractService.delete(id, {
       actorId: authUser.userId,
       role: authUser.role,

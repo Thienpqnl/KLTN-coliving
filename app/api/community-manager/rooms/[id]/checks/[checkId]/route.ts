@@ -3,6 +3,7 @@ import { VerificationCheckStatus } from "@prisma/client";
 import { z } from "zod";
 import { getAuthUser } from "@/lib/auth";
 import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
+import { tryProxyPropertyService } from "@/lib/microservices/property-bff";
 import { roomVerificationService } from "@/lib/services/room-verification.service";
 
 const updateCheckSchema = z.object({
@@ -12,7 +13,7 @@ const updateCheckSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; checkId: string }> }
+  { params }: { params: Promise<{ id: string; checkId: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -22,6 +23,14 @@ export async function PATCH(
 
     const { id, checkId } = await params;
     const data = updateCheckSchema.parse(await request.json());
+    const proxied = await tryProxyPropertyService({
+      identity: user,
+      path: `/v1/community-manager/rooms/${id}/checks/${checkId}`,
+      method: "PATCH",
+      body: data,
+      fallbackMessage: "Không thể cập nhật tiêu chí đối khớp",
+    });
+    if (proxied) return proxied;
 
     return successResponse(await roomVerificationService.updateVerificationCheck(id, checkId, user.userId, data));
   } catch (error) {

@@ -2,44 +2,48 @@ import { NextRequest } from "next/server";
 import { occupancyService } from "@/lib/services/occupancy.service";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse } from "@/lib/api-error";
+import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
 
-// POST /api/host/occupancy - Add a new occupant
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
-
     const body = await request.json();
     const { roomId, userId, notes } = body;
 
-    if (!roomId || !userId) {
-      throw new Error("roomId and userId are required");
-    }
+    const proxied = await tryProxyRentalService({
+      identity: user,
+      path: "/v1/host/occupancy",
+      method: "POST",
+      body: { roomId, userId, notes },
+      successStatus: 201,
+      fallbackMessage: "Không thể thêm người thuê vào phòng",
+    });
+    if (proxied) return proxied;
 
-    // Verify room ownership
-    const occupancy = await occupancyService.addOccupant(roomId, userId, notes, {
+    if (!roomId || !userId) throw new Error("roomId and userId are required");
+    return successResponse(await occupancyService.addOccupant(roomId, userId, notes, {
       userId: user.userId,
       role: user.role ?? "CUSTOMER",
-    });
-
-    return successResponse(occupancy, 201);
+    }), 201);
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-// GET /api/host/occupancy/stats - Get occupancy statistics
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const roomId = searchParams.get("roomId");
+    const user = await getAuthUser(request);
+    const proxied = await tryProxyRentalService({
+      identity: user,
+      path: `/v1/host/occupancy?${request.nextUrl.searchParams.toString()}`,
+      fallbackMessage: "Không thể tải thống kê cư trú",
+    });
+    if (proxied) return proxied;
 
-    if (!roomId) {
-      throw new Error("roomId is required");
-    }
+    const roomId = request.nextUrl.searchParams.get("roomId");
+    if (!roomId) throw new Error("roomId is required");
 
-    const stats = await occupancyService.getOccupancyStats(roomId);
-
-    return successResponse(stats);
+    return successResponse(await occupancyService.getOccupancyStats(roomId));
   } catch (error) {
     return handleApiError(error);
   }

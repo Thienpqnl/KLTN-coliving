@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { handleApiError, successResponse } from "@/lib/api-error";
+import { handleApiError, successResponse, ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
-import { ApiError } from "@/lib/api-error";
 import { z } from "zod";
+import { tryProxyCommunityService } from "@/lib/microservices/community-bff";
 
 const activityCreateSchema = z.object({
   type: z.enum(["ANNOUNCEMENT", "ISSUE"]),
@@ -13,18 +13,24 @@ const activityCreateSchema = z.object({
   imageUrl: z.string().optional(),
 });
 
-// GET: Lấy toàn bộ Lịch trực nhật (DUTY) & Bảng tin (ANNOUNCEMENT, ISSUE) của phòng
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await getAuthUser(request);
+    const user = await getAuthUser(request);
     const { id: roomId } = await params;
+    const proxied = await tryProxyCommunityService({
+      identity: user,
+      path: `/v1/rooms/${roomId}/shared-resources/activities`,
+      fallbackMessage: "Không thể tải hoạt động không gian chung",
+    });
+    if (proxied) return proxied;
+
     const activities = await prisma.sharedSpaceActivity.findMany({
       where: { roomId },
       include: {
         assignee: { select: { fullName: true } },
-        creator: { select: { fullName: true } }
+        creator: { select: { fullName: true } },
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
     return successResponse(activities);
   } catch (error) {
@@ -32,28 +38,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// POST: Tạo mới hoạt động (Thông báo hoặc Báo sự cố)
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
     const { id: roomId } = await params;
-    
-    // Kiểm tra user có phải thành viên đang ở phòng này không
+    const validatedData = activityCreateSchema.parse(await request.json());
+    const proxied = await tryProxyCommunityService({
+      identity: user,
+      path: `/v1/rooms/${roomId}/shared-resources/activities`,
+      method: "POST",
+      body: validatedData,
+      successStatus: 201,
+      fallbackMessage: "Không thể tạo hoạt động không gian chung",
+    });
+    if (proxied) return proxied;
+
     const isOccupant = await prisma.occupancy.findUnique({
-      where: {
-        Occupancy_room_user_unique: { roomId, userId: user.userId }
-      }
+      where: { Occupancy_room_user_unique: { roomId, userId: user.userId } },
     });
     if (!isOccupant || isOccupant.status !== "ACTIVE") {
       throw new ApiError(403, "Bạn không có quyền tạo hoạt động trong không gian chung này");
     }
-
-    const body = await request.json();
-    const validatedData = activityCreateSchema.parse(body);
-    
     const newActivity = await prisma.sharedSpaceActivity.create({
       data: {
         roomId,
@@ -61,11 +69,8 @@ export async function POST(
         ...validatedData,
         eventDate: validatedData.eventDate ? new Date(validatedData.eventDate) : null,
       },
-      include: {
-        creator: { select: { fullName: true } }
-      }
+      include: { creator: { select: { fullName: true } } },
     });
-    
     return successResponse(newActivity, 201);
   } catch (error) {
     return handleApiError(error);
