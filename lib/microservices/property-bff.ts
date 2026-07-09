@@ -70,3 +70,49 @@ export async function tryProxyPropertyService({
     return null;
   }
 }
+
+export async function tryProxyPropertyServiceRaw({
+  identity,
+  path,
+  method = "GET",
+  body,
+  fallbackMessage,
+}: PropertyProxyOptions): Promise<NextResponse | null> {
+  const propertyServiceUrl = getServiceUrl("PROPERTY");
+  if (!propertyServiceUrl) return null;
+
+  try {
+    const data = await requestServiceJson<unknown>(
+      "property-service",
+      propertyServiceUrl,
+      path,
+      {
+        method,
+        headers: {
+          ...Object.fromEntries(serviceIdentityHeaders(identity)),
+          ...(body === undefined ? {} : { "content-type": "application/json" }),
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
+      },
+    );
+    return NextResponse.json(data);
+  } catch (error) {
+    if (isForwardableServiceError(error) && error instanceof ServiceHttpError) {
+      const payload = serviceErrorPayload(error, fallbackMessage) as ServiceErrorPayload;
+      return NextResponse.json(
+        {
+          error: payload.error || payload.message || fallbackMessage,
+          ...(payload.errors === undefined ? {} : { errors: payload.errors }),
+        },
+        { status: error.status },
+      );
+    }
+
+    const reason = error instanceof Error ? error.message : "Unknown error";
+    console.warn(
+      `[BFF] Property Service unavailable (${reason}); using local implementation.`,
+    );
+    return null;
+  }
+}

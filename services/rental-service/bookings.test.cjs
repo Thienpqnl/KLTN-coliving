@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { createBooking, updateBooking } = require("./bookings.cjs");
+const { createBooking, hostBookingStats, updateBooking } = require("./bookings.cjs");
 
 test("createBooking rejects full rooms before writing a booking", async () => {
   let createCalled = false;
@@ -63,4 +63,34 @@ test("updateBooking only lets host or admin confirm a pending booking", async ()
   );
 
   assert.equal(result.status, 403);
+});
+
+test("hostBookingStats returns host booking counters and projected revenue", async () => {
+  let bookingCountCalls = 0;
+  const prisma = {
+    booking: {
+      count: async () => {
+        bookingCountCalls += 1;
+        return bookingCountCalls;
+      },
+      findMany: async () => [
+        { room: { priceValue: 1000000 } },
+        { room: { priceValue: 2500000 } },
+      ],
+    },
+    room: {
+      count: async ({ where }) => (where.status === "OCCUPIED" ? 1 : 4),
+    },
+  };
+
+  const result = await hostBookingStats(
+    prisma,
+    { userId: "host-1", role: "HOST" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(result.payload.total, 1);
+  assert.equal(result.payload.pending, 2);
+  assert.equal(result.payload.projectedRevenue, 3500000);
+  assert.equal(result.payload.occupancyPercentage, 25);
 });

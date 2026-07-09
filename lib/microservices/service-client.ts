@@ -82,7 +82,7 @@ export async function requestServiceJson<T>(
   }
 }
 
-export function getServiceUrl(name: "PROPERTY" | "IDENTITY" | "RENTAL" | "COMMUNITY") {
+export function getServiceUrl(name: "PROPERTY" | "IDENTITY" | "RENTAL" | "COMMUNITY" | "PREFERENCE") {
   const value = process.env[`${name}_SERVICE_URL`]?.trim();
   return value || null;
 }

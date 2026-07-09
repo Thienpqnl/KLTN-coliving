@@ -2,10 +2,18 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse } from "@/lib/api-error";
+import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
+
+    const proxied = await tryProxyRentalService({
+      identity: { userId: user.userId, role: user.role },
+      path: "/v1/host/bookings/stats",
+      fallbackMessage: "Cannot load host booking stats",
+    });
+    if (proxied) return proxied;
 
     const where = {
       room: {

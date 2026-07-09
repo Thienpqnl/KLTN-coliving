@@ -17,6 +17,13 @@ interface RoomRecommendation {
   roomId: string;
   [key: string]: unknown;
 }
+
+type AIEnvelope<T> = {
+  success?: boolean;
+  data?: T;
+  error?: string | null;
+};
+
 export async function GET(req: NextRequest) {
   try {
     const payload = await getAuthUser(req);
@@ -51,7 +58,7 @@ export async function GET(req: NextRequest) {
     // Gọi Python AI Service
     console.log(`[AI] Requesting recommendations for user ${user.id}`);
     const response = await fetch(
-      `${AI_SERVICE_URL}/recommend-room/${user.id}?top_k=${topK}`,
+      `${AI_SERVICE_URL}/v1/recommend-room/${user.id}?top_k=${topK}`,
       {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -67,7 +74,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const recommendations = (await response.json()) as RoomRecommendation[];
+    const aiPayload = (await response.json()) as AIEnvelope<RoomRecommendation[]>;
+    if (aiPayload.success === false) {
+      return NextResponse.json([]);
+    }
+    const recommendations: RoomRecommendation[] = Array.isArray(aiPayload.data) ? aiPayload.data : [];
 
     // Lấy chi tiết các phòng từ database
     const roomIds = recommendations.map((recommendation) => recommendation.roomId);

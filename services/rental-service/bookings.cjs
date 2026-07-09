@@ -319,11 +319,57 @@ async function bookingStats(prisma, query) {
   return { status: 200, payload: { total, pending, confirmed, cancelled, completed } };
 }
 
+async function hostBookingStats(prisma, identity) {
+  const denied = requireAuthenticated(identity);
+  if (denied) return denied;
+  if (identity.role !== "HOST" && identity.role !== "ADMIN") {
+    return failure(403, "Chỉ chủ nhà hoặc admin được xem thống kê booking");
+  }
+
+  const where = { room: { ownerId: identity.userId } };
+  const [total, pending, confirmed, completed, hostRooms, occupiedRooms, bookings] = await Promise.all([
+    prisma.booking.count({ where }),
+    prisma.booking.count({ where: { ...where, status: "PENDING" } }),
+    prisma.booking.count({ where: { ...where, status: "CONFIRMED" } }),
+    prisma.booking.count({ where: { ...where, status: "COMPLETED" } }),
+    prisma.room.count({ where: { ownerId: identity.userId } }),
+    prisma.room.count({ where: { ownerId: identity.userId, status: "OCCUPIED" } }),
+    prisma.booking.findMany({
+      where: {
+        ...where,
+        status: { in: ["PENDING", "CONFIRMED"] },
+      },
+      include: {
+        room: { select: { priceValue: true } },
+      },
+    }),
+  ]);
+
+  const projectedRevenue = bookings.reduce(
+    (sum, booking) => sum + Number(booking.room.priceValue || 0),
+    0,
+  );
+
+  return {
+    status: 200,
+    payload: {
+      total,
+      pending,
+      confirmed,
+      completed,
+      pendingCount: pending,
+      occupancyPercentage: hostRooms > 0 ? Math.round((occupiedRooms / hostRooms) * 100) : 0,
+      projectedRevenue,
+    },
+  };
+}
+
 module.exports = {
   bookingStats,
   cancelBooking,
   createBooking,
   getBookingById,
+  hostBookingStats,
   listHostBookings,
   listUserBookingCards,
   listRoomBookings,

@@ -72,6 +72,24 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  preference-service:
+    build:
+      context: .
+      dockerfile: services/preference-service/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+      PORT: 4005
+    ports:
+      - "4005:4005"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4005/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
   ai-service:
     build:
       context: .

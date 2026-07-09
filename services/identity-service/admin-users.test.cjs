@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  getAdminLogs,
   getUserById,
   getUserStats,
   listUsers,
@@ -102,4 +103,35 @@ test("getUserStats includes key counters and monthly buckets", async () => {
   assert.equal(result.payload.total, 1);
   assert.equal(result.payload.tenants, 2);
   assert.equal(result.payload.byMonth.length, 12);
+});
+
+test("getAdminLogs is admin-only and returns paginated logs", async () => {
+  const denied = await getAdminLogs({}, { userId: "host-1", role: "HOST" });
+  assert.equal(denied.status, 403);
+
+  let findManyArgs;
+  const prisma = {
+    adminLog: {
+      findMany: async (args) => {
+        findManyArgs = args;
+        return [{ id: "log-1", action: "lock_user" }];
+      },
+      count: async () => 1,
+    },
+  };
+
+  const result = await getAdminLogs(
+    prisma,
+    { userId: "admin-1", role: "ADMIN" },
+    { page: "2", limit: "10", action: "lock_user", targetType: "user" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(findManyArgs.skip, 10);
+  assert.equal(findManyArgs.take, 10);
+  assert.deepEqual(findManyArgs.where, {
+    action: "lock_user",
+    targetType: "user",
+  });
+  assert.equal(result.payload.pagination.total, 1);
 });

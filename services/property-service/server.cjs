@@ -8,6 +8,7 @@ const {
   listAmenities,
   updateAmenity,
 } = require("./amenities.cjs");
+const { getRoomPublicStats, getRoomStats } = require("./admin-stats.cjs");
 const { findAvailableRooms, findRoomById, listRooms } = require("./rooms.cjs");
 const {
   createRoom,
@@ -213,6 +214,16 @@ app.get("/v1/rooms/:id", async (request, response) => {
       error: "PROPERTY_QUERY_FAILED",
       message: "Cannot load room details",
     });
+  }
+});
+
+app.get("/v1/rooms/:id/stats", async (request, response) => {
+  try {
+    const result = await getRoomPublicStats(prisma, request.params.id);
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[property-service] GET /v1/rooms/:id/stats failed", error);
+    return response.status(500).json({ message: "Cannot load room stats" });
   }
 });
 
@@ -427,6 +438,16 @@ app.patch("/v1/admin/rooms/:id", async (request, response) => {
   } catch (error) {
     console.error("[property-service] PATCH /v1/admin/rooms/:id failed", error);
     return response.status(500).json({ message: "Cannot review room as admin" });
+  }
+});
+
+app.get("/v1/admin/stats/rooms", async (request, response) => {
+  try {
+    const result = await getRoomStats(prisma, requestIdentity(request));
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[property-service] GET /v1/admin/stats/rooms failed", error);
+    return response.status(500).json({ error: "Internal server error" });
   }
 });
 

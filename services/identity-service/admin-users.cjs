@@ -221,6 +221,53 @@ async function getUserStats(prisma, identity) {
   };
 }
 
+async function getAdminLogs(prisma, identity, query = {}) {
+  const denied = requireAdmin(identity);
+  if (denied) return denied;
+
+  const page = parsePositiveInt(query.page, 1);
+  const limit = parsePositiveInt(query.limit, 50);
+  const action = typeof query.action === "string" && query.action ? query.action : undefined;
+  const targetType = typeof query.targetType === "string" && query.targetType ? query.targetType : undefined;
+  const adminId = typeof query.adminId === "string" && query.adminId ? query.adminId : undefined;
+
+  const where = {};
+  if (action) where.action = action;
+  if (targetType) where.targetType = targetType;
+  if (adminId) where.adminId = adminId;
+
+  const [logs, total] = await Promise.all([
+    prisma.adminLog.findMany({
+      where,
+      include: {
+        admin: {
+          select: { id: true, name: true, email: true },
+        },
+        targetUser: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.adminLog.count({ where }),
+  ]);
+
+  return {
+    status: 200,
+    payload: {
+      data: logs,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    },
+  };
+}
+
 async function createAdmin(prisma, input = {}, expectedSecret) {
   const email = typeof input.email === "string" ? input.email.trim() : "";
   const password = input.password;
@@ -264,6 +311,7 @@ async function createAdmin(prisma, input = {}, expectedSecret) {
 
 module.exports = {
   createAdmin,
+  getAdminLogs,
   getUserById,
   getUserStats,
   listUsers,

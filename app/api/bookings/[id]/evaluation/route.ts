@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { tryProxyRentalServiceRaw } from "@/lib/microservices/rental-bff";
 
 const AI_API_BASE_URL = process.env.AI_API_URL || "http://localhost:8000";
 
@@ -12,6 +13,13 @@ export async function GET(
   try {
     const user = await getAuthUser(request);
     const { id: bookingId } = await params;
+
+    const proxied = await tryProxyRentalServiceRaw({
+      identity: { userId: user.userId, role: user.role },
+      path: `/v1/bookings/${bookingId}/evaluation`,
+      fallbackMessage: "Cannot evaluate booking applicant",
+    });
+    if (proxied) return proxied;
 
     // Get booking details
     const booking = await prisma.booking.findUnique({

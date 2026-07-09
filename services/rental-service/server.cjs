@@ -1,11 +1,13 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const { requestIdentity, requireInternalService } = require("../shared/internal-auth.cjs");
+const { evaluateApplicant } = require("./applicant-evaluation.cjs");
 const {
   bookingStats,
   cancelBooking,
   createBooking,
   getBookingById,
+  hostBookingStats,
   listHostBookings,
   listRoomBookings,
   listUserBookingCards,
@@ -104,6 +106,23 @@ app.get("/v1/bookings/:id", async (request, response) => {
   }
 });
 
+app.get("/v1/bookings/:id/evaluation", async (request, response) => {
+  try {
+    return sendResult(
+      response,
+      await evaluateApplicant(
+        prisma,
+        requestIdentity(request),
+        request.params.id,
+        process.env.AI_SERVICE_URL || "http://localhost:8000",
+      ),
+    );
+  } catch (error) {
+    console.error("[rental-service] GET /v1/bookings/:id/evaluation failed", error);
+    return response.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.put("/v1/bookings/:id", async (request, response) => {
   try {
     return sendResult(response, await updateBooking(prisma, requestIdentity(request), request.params.id, request.body || {}));
@@ -128,6 +147,15 @@ app.get("/v1/host/bookings", async (request, response) => {
   } catch (error) {
     console.error("[rental-service] GET /v1/host/bookings failed", error);
     return response.status(500).json({ message: "Cannot load host bookings" });
+  }
+});
+
+app.get("/v1/host/bookings/stats", async (request, response) => {
+  try {
+    return sendResult(response, await hostBookingStats(prisma, requestIdentity(request)));
+  } catch (error) {
+    console.error("[rental-service] GET /v1/host/bookings/stats failed", error);
+    return response.status(500).json({ message: "Cannot load host booking stats" });
   }
 });
 

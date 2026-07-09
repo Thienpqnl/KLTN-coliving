@@ -3,6 +3,7 @@ const { PrismaClient } = require("@prisma/client");
 const { requestIdentity, requireInternalService } = require("../shared/internal-auth.cjs");
 const {
   createAdmin,
+  getAdminLogs,
   getUserById,
   getUserStats,
   listUsers,
@@ -76,6 +77,16 @@ app.get("/v1/admin/stats/users", async (request, response) => {
     return response.status(result.status).json(result.payload);
   } catch (error) {
     console.error("[identity-service] GET /v1/admin/stats/users failed", error);
+    return response.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/v1/admin/logs", async (request, response) => {
+  try {
+    const result = await getAdminLogs(prisma, requestIdentity(request), request.query);
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] GET /v1/admin/logs failed", error);
     return response.status(500).json({ error: "Internal server error" });
   }
 });
