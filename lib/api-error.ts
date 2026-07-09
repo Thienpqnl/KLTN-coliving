@@ -43,9 +43,6 @@ const sanitizeForJson = (value: unknown): unknown => {
 };
 
 export const handleApiError = (error: unknown): ReturnType<typeof NextResponse.json> => {
-  // eslint-disable-next-line no-console
-  console.error("API Error:", error);
-
   // Handle Zod validation errors
   if (error instanceof ZodError) {
     const errors: Record<string, string[]> = {};
@@ -69,6 +66,9 @@ export const handleApiError = (error: unknown): ReturnType<typeof NextResponse.j
 
   // Handle custom API errors
   if (error instanceof ApiError) {
+    if (error.statusCode >= 500) {
+      console.error("API Error:", error);
+    }
     return NextResponse.json(
       {
         success: false,
@@ -80,6 +80,7 @@ export const handleApiError = (error: unknown): ReturnType<typeof NextResponse.j
   }
 
   // Handle unknown errors
+  console.error("API Error:", error);
   return NextResponse.json(
     {
       success: false,

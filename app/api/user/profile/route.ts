@@ -1,95 +1,135 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getAuthUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import {
+  getServiceUrl,
+  requestServiceJson,
+  ServiceHttpError,
+} from "@/lib/microservices/service-client";
+import {
+  getBearerAuthorization,
+  isForwardableServiceError,
+  serviceErrorPayload,
+} from "@/lib/microservices/bff-service";
 
-export async function GET(req: NextRequest) {
+const profileSelect = {
+  id: true,
+  email: true,
+  name: true,
+  fullName: true,
+  phone: true,
+  phoneVerified: true,
+  phoneVerifiedAt: true,
+  gender: true,
+  birthDate: true,
+  address: true,
+  avatarUrl: true,
+  role: true,
+  createdAt: true,
+} as const;
+
+async function callIdentity<T>(
+  request: NextRequest,
+  method: "GET" | "PUT",
+  body?: unknown,
+) {
+  const baseUrl = getServiceUrl("IDENTITY");
+  const authorization = getBearerAuthorization(request);
+  if (!baseUrl || !authorization) return null;
+
+  return requestServiceJson<T>("identity-service", baseUrl, "/v1/profile", {
+    method,
+    headers: {
+      authorization,
+      ...(body === undefined ? {} : { "content-type": "application/json" }),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
+  });
+}
+
+function forwardedError(error: unknown) {
+  if (!(isForwardableServiceError(error) && error instanceof ServiceHttpError)) {
+    return null;
+  }
+  return NextResponse.json(
+    serviceErrorPayload(error, "Không thể xử lý hồ sơ"),
+    { status: error.status },
+  );
+}
+
+export async function GET(request: NextRequest) {
+  if (!getBearerAuthorization(request)) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const user = await getAuthUser(req)
-
-    const userData = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        fullName: true,
-        phone: true,
-        phoneVerified: true,
-        phoneVerifiedAt: true,
-        gender: true,
-        birthDate: true,
-        address: true,
-        avatarUrl: true,
-        role: true,
-        createdAt: true,
-      },
-    })
-
-    if (!userData) {
-      return NextResponse.json(
-        { message: 'User not found' },
-        { status: 404 }
-      )
+    try {
+      const remote = await callIdentity<unknown>(request, "GET");
+      if (remote) return NextResponse.json(remote);
+    } catch (error) {
+      const response = forwardedError(error);
+      if (response) return response;
+      console.warn("[BFF] Identity Service unavailable; using local profile GET.");
     }
 
-    return NextResponse.json(userData)
+    const user = await getAuthUser(request);
+    const profile = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: profileSelect,
+    });
+    return profile
+      ? NextResponse.json(profile)
+      : NextResponse.json({ message: "User not found" }, { status: 404 });
   } catch (error) {
-    console.error('Profile error:', error)
-    return NextResponse.json(
-      { message: 'Unauthorized' },
-      { status: 401 }
-    )
+    console.error("Profile error:", error);
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 }
 
-export async function PUT(req: NextRequest) {
+export async function PUT(request: NextRequest) {
+  if (!getBearerAuthorization(request)) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const user = await getAuthUser(req)
-    const body = await req.json()
-
-    const { fullName, phone, gender, birthDate, address, avatarUrl } = body
-
-    if (typeof fullName !== 'string' || fullName.trim().length === 0) {
-      return NextResponse.json(
-        { message: 'Họ và tên không được để trống' },
-        { status: 400 }
-      )
+    const body = await request.json();
+    try {
+      const remote = await callIdentity<unknown>(request, "PUT", body);
+      if (remote) return NextResponse.json(remote);
+    } catch (error) {
+      const response = forwardedError(error);
+      if (response) return response;
+      console.warn("[BFF] Identity Service unavailable; using local profile PUT.");
     }
 
-    const updatedUser = await prisma.user.update({
+    const user = await getAuthUser(request);
+    const fullName = typeof body.fullName === "string" ? body.fullName.trim() : "";
+    if (!fullName) {
+      return NextResponse.json(
+        { message: "Họ và tên không được để trống" },
+        { status: 400 },
+      );
+    }
+
+    const profile = await prisma.user.update({
       where: { id: user.userId },
       data: {
-        fullName: fullName.trim(),
-        name: fullName.trim(),
-        phone: typeof phone === 'string' && phone.trim() ? phone.trim() : null,
-        gender: typeof gender === 'string' && gender.trim() ? gender.trim() : null,
-        birthDate: typeof birthDate === 'string' && birthDate ? new Date(birthDate) : null,
-        address: typeof address === 'string' && address.trim() ? address.trim() : null,
-        ...(typeof avatarUrl === 'string' && { avatarUrl: avatarUrl.trim() || null }),
+        fullName,
+        name: fullName,
+        phone: typeof body.phone === "string" && body.phone.trim() ? body.phone.trim() : null,
+        gender: typeof body.gender === "string" && body.gender.trim() ? body.gender.trim() : null,
+        birthDate: typeof body.birthDate === "string" && body.birthDate ? new Date(body.birthDate) : null,
+        address: typeof body.address === "string" && body.address.trim() ? body.address.trim() : null,
+        ...(typeof body.avatarUrl === "string" && {
+          avatarUrl: body.avatarUrl.trim() || null,
+        }),
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        fullName: true,
-        phone: true,
-        phoneVerified: true,
-        phoneVerifiedAt: true,
-        gender: true,
-        birthDate: true,
-        address: true,
-        avatarUrl: true,
-        role: true,
-        createdAt: true,
-      },
-    })
-
-    return NextResponse.json(updatedUser)
+      select: profileSelect,
+    });
+    return NextResponse.json(profile);
   } catch (error) {
-    console.error('Profile update error:', error)
-    return NextResponse.json(
-      { message: 'Unauthorized' },
-      { status: 401 }
-    )
+    console.error("Profile update error:", error);
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 }
