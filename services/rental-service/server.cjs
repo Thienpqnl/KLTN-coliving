@@ -21,6 +21,26 @@ const {
   terminateOccupancy,
   userOccupancy,
 } = require("./occupancy.cjs");
+const {
+  checkExpiredContracts,
+  confirmDeposit,
+  confirmHandover,
+  contractStats,
+  createContract,
+  deleteContract,
+  getContract,
+  listContracts,
+  renewContract,
+  signContract,
+  terminateContract,
+  updateContract,
+} = require("./contracts.cjs");
+const {
+  approveUtilityBill,
+  createUtilityBill,
+  listUtilityBills,
+  submitUtilityBillProof,
+} = require("./utility-bills.cjs");
 
 const app = express();
 const prisma = new PrismaClient();
@@ -180,6 +200,150 @@ app.get("/v1/user/occupancy", async (request, response) => {
   } catch (error) {
     console.error("[rental-service] GET /v1/user/occupancy failed", error);
     return response.status(500).json({ message: "Cannot load user occupancy" });
+  }
+});
+
+app.get("/v1/contracts", async (request, response) => {
+  try {
+    return sendResult(response, await listContracts(prisma, requestIdentity(request), request.query));
+  } catch (error) {
+    console.error("[rental-service] GET /v1/contracts failed", error);
+    return response.status(500).json({ message: "Cannot load contracts" });
+  }
+});
+
+app.post("/v1/contracts", async (request, response) => {
+  try {
+    return sendResult(response, await createContract(prisma, requestIdentity(request), request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] POST /v1/contracts failed", error);
+    return response.status(500).json({ message: "Cannot create contract" });
+  }
+});
+
+app.get("/v1/contracts/:id", async (request, response) => {
+  try {
+    return sendResult(response, await getContract(prisma, requestIdentity(request), request.params.id));
+  } catch (error) {
+    console.error("[rental-service] GET /v1/contracts/:id failed", error);
+    return response.status(500).json({ message: "Cannot load contract" });
+  }
+});
+
+app.put("/v1/contracts/:id", async (request, response) => {
+  try {
+    return sendResult(response, await updateContract(prisma, requestIdentity(request), request.params.id, request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] PUT /v1/contracts/:id failed", error);
+    return response.status(500).json({ message: "Cannot update contract" });
+  }
+});
+
+app.delete("/v1/contracts/:id", async (request, response) => {
+  try {
+    return sendResult(response, await deleteContract(prisma, requestIdentity(request), request.params.id, request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] DELETE /v1/contracts/:id failed", error);
+    return response.status(500).json({ message: "Cannot delete contract" });
+  }
+});
+
+app.post("/v1/contracts/:id/sign", async (request, response) => {
+  try {
+    return sendResult(response, await signContract(prisma, requestIdentity(request), request.params.id, request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] POST /v1/contracts/:id/sign failed", error);
+    return response.status(500).json({ message: "Cannot sign contract" });
+  }
+});
+
+app.post("/v1/contracts/:id/deposit", async (request, response) => {
+  try {
+    return sendResult(response, await confirmDeposit(prisma, requestIdentity(request), request.params.id, request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] POST /v1/contracts/:id/deposit failed", error);
+    return response.status(500).json({ message: "Cannot confirm deposit" });
+  }
+});
+
+app.post("/v1/contracts/:id/handover", async (request, response) => {
+  try {
+    return sendResult(response, await confirmHandover(prisma, requestIdentity(request), request.params.id, request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] POST /v1/contracts/:id/handover failed", error);
+    return response.status(500).json({ message: "Cannot confirm handover" });
+  }
+});
+
+app.post("/v1/contracts/:id/renew", async (request, response) => {
+  try {
+    return sendResult(response, await renewContract(prisma, requestIdentity(request), request.params.id, request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] POST /v1/contracts/:id/renew failed", error);
+    return response.status(500).json({ message: "Cannot renew contract" });
+  }
+});
+
+app.post("/v1/contracts/:id/terminate", async (request, response) => {
+  try {
+    return sendResult(response, await terminateContract(prisma, requestIdentity(request), request.params.id, request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] POST /v1/contracts/:id/terminate failed", error);
+    return response.status(500).json({ message: "Cannot terminate contract" });
+  }
+});
+
+app.get("/v1/contracts/:id/utility-bills", async (request, response) => {
+  try {
+    return sendResult(response, await listUtilityBills(prisma, requestIdentity(request), request.params.id));
+  } catch (error) {
+    console.error("[rental-service] GET /v1/contracts/:id/utility-bills failed", error);
+    return response.status(500).json({ message: "Cannot load utility bills" });
+  }
+});
+
+app.post("/v1/contracts/:id/utility-bills", async (request, response) => {
+  try {
+    return sendResult(response, await createUtilityBill(prisma, requestIdentity(request), request.params.id, request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] POST /v1/contracts/:id/utility-bills failed", error);
+    return response.status(500).json({ message: "Cannot create utility bill" });
+  }
+});
+
+app.post("/v1/utility-bills/:billId/proof", async (request, response) => {
+  try {
+    return sendResult(response, await submitUtilityBillProof(prisma, requestIdentity(request), request.params.billId, request.body || {}));
+  } catch (error) {
+    console.error("[rental-service] POST /v1/utility-bills/:billId/proof failed", error);
+    return response.status(500).json({ message: "Cannot submit utility bill proof" });
+  }
+});
+
+app.put("/v1/utility-bills/:billId/approve", async (request, response) => {
+  try {
+    return sendResult(response, await approveUtilityBill(prisma, requestIdentity(request), request.params.billId));
+  } catch (error) {
+    console.error("[rental-service] PUT /v1/utility-bills/:billId/approve failed", error);
+    return response.status(500).json({ message: "Cannot approve utility bill" });
+  }
+});
+
+app.get("/v1/admin/contracts", async (request, response) => {
+  try {
+    return sendResult(response, await contractStats(prisma, request.query));
+  } catch (error) {
+    console.error("[rental-service] GET /v1/admin/contracts failed", error);
+    return response.status(500).json({ message: "Cannot load contract stats" });
+  }
+});
+
+app.post("/v1/admin/contracts/check-expiry", async (request, response) => {
+  try {
+    return sendResult(response, await checkExpiredContracts(prisma, request.get("authorization")));
+  } catch (error) {
+    console.error("[rental-service] POST /v1/admin/contracts/check-expiry failed", error);
+    return response.status(500).json({ message: "Cannot check expired contracts" });
   }
 });
 

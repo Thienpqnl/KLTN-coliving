@@ -4,6 +4,7 @@ import { contractService } from "@/lib/services/contract.service";
 import { getAuthUser } from "@/lib/auth";
 import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
 import { getRequestMetadata } from "@/lib/request-metadata";
+import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
 
 const schema = z.object({
   reference: z.string().trim().max(200).optional(),
@@ -21,14 +22,21 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
     const { id } = await params;
     const data = schema.parse(await request.json());
-    const contract = await contractService.confirmDeposit(id, {
+    const payload = { reference: data.reference, note: data.note, ...getRequestMetadata(request) };
+    const proxied = await tryProxyRentalService({
+      identity: authUser,
+      path: `/v1/contracts/${id}/deposit`,
+      method: "POST",
+      body: payload,
+      fallbackMessage: "Không thể xác nhận tiền cọc",
+    });
+    if (proxied) return proxied;
+
+    return successResponse(await contractService.confirmDeposit(id, {
       actorId: authUser.userId,
       role: authUser.role,
-      reference: data.reference,
-      note: data.note,
-      ...getRequestMetadata(request),
-    });
-    return successResponse(contract);
+      ...payload,
+    }));
   } catch (error) {
     return handleApiError(error);
   }
