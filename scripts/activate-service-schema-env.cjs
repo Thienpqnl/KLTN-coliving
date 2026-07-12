@@ -7,6 +7,15 @@ const dotenv = require("dotenv");
 function schemaUrl(base, schema) {
   const url = new URL(base);
   url.searchParams.set("schema", schema);
+  url.searchParams.set("connection_limit", "1");
+  url.searchParams.set("pool_timeout", "20");
+  return url.toString();
+}
+
+function pooledPrismaUrl(base) {
+  const url = new URL(base);
+  url.searchParams.set("connection_limit", "1");
+  url.searchParams.set("pool_timeout", "20");
   return url.toString();
 }
 
@@ -39,8 +48,9 @@ function main() {
     fs.copyFileSync(aiEnvPath, path.join(backupDir, `ai.env-before-schema-cutover-${stamp}`));
   }
 
-  const databaseUrl = parsed.DATABASE_URL;
+  const databaseUrl = pooledPrismaUrl(parsed.DATABASE_URL);
   fs.writeFileSync(rootEnvPath, upsertEnv(rootContent, {
+    DATABASE_URL: databaseUrl,
     SCHEMA_SPLIT_DATABASE_URL: parsed.SCHEMA_SPLIT_DATABASE_URL || databaseUrl,
     IDENTITY_DATABASE_URL: schemaUrl(databaseUrl, "identity"),
     PROPERTY_DATABASE_URL: schemaUrl(databaseUrl, "property"),
@@ -60,4 +70,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { schemaUrl, upsertEnv };
+module.exports = { pooledPrismaUrl, schemaUrl, upsertEnv };
