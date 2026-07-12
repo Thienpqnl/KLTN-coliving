@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
         hostname: 'pt123.cdn.static123.com',
         pathname: '/**', 
       },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
     ],
   }
 };

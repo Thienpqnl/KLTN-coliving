@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  deletePreference,
   getPreference,
   normalizePreferenceInput,
   upsertPreference,
@@ -23,27 +24,21 @@ test("getPreference requires authentication and returns empty object when missin
   const denied = await getPreference({}, {});
   assert.equal(denied.status, 401);
 
-  const prisma = {
-    user: { findUnique: async () => ({ id: "user-1" }) },
-    $queryRaw: async () => [],
-  };
+  const prisma = { $queryRaw: async () => [] };
   const result = await getPreference(prisma, { userId: "user-1" });
 
   assert.equal(result.status, 200);
   assert.deepEqual(result.payload, {});
 });
 
-test("upsertPreference validates user and returns saved preference", async () => {
+test("upsertPreference trusts authenticated service identity and returns saved preference", async () => {
   const rows = [{
     id: "pref-1",
     userId: "user-1",
     budgetMinVnd: 1000000n,
     budgetMaxVnd: 3000000n,
   }];
-  const prisma = {
-    user: { findUnique: async () => ({ id: "user-1" }) },
-    $queryRaw: async () => rows,
-  };
+  const prisma = { $queryRaw: async () => rows };
 
   const result = await upsertPreference(
     prisma,
@@ -54,4 +49,11 @@ test("upsertPreference validates user and returns saved preference", async () =>
   assert.equal(result.status, 200);
   assert.equal(result.payload.message, "Cap nhat thanh cong");
   assert.equal(result.payload.preference.budgetMinVnd, 1000000);
+});
+
+test("deletePreference removes only Preference-owned data", async () => {
+  const prisma = { $executeRaw: async () => 1 };
+  const result = await deletePreference(prisma, "user-1");
+  assert.equal(result.status, 200);
+  assert.equal(result.payload.deleted, 1);
 });

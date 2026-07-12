@@ -31,21 +31,26 @@ test("listManagersWithAreas is admin-only and returns manager areas", async () =
   const denied = await listManagersWithAreas({}, { userId: "cm-1", role: "COMMUNITY_MANAGER" });
   assert.equal(denied.status, 403);
 
-  let findManyArgs;
   const prisma = {
-    user: {
-      findMany: async (args) => {
-        findManyArgs = args;
-        return [{ id: "cm-1", email: "cm@example.com", communityManagerAreas: [] }];
-      },
-    },
+    communityManagerArea: { findMany: async () => [] },
+    roomVerification: { groupBy: async () => [] },
   };
 
-  const result = await listManagersWithAreas(prisma, { userId: "admin-1", role: "ADMIN" });
+  const clients = {
+    searchUsers: async ({ role }) => {
+      assert.equal(role, "COMMUNITY_MANAGER");
+      return [{ id: "cm-1", email: "cm@example.com" }];
+    },
+  };
+  const result = await listManagersWithAreas(prisma, { userId: "admin-1", role: "ADMIN" }, clients);
   assert.equal(result.status, 200);
-  assert.equal(findManyArgs.where.role, "COMMUNITY_MANAGER");
   assert.deepEqual(result.payload, [
-    { id: "cm-1", email: "cm@example.com", communityManagerAreas: [] },
+    {
+      id: "cm-1",
+      email: "cm@example.com",
+      communityManagerAreas: [],
+      _count: { managedRoomVerifications: 0 },
+    },
   ]);
 });
 
@@ -53,16 +58,12 @@ test("replaceManagerAreas validates manager role and replaces areas transactiona
   const denied = await replaceManagerAreas({}, { userId: "host-1", role: "HOST" }, "cm-1", []);
   assert.equal(denied.status, 403);
 
-  const notCommunityManager = {
-    user: {
-      findUnique: async () => ({ id: "user-1", role: "CUSTOMER" }),
-    },
-  };
   const invalid = await replaceManagerAreas(
-    notCommunityManager,
+    {},
     { userId: "admin-1", role: "ADMIN" },
     "user-1",
     [],
+    { getUser: async () => ({ id: "user-1", role: "CUSTOMER" }) },
   );
   assert.equal(invalid.status, 400);
 
@@ -73,19 +74,10 @@ test("replaceManagerAreas validates manager role and replaces areas transactiona
       createMany: async ({ data }) => {
         createdAreas = data;
       },
-    },
-    user: {
-      findUnique: async () => ({
-        id: "cm-1",
-        email: "cm@example.com",
-        communityManagerAreas: createdAreas,
-      }),
+      findMany: async () => createdAreas,
     },
   };
   const prisma = {
-    user: {
-      findUnique: async () => ({ id: "cm-1", role: "COMMUNITY_MANAGER" }),
-    },
     $transaction: async (callback) => callback(tx),
   };
 
@@ -94,6 +86,7 @@ test("replaceManagerAreas validates manager role and replaces areas transactiona
     { userId: "admin-1", role: "ADMIN" },
     "cm-1",
     [{ region: "SOUTH", city: " Ho Chi Minh ", isActive: true }],
+    { getUser: async () => ({ id: "cm-1", email: "cm@example.com", role: "COMMUNITY_MANAGER" }) },
   );
 
   assert.equal(result.status, 200);

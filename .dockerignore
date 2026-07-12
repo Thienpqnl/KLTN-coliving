@@ -1,6 +1,7 @@
 .git
 .next
 node_modules
+services/*/generated
 ai/venv*
 ai/.venv
 **/__pycache__

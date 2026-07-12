@@ -5,18 +5,8 @@ const {
   syncRoomOccupancy,
 } = require("./capacity.cjs");
 const { sanitizeForJson } = require("./serialization.cjs");
-
-const occupantUserSelect = {
-  id: true,
-  email: true,
-  name: true,
-  fullName: true,
-  phone: true,
-  avatarUrl: true,
-  gender: true,
-  birthDate: true,
-  address: true,
-};
+const { enqueueOccupancyChanged } = require("./outbox.cjs");
+const { attachOccupancyUsers, identityClient } = require("./user-composition.cjs");
 
 const addOccupantSchema = z.object({
   roomId: z.string().min(1),
@@ -49,13 +39,16 @@ function requireAuthenticated(identity) {
 }
 
 async function assertHostOwnsRoom(prisma, roomId, hostId) {
-  const room = await prisma.room.findUnique({ where: { id: roomId }, select: { ownerId: true } });
+  const room = await prisma.rentalRoomSnapshot.findUnique({
+    where: { roomId },
+    select: { ownerId: true },
+  });
   if (!room) return failure(404, "Không tìm thấy phòng");
   if (room.ownerId !== hostId) return failure(403, "Bạn không có quyền xem người thuê của phòng này");
   return null;
 }
 
-async function listRoomOccupants(prisma, identity, roomId) {
+async function listRoomOccupants(prisma, identity, roomId, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const notOwner = await assertHostOwnsRoom(prisma, roomId, identity.userId);
@@ -63,41 +56,49 @@ async function listRoomOccupants(prisma, identity, roomId) {
 
   const occupants = await prisma.occupancy.findMany({
     where: { roomId },
-    include: { user: { select: occupantUserSelect } },
     orderBy: [{ status: "asc" }, { joinedAt: "desc" }],
   });
-  return { status: 200, payload: sanitizeForJson(occupants) };
+  return { status: 200, payload: sanitizeForJson(await attachOccupancyUsers(occupants, clients)) };
 }
 
-async function getOccupantDetails(prisma, identity, occupancyId) {
+async function getOccupantDetails(prisma, identity, occupancyId, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const occupancy = await prisma.occupancy.findUnique({
     where: { id: occupancyId },
-    include: {
-      user: { select: { ...occupantUserSelect, createdAt: true, role: true } },
-      room: { select: { id: true, title: true, address: true, priceValue: true, ownerId: true } },
-    },
   });
   if (!occupancy) return failure(404, "Không tìm thấy thông tin cư trú");
-  if (identity.role !== "ADMIN" && occupancy.room.ownerId !== identity.userId && occupancy.userId !== identity.userId) {
+  const room = await prisma.rentalRoomSnapshot.findUnique({
+    where: { roomId: occupancy.roomId },
+  });
+  if (identity.role !== "ADMIN" && room?.ownerId !== identity.userId && occupancy.userId !== identity.userId) {
     return failure(403, "Bạn không có quyền xem thông tin cư trú này");
   }
-  return { status: 200, payload: sanitizeForJson(occupancy) };
+  return {
+    status: 200,
+    payload: sanitizeForJson({
+      ...(await attachOccupancyUsers(occupancy, clients)),
+      room: room ? { id: room.roomId, ...room } : null,
+    }),
+  };
 }
 
-async function addOccupant(prisma, identity, input, excludeBookingId) {
+async function addOccupant(prisma, identity, input, excludeBookingId, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const parsed = validate(addOccupantSchema, input);
   if (!parsed.ok) return parsed;
   const { roomId, userId, notes } = parsed.data;
 
+  let user;
+  try {
+    user = await clients.getUser(userId);
+  } catch (error) {
+    if (error.status !== 404) throw error;
+  }
+
   const occupancy = await runSerializableTransaction(prisma, async (tx) => {
-    const [capacity, user] = await Promise.all([
-      getRoomCapacity(tx, roomId, undefined, excludeBookingId),
-      tx.user.findUnique({ where: { id: userId }, select: { id: true } }),
-    ]);
+    const capacity = await getRoomCapacity(tx, roomId, undefined, excludeBookingId);
 
     if (!capacity) return failure(404, "Không tìm thấy phòng");
     if (!user) return failure(404, "Không tìm thấy người dùng");
@@ -121,21 +122,21 @@ async function addOccupant(prisma, identity, input, excludeBookingId) {
             terminationReason: null,
             notes,
           },
-          include: { user: { select: { id: true, name: true, email: true } } },
         })
       : await tx.occupancy.create({
           data: { roomId, userId, notes },
-          include: { user: { select: { id: true, name: true, email: true } } },
         });
 
-    await syncRoomOccupancy(tx, roomId);
+    const projection = await syncRoomOccupancy(tx, roomId);
+    await enqueueOccupancyChanged(tx, roomId, projection.currentOccupants);
     return { status: 201, payload: sanitizeForJson(result) };
   });
 
-  return occupancy;
+  if (occupancy.status !== 201) return occupancy;
+  return { ...occupancy, payload: sanitizeForJson(await attachOccupancyUsers(occupancy.payload, clients)) };
 }
 
-async function terminateOccupancy(prisma, identity, occupancyId, input) {
+async function terminateOccupancy(prisma, identity, occupancyId, input, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const parsed = validate(terminateSchema, input);
@@ -144,10 +145,13 @@ async function terminateOccupancy(prisma, identity, occupancyId, input) {
   const result = await runSerializableTransaction(prisma, async (tx) => {
     const occupancy = await tx.occupancy.findUnique({
       where: { id: occupancyId },
-      include: { room: true },
     });
     if (!occupancy) return failure(404, "Không tìm thấy thông tin cư trú");
-    if (identity.role !== "ADMIN" && occupancy.room.ownerId !== identity.userId && occupancy.userId !== identity.userId) {
+    const room = await tx.rentalRoomSnapshot.findUnique({
+      where: { roomId: occupancy.roomId },
+      select: { ownerId: true },
+    });
+    if (identity.role !== "ADMIN" && room?.ownerId !== identity.userId && occupancy.userId !== identity.userId) {
       return failure(403, "Bạn không có quyền kết thúc cư trú này");
     }
     if (occupancy.status !== "ACTIVE") return failure(409, "Người thuê không còn ở trong phòng");
@@ -159,16 +163,17 @@ async function terminateOccupancy(prisma, identity, occupancyId, input) {
         terminatedAt: new Date(),
         terminationReason: parsed.data.reason,
       },
-      include: { user: { select: { id: true, name: true, email: true } } },
     });
 
-    await syncRoomOccupancy(tx, occupancy.roomId);
+    const projection = await syncRoomOccupancy(tx, occupancy.roomId);
+    await enqueueOccupancyChanged(tx, occupancy.roomId, projection.currentOccupants);
     return { status: 200, payload: sanitizeForJson(updated) };
   });
-  return result;
+  if (result.status !== 200) return result;
+  return { ...result, payload: sanitizeForJson(await attachOccupancyUsers(result.payload, clients)) };
 }
 
-async function occupancyHistory(prisma, identity, roomId) {
+async function occupancyHistory(prisma, identity, roomId, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const notOwner = await assertHostOwnsRoom(prisma, roomId, identity.userId);
@@ -176,10 +181,9 @@ async function occupancyHistory(prisma, identity, roomId) {
 
   const history = await prisma.occupancy.findMany({
     where: { roomId },
-    include: { user: { select: occupantUserSelect } },
     orderBy: { joinedAt: "desc" },
   });
-  return { status: 200, payload: sanitizeForJson(history) };
+  return { status: 200, payload: sanitizeForJson(await attachOccupancyUsers(history, clients)) };
 }
 
 async function occupancyStats(prisma, identity, query) {
@@ -213,18 +217,29 @@ async function userOccupancy(prisma, identity) {
   const [occupancy, ownedRooms] = await Promise.all([
     prisma.occupancy.findFirst({
       where: { userId: identity.userId, status: "ACTIVE" },
-      include: { room: { select: { id: true, title: true, address: true } } },
     }),
-    prisma.room.findMany({
+    prisma.rentalRoomSnapshot.findMany({
       where: { ownerId: identity.userId },
-      select: { id: true, title: true, address: true },
+      select: { roomId: true, title: true, address: true },
     }),
   ]);
 
-  return { status: 200, payload: sanitizeForJson({ occupancy, ownedRooms }) };
+  const occupiedRoom = occupancy
+    ? await prisma.rentalRoomSnapshot.findUnique({ where: { roomId: occupancy.roomId } })
+    : null;
+
+  return {
+    status: 200,
+    payload: sanitizeForJson({
+      occupancy: occupancy
+        ? { ...occupancy, room: occupiedRoom ? { id: occupiedRoom.roomId, ...occupiedRoom } : null }
+        : null,
+      ownedRooms: ownedRooms.map((room) => ({ id: room.roomId, ...room })),
+    }),
+  };
 }
 
-async function linkBookingToOccupancy(prisma, identity, bookingId) {
+async function linkBookingToOccupancy(prisma, identity, bookingId, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
@@ -242,6 +257,7 @@ async function linkBookingToOccupancy(prisma, identity, bookingId) {
       notes: `Được thêm từ booking #${bookingId}`,
     },
     bookingId,
+    clients,
   );
 }
 

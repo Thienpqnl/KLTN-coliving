@@ -1,4 +1,4 @@
-const { Prisma } = require("@prisma/client");
+const { Prisma } = require("./generated/client");
 
 async function getRoomCapacity(db, roomId, interval, excludeBookingId) {
   const confirmedWhere = {
@@ -14,10 +14,10 @@ async function getRoomCapacity(db, roomId, interval, excludeBookingId) {
   };
 
   const [room, activeOccupants, confirmedReservations] = await Promise.all([
-    db.room.findUnique({
-      where: { id: roomId },
+    db.rentalRoomSnapshot.findUnique({
+      where: { roomId },
       select: {
-        id: true,
+        roomId: true,
         ownerId: true,
         status: true,
         currentOccupants: true,
@@ -46,8 +46,8 @@ async function getRoomCapacity(db, roomId, interval, excludeBookingId) {
 
 async function syncRoomOccupancy(db, roomId) {
   const [room, activeOccupants] = await Promise.all([
-    db.room.findUnique({
-      where: { id: roomId },
+    db.rentalRoomSnapshot.findUnique({
+      where: { roomId },
       select: { status: true, maxOccupants: true },
     }),
     db.occupancy.count({ where: { roomId, status: "ACTIVE" } }),
@@ -63,10 +63,33 @@ async function syncRoomOccupancy(db, roomId) {
       : "AVAILABLE"
     : room.status;
 
-  return db.room.update({
-    where: { id: roomId },
+  return db.rentalRoomSnapshot.update({
+    where: { roomId },
     data: { currentOccupants: activeOccupants, status },
   });
+}
+
+async function getRoomsAvailability(db, roomIds, interval) {
+  const uniqueRoomIds = [...new Set((roomIds || []).map(String).filter(Boolean))];
+  const entries = await Promise.all(
+    uniqueRoomIds.map(async (roomId) => {
+      const capacity = await getRoomCapacity(db, roomId, interval);
+      return [
+        roomId,
+        capacity
+          ? {
+              available: capacity.room.status === "AVAILABLE" && !capacity.isFull,
+              status: capacity.room.status,
+              maxOccupants: capacity.maxOccupants,
+              currentOccupants: capacity.currentOccupants,
+              confirmedReservations: capacity.confirmedReservations,
+              availablePlaces: capacity.availablePlaces,
+            }
+          : null,
+      ];
+    }),
+  );
+  return Object.fromEntries(entries);
 }
 
 async function runSerializableTransaction(prisma, operation, maxAttempts = 3) {
@@ -89,6 +112,7 @@ async function runSerializableTransaction(prisma, operation, maxAttempts = 3) {
 
 module.exports = {
   getRoomCapacity,
+  getRoomsAvailability,
   runSerializableTransaction,
   syncRoomOccupancy,
 };

@@ -20,22 +20,25 @@ def get_supabase_client() -> Client:
     client = create_client(supabase_url, supabase_key)
     return client
 
+def service_table(client: Client, schema: str, table: str):
+    """Use schema-per-service after cutover while preserving public fallback."""
+    use_service_schemas = os.getenv("USE_SERVICE_SCHEMAS", "false").lower() == "true"
+    return client.schema(schema).table(table) if use_service_schemas else client.table(table)
+
 def load_users_from_supabase() -> pd.DataFrame:
     try:
         print("📥 Loading users from Supabase...")
         supabase = get_supabase_client()
 
         users_response = (
-            supabase
-            .table("User")
+            service_table(supabase, "identity", "User")
             .select("id, email, fullName, role")
             .execute()
         )
         users_df = pd.DataFrame(users_response.data)
 
         preferences_response = (
-            supabase
-            .table("user_preferences")
+            service_table(supabase, "preference", "user_preferences")
             .select("""
                 userId,
                 budgetMinVnd,
@@ -105,8 +108,7 @@ def load_rooms_from_supabase() -> pd.DataFrame:
         supabase = get_supabase_client()
 
         response = (
-            supabase
-            .table("Room")
+            service_table(supabase, "property", "Room")
             .select("""
                 id, title, address, district, districtId, priceValue, ownerId, status,
                 cleanlinessRequired, noiseTolerance, guestPolicy, preferredSleepHabit,
@@ -153,7 +155,7 @@ def load_occupancy_from_supabase() -> pd.DataFrame:
     try:
         print("📥 Loading occupancy data from Supabase...")
         supabase = get_supabase_client()
-        response = supabase.table("occupancy").select("roomId, userId, status").execute()
+        response = service_table(supabase, "rental", "occupancy").select("roomId, userId, status").execute()
 
         occupancy_data = response.data or []
         if not occupancy_data:
@@ -178,7 +180,7 @@ def load_interactions_from_supabase() -> pd.DataFrame:
     try:
         print("📥 Loading room interactions from Supabase...")
         supabase = get_supabase_client()
-        response = supabase.table("RoomInteraction").select("userId, roomId, interactionType, interactionValue").execute()
+        response = service_table(supabase, "preference", "RoomInteraction").select("userId, roomId, interactionType, interactionValue").execute()
         
         df = pd.DataFrame(response.data)
         if not df.empty:

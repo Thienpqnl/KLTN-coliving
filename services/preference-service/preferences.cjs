@@ -65,25 +65,13 @@ async function getPreference(prisma, identity) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
 
-  const user = await prisma.user.findUnique({
-    where: { id: identity.userId },
-    select: { id: true },
-  });
-  if (!user) return failure(404, "Nguoi dung khong tim thay");
-
-  const preference = await findPreferenceByUserId(prisma, user.id);
+  const preference = await findPreferenceByUserId(prisma, identity.userId);
   return { status: 200, payload: sanitizeForJson(preference ?? {}) };
 }
 
 async function upsertPreference(prisma, identity, input) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
-
-  const user = await prisma.user.findUnique({
-    where: { id: identity.userId },
-    select: { id: true },
-  });
-  if (!user) return failure(404, "Nguoi dung khong tim thay");
 
   const validated = normalizePreferenceInput(input);
   if (!validated.ok) return failure(400, validated.message);
@@ -106,7 +94,7 @@ async function upsertPreference(prisma, identity, input) {
     )
     VALUES (
       ${randomUUID()},
-      ${user.id},
+      ${identity.userId},
       ${data.budgetMinVnd},
       ${data.budgetMaxVnd},
       ${data.preferredDistrict},
@@ -152,7 +140,15 @@ async function upsertPreference(prisma, identity, input) {
   };
 }
 
+async function deletePreference(prisma, userId) {
+  const result = await prisma.$executeRaw`
+    DELETE FROM "user_preferences" WHERE "userId" = ${userId}
+  `;
+  return { status: 200, payload: { deleted: Number(result) } };
+}
+
 module.exports = {
+  deletePreference,
   findPreferenceByUserId,
   getPreference,
   normalizePreferenceInput,

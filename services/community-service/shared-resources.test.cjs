@@ -25,6 +25,7 @@ test("createHostResource allows host and returns notification intent", async () 
       type: "SPACE",
       maxDurationMinutes: 120,
     },
+    { getRoom: async () => ({ id: roomId, ownerId: "host-1" }) },
   );
 
   assert.equal(result.status, 201);
@@ -75,6 +76,7 @@ test("createResourceBooking rejects conflicting booking windows", async () => {
       startTime: new Date(startTime.getTime() + 10 * 60 * 1000),
       endTime: new Date(endTime.getTime() + 10 * 60 * 1000),
     },
+    { getOccupancyAccess: async () => ({ active: true }) },
   );
 
   assert.equal(result.status, 409);

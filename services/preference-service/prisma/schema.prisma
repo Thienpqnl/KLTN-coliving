@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model user_preferences {
+  id                        String   @id @default(uuid())
+  userId                    String   @unique
+  budgetMinVnd              BigInt?
+  budgetMaxVnd              BigInt?
+  preferredDistrict         String?
+  lifestyleArchetype        String?
+  priorityCleanliness       Int?     @default(3)
+  prioritySocialEnvironment Int?     @default(3)
+  acceptSmokingRoommates    Boolean? @default(false)
+  acceptPets                Boolean? @default(false)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([userId])
+  @@map("user_preferences")
+}
+
+model user_lifestyle_profiles {
+  id               String          @id @default(uuid())
+  userId           String          @unique
+  smoking          SmokingType?
+  pets             Boolean?
+  petTolerance     Boolean?
+  sleepTime        SleepTime?
+  wakeupTime       Int?
+  cleanliness      Int?
+  noiseTolerance   Int?
+  sociability      Int?
+  privacyLevel     Int?
+  guestsFrequency  GuestFrequency?
+  cookingFrequency Int?
+  budget           BigInt?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@map("user_lifestyle_profiles")
+}
+
+model RoomInteraction {
+  id               String          @id
+  userId           String
+  roomId           String
+  interactionType  InteractionType
+  interactionValue Float           @default(1.0)
+  durationSeconds  Int?            @default(0)
+  createdAt        DateTime        @default(now())
+
+  @@index([roomId])
+  @@index([userId])
+}
+
+enum SmokingType {
+  NO
+  OCCASIONALLY
+  YES
+}
+
+enum SleepTime {
+  BEFORE_10PM
+  BETWEEN_10_12
+  AFTER_12
+}
+
+enum GuestFrequency {
+  NEVER
+  SOMETIMES
+  OFTEN
+}
+
+enum InteractionType {
+  VIEW
+  CLICK
+  FAVORITE
+  BOOKING_REQ
+  CONTRACT
+}

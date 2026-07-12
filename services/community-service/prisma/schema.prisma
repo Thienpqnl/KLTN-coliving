@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserDeviceToken {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique
+  deviceType String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model FavoriteRoom {
+  id        String   @id @default(uuid())
+  userId    String
+  roomId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roomId])
+  @@index([userId])
+  @@index([roomId])
+}
+
+model Review {
+  id        String       @id @default(uuid())
+  userId    String
+  roomId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime     @default(now())
+  status    ReviewStatus @default(VISIBLE)
+  updatedAt DateTime     @updatedAt
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+  @@index([status])
+}
+
+model SharedResource {
+  id                 String            @id @default(uuid())
+  roomId             String
+  name               String
+  type               String
+  status             String            @default("ACTIVE")
+  requiresApproval   Boolean           @default(false)
+  maxDurationMinutes Int               @default(120)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  description        String?
+  ownerId            String
+  resourceBookings   ResourceBooking[]
+
+  @@index([roomId])
+  @@index([ownerId])
+  @@map("shared_resources")
+}
+
+model ResourceBooking {
+  id         String         @id @default(uuid())
+  resourceId String
+  userId     String
+  title      String?
+  startTime  DateTime
+  endTime    DateTime
+  status     String         @default("APPROVED")
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  resource   SharedResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("resource_bookings")
+}
+
+model SharedSpaceActivity {
+  id         String    @id @default(uuid())
+  roomId     String
+  creatorId  String
+  assigneeId String?
+  type       String
+  title      String
+  content    String?
+  eventDate  DateTime?
+  imageUrl   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([roomId])
+  @@index([creatorId])
+  @@index([assigneeId])
+  @@map("shared_space_activities")
+}
+
+model CommunityOutboxEvent {
+  id            String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@map("community_outbox_events")
+}
+
+enum ReviewStatus {
+  VISIBLE
+  HIDDEN
+  DELETED
+}

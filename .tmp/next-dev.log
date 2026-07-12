@@ -6,12 +6,20 @@
 - Local:         http://localhost:3000
 - Network:       http://192.168.1.73:3000
 - Environments: .env
-✓ Ready in 2.9s
+✓ Ready in 684ms
 Creating turbopack project { dir: 'D:\\coliving', testMode: true }
 
+ GET / 200 in 901ms (next.js: 623ms, application-code: 279ms)
+ GET /api/rooms/map 503 in 424ms (next.js: 313ms, application-code: 111ms)
+ GET /api/rooms?page=1&limit=1 503 in 126ms (next.js: 113ms, application-code: 12ms)
+ GET /api/rooms/map 200 in 2.3s (next.js: 4ms, application-code: 2.3s)
+ GET /api/rooms?page=1&limit=1 200 in 2.6s (next.js: 4ms, application-code: 2.6s)
+ GET /api/rooms/map 200 in 1300ms (next.js: 3ms, application-code: 1297ms)
+ GET /api/rooms?page=1&limit=1 200 in 957ms (next.js: 4ms, application-code: 953ms)
   Reload env: .env
   Reload env: .env
   Reload env: .env
   Reload env: .env
-  Reload env: .env
+ GET /api/rooms/map 200 in 1608ms (next.js: 38ms, application-code: 1570ms)
+ GET /api/rooms?page=1&limit=1 200 in 2.4s (next.js: 51ms, application-code: 2.3s)
 [?25h

@@ -1,13 +1,19 @@
+require("dotenv").config();
+
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require("./generated/client");
 const { requestIdentity, requireInternalService } = require("../shared/internal-auth.cjs");
+const { createPublisher } = require("../shared/rabbitmq.cjs");
+const { startOutboxWorker } = require("./outbox.cjs");
 const { addFavorite, getFavorite, listFavorites, removeFavorite } = require("./favorites.cjs");
+const { getUserProfileReviews, purgeUserPrivateData } = require("./identity-access.cjs");
 const { removeDeviceToken, saveDeviceToken } = require("./device-tokens.cjs");
 const {
   createReview,
   createRoomReview,
   deleteReview,
   getReviewById,
+  getRoomAverageRatingPayload,
   listAdminReviews,
   listHostReviews,
   listUserReviews,
@@ -27,7 +33,9 @@ const {
 } = require("./shared-resources.cjs");
 
 const app = express();
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.COMMUNITY_DATABASE_URL || process.env.DATABASE_URL } },
+});
 const port = Number(process.env.PORT || 4004);
 
 app.disable("x-powered-by");
@@ -42,6 +50,33 @@ app.use("/v1", requireInternalService);
 function send(response, result) {
   return response.status(result.status).json(result.payload);
 }
+
+app.get("/v1/internal/rooms/:id/review-stats", async (request, response) => {
+  try {
+    return response.json(await getRoomAverageRatingPayload(prisma, request.params.id));
+  } catch (error) {
+    console.error("[community-service] room review stats failed", error);
+    return response.status(500).json({ message: "Cannot load room review stats" });
+  }
+});
+
+app.get("/v1/internal/identity/users/:id/profile-reviews", async (request, response) => {
+  try {
+    return send(response, await getUserProfileReviews(prisma, request.params.id));
+  } catch (error) {
+    console.error("[community-service] identity profile reviews failed", error);
+    return response.status(500).json({ message: "Cannot load profile reviews" });
+  }
+});
+
+app.delete("/v1/internal/identity/users/:id/private-data", async (request, response) => {
+  try {
+    return response.json(await purgeUserPrivateData(prisma, request.params.id));
+  } catch (error) {
+    console.error("[community-service] private data purge failed", error);
+    return response.status(500).json({ message: "Cannot purge community private data" });
+  }
+});
 
 app.get("/v1/favorites", async (request, response) => {
   try {
@@ -263,9 +298,14 @@ const server = app.listen(port, "0.0.0.0", () => {
   console.log(`[community-service] listening on port ${port}`);
 });
 
+const eventPublisher = createPublisher("community-service");
+const stopOutboxWorker = startOutboxWorker(prisma, eventPublisher);
+
 async function shutdown(signal) {
   console.log(`[community-service] received ${signal}, shutting down`);
   server.close(async () => {
+    await stopOutboxWorker();
+    await eventPublisher.close();
     await prisma.$disconnect();
     process.exit(0);
   });

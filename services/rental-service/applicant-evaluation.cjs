@@ -1,3 +1,5 @@
+const { identityClient } = require("./user-composition.cjs");
+
 function failure(status, message) {
   return { status, payload: { error: message } };
 }
@@ -39,22 +41,22 @@ function defaultEvaluation(booking, room) {
   };
 }
 
-async function evaluateApplicant(prisma, identity, bookingId, aiBaseUrl) {
+async function evaluateApplicant(prisma, identity, bookingId, aiBaseUrl, clients = identityClient) {
   if (!identity?.userId) return failure(401, "Unauthorized");
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: {
-      room: true,
-      user: true,
-    },
   });
   if (!booking) return failure(404, "Booking not found");
 
-  const room = await prisma.room.findUnique({ where: { id: booking.roomId } });
+  const room = await prisma.rentalRoomSnapshot.findUnique({
+    where: { roomId: booking.roomId },
+  });
   if (!room || (room.ownerId !== identity.userId && identity.role !== "ADMIN")) {
     return failure(403, "Unauthorized");
   }
+  const user = await clients.getUser(booking.userId);
+  const hydratedBooking = { ...booking, user };
 
   let evaluation = null;
   try {
@@ -70,7 +72,7 @@ async function evaluateApplicant(prisma, identity, bookingId, aiBaseUrl) {
     console.error("[rental-service] AI applicant evaluation failed", error);
   }
 
-  if (!evaluation) evaluation = defaultEvaluation(booking, room);
+  if (!evaluation) evaluation = defaultEvaluation(hydratedBooking, room);
 
   return {
     status: 200,
@@ -84,14 +86,14 @@ async function evaluateApplicant(prisma, identity, bookingId, aiBaseUrl) {
         status: booking.status,
       },
       user: {
-        id: booking.user.id,
-        name: booking.user.name,
-        email: booking.user.email,
-        fullName: booking.user.fullName,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        fullName: user.fullName,
       },
       room: {
-        id: booking.room.id,
-        title: booking.room.title,
+        id: room.roomId,
+        title: room.title,
       },
       evaluation,
     },

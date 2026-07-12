@@ -19,6 +19,10 @@ test("createReview rejects room owner and users without booking or contract", as
     ownerPrisma,
     { userId: "user-1" },
     { roomId, rating: 5 },
+    {
+      getRoom: async () => ({ id: roomId, ownerId: "user-1" }),
+      getReviewEligibility: async () => ({ eligible: true }),
+    },
   );
   assert.equal(ownerResult.status, 400);
 
@@ -35,6 +39,10 @@ test("createReview rejects room owner and users without booking or contract", as
     noEligibilityPrisma,
     { userId: "user-1" },
     { roomId, rating: 5 },
+    {
+      getRoom: async () => ({ id: roomId, ownerId: "host-1" }),
+      getReviewEligibility: async () => ({ eligible: false }),
+    },
   );
   assert.equal(result.status, 400);
 });
@@ -60,6 +68,11 @@ test("createReview creates visible review for eligible renter", async () => {
     prisma,
     { userId: "user-1" },
     { roomId, rating: 5, comment: "Tot" },
+    {
+      getRoom: async () => ({ id: roomId, ownerId: "host-1" }),
+      getReviewEligibility: async () => ({ eligible: true }),
+      getIdentityUsers: async () => [{ id: "user-1", fullName: "User One" }],
+    },
   );
 
   assert.equal(result.status, 201);
@@ -67,12 +80,25 @@ test("createReview creates visible review for eligible renter", async () => {
   assert.equal(createArgs.data.roomId, roomId);
 });
 
+test("createReview reports dependency outages without querying foreign tables", async () => {
+  const result = await createReview(
+    {},
+    { userId: "user-1" },
+    { roomId, rating: 5 },
+    {
+      getRoom: async () => { const error = new Error("Property offline"); error.status = 503; throw error; },
+      getReviewEligibility: async () => ({ eligible: true }),
+    },
+  );
+  assert.equal(result.status, 503);
+});
+
 test("listHostReviews only allows host or admin", async () => {
   const denied = await listHostReviews({}, { userId: "user-1", role: "CUSTOMER" });
   assert.equal(denied.status, 403);
 });
 
-test("updateReviewStatus is admin-only and writes moderation log", async () => {
+test("updateReviewStatus is admin-only and enqueues a moderation audit", async () => {
   const denied = await updateReviewStatus(
     {},
     { userId: "host-1", role: "HOST" },
@@ -92,9 +118,10 @@ test("updateReviewStatus is admin-only and writes moderation log", async () => {
       }),
       update: async ({ data }) => ({ id: "review-1", ...data }),
     },
-    adminLog: {
+    communityOutboxEvent: {
       create: async ({ data }) => calls.push(data),
     },
+    $transaction: async (operation) => operation(prisma),
   };
 
   const result = await updateReviewStatus(
@@ -102,8 +129,13 @@ test("updateReviewStatus is admin-only and writes moderation log", async () => {
     { userId: "admin-1", role: "ADMIN" },
     "review-1",
     { status: "HIDDEN", reason: "Vi pham" },
+    {
+      getRoom: async () => ({ id: roomId, title: "Studio" }),
+      getIdentityUsers: async () => [{ id: "user-1", fullName: "User One" }],
+    },
   );
 
   assert.equal(result.status, 200);
-  assert.equal(calls[0].action, "moderate_review");
+  assert.equal(calls[0].eventType, "audit.admin.action.requested");
+  assert.equal(calls[0].payload.action, "moderate_review");
 });

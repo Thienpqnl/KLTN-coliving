@@ -6,70 +6,48 @@ function requireAuthenticated(identity) {
   return identity?.userId ? null : failure(401, "Unauthorized");
 }
 
-function normalizeUserProfile(user) {
+function normalizeUserProfile(user, bookings = [], reviews = []) {
   return {
     ...user,
-    bookings: user.bookings.map((booking) => ({
-      ...booking,
-      room: {
-        ...booking.room,
-        priceValue: booking.room.priceValue == null ? null : Number(booking.room.priceValue),
-        price: booking.room.priceValue == null ? 0 : Number(booking.room.priceValue),
-        image: booking.room.images.map((image) => image.url),
-      },
-    })),
-    reviews: user.reviews.map((review) => ({
-      ...review,
-      room: {
-        ...review.room,
-        image: review.room.images.map((image) => image.url),
-      },
-    })),
+    bookings,
+    reviews,
   };
 }
 
-async function getLegacyProfile(prisma, identity) {
+async function getLegacyProfile(prisma, identity, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
 
   const user = await prisma.user.findUnique({
     where: { id: identity.userId },
-    include: {
-      bookings: {
-        include: {
-          room: {
-            select: {
-              id: true,
-              title: true,
-              priceValue: true,
-              priceText: true,
-              images: {
-                orderBy: { sortOrder: "asc" },
-                select: { url: true },
-              },
-            },
-          },
-        },
-      },
-      reviews: {
-        include: {
-          room: {
-            select: {
-              id: true,
-              title: true,
-              images: {
-                orderBy: { sortOrder: "asc" },
-                select: { url: true },
-              },
-            },
-          },
-        },
-      },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      fullName: true,
+      phone: true,
+      phoneVerified: true,
+      avatarUrl: true,
+      address: true,
+      birthDate: true,
+      gender: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
   if (!user) return failure(404, "User not found");
-  return { status: 200, payload: normalizeUserProfile(user) };
+  try {
+    const [bookings, reviews] = await Promise.all([
+      clients.getProfileBookings(identity.userId),
+      clients.getProfileReviews(identity.userId),
+    ]);
+    return { status: 200, payload: normalizeUserProfile(user, bookings, reviews) };
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Profile dependency unavailable");
+  }
 }
 
 async function updateLegacyProfile(prisma, identity, input = {}) {
@@ -102,7 +80,7 @@ async function updateLegacyProfile(prisma, identity, input = {}) {
   return { status: 200, payload: updated };
 }
 
-async function deleteLegacyAccount(prisma, identity) {
+async function deleteLegacyAccount(prisma, identity, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
 
@@ -112,14 +90,44 @@ async function deleteLegacyAccount(prisma, identity) {
   });
   if (!user) return failure(404, "User not found");
 
-  await Promise.all([
-    prisma.review.deleteMany({ where: { userId: identity.userId } }),
-    prisma.booking.deleteMany({ where: { userId: identity.userId } }),
-    prisma.invoice.deleteMany({ where: { userId: identity.userId } }),
-  ]);
-  await prisma.user.delete({ where: { id: identity.userId } });
+  let policy;
+  try {
+    policy = await clients.getDeletionPolicy(identity.userId);
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Rental Service unavailable");
+  }
+  if (!policy.allowed) {
+    return failure(409, policy.reason || "Account has active rental obligations");
+  }
 
-  return { status: 200, payload: { message: "User deleted successfully" } };
+  try {
+    await Promise.all([
+      clients.purgeCommunityData(identity.userId),
+      clients.deletePreferences(identity.userId),
+    ]);
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Privacy cleanup dependency unavailable");
+  }
+
+  await prisma.user.update({
+    where: { id: identity.userId },
+    data: {
+      status: "DELETED",
+      email: `deleted+${identity.userId}@coliving.invalid`,
+      password: await bcrypt.hash(randomUUID(), 10),
+      name: "Deleted User",
+      fullName: "Deleted User",
+      phone: null,
+      phoneVerified: false,
+      phoneVerifiedAt: null,
+      avatarUrl: null,
+      address: null,
+      latitude: null,
+      longitude: null,
+    },
+  });
+
+  return { status: 200, payload: { message: "User anonymized successfully" } };
 }
 
 module.exports = {
@@ -127,3 +135,6 @@ module.exports = {
   getLegacyProfile,
   updateLegacyProfile,
 };
+const bcrypt = require("bcrypt");
+const { randomUUID } = require("node:crypto");
+const domainClients = require("./domain-clients.cjs");

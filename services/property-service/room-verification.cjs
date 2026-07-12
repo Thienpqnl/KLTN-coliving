@@ -6,6 +6,9 @@ const {
   managerCanAccessRoom,
 } = require("./community-manager-area.cjs");
 const { sanitizeForJson } = require("./serialization.cjs");
+const identityClient = require("../shared/identity-client.cjs");
+const { auditEvent } = require("../shared/audit-event.cjs");
+const { enqueueEvent } = require("./outbox.cjs");
 
 const editableStatuses = new Set(["DRAFT", "NEEDS_REVISION", "REJECTED"]);
 const documentTypes = new Set(["IDENTITY", "OWNERSHIP", "ROOM_PROOF", "OTHER"]);
@@ -15,26 +18,54 @@ const checkStatuses = new Set(["PENDING", "MATCHED", "MISMATCHED", "NEEDS_REVIEW
 const verificationInclude = {
   documents: { orderBy: { createdAt: "desc" } },
   checks: { orderBy: { createdAt: "asc" } },
-  reviewer: { select: { id: true, name: true, fullName: true, email: true } },
-  assignedManager: { select: { id: true, name: true, fullName: true, email: true, phone: true } },
 };
 
 const adminRoomInclude = {
-  owner: {
-    select: {
-      id: true,
-      name: true,
-      fullName: true,
-      email: true,
-      phone: true,
-      phoneVerified: true,
-      status: true,
-    },
-  },
   images: { orderBy: { sortOrder: "asc" } },
   amenities: { include: { amenity: true } },
   verification: { include: verificationInclude },
 };
+
+async function hydrateRoomUsers(room, clients = identityClient) {
+  if (!room) return room;
+  const ids = [
+    room.ownerId,
+    room.verification?.reviewerId,
+    room.verification?.assignedManagerId,
+  ].filter(Boolean);
+  const users = await clients.userMap(ids);
+  return {
+    ...room,
+    owner: users.get(room.ownerId) || null,
+    verification: room.verification
+      ? {
+          ...room.verification,
+          reviewer: users.get(room.verification.reviewerId) || null,
+          assignedManager: users.get(room.verification.assignedManagerId) || null,
+        }
+      : null,
+  };
+}
+
+async function hydrateRoomsUsers(rooms, clients = identityClient) {
+  const ids = rooms.flatMap((room) => [
+    room.ownerId,
+    room.verification?.reviewerId,
+    room.verification?.assignedManagerId,
+  ]).filter(Boolean);
+  const users = await clients.userMap(ids);
+  return rooms.map((room) => ({
+    ...room,
+    owner: users.get(room.ownerId) || null,
+    verification: room.verification
+      ? {
+          ...room.verification,
+          reviewer: users.get(room.verification.reviewerId) || null,
+          assignedManager: users.get(room.verification.assignedManagerId) || null,
+        }
+      : null,
+  }));
+}
 
 const documentSchema = z.object({
   type: z.string().refine((value) => documentTypes.has(value), "Loại tài liệu không hợp lệ"),
@@ -87,6 +118,8 @@ const adminReviewSchema = z.object({
   reason: z.string().max(1000).optional(),
   adminNote: z.string().max(1000).optional(),
   checklist: adminChecklistSchema.optional(),
+  ipAddress: z.string().max(100).optional(),
+  userAgent: z.string().max(1000).optional(),
 });
 
 function failure(status, message, errors) {
@@ -220,19 +253,17 @@ function buildVerificationChecks(room) {
   ];
 }
 
-function buildAdminRoomWhere(filters) {
+function buildAdminRoomWhere(filters, ownerIds = []) {
+  const searchConditions = filters.search
+    ? [
+        { title: { contains: filters.search, mode: "insensitive" } },
+        { address: { contains: filters.search, mode: "insensitive" } },
+        ...(ownerIds.length > 0 ? [{ ownerId: { in: ownerIds } }] : []),
+      ]
+    : [];
   return {
     ...(filters.status ? { status: filters.status } : {}),
-    ...(filters.search
-      ? {
-          OR: [
-            { title: { contains: filters.search, mode: "insensitive" } },
-            { address: { contains: filters.search, mode: "insensitive" } },
-            { owner: { email: { contains: filters.search, mode: "insensitive" } } },
-            { owner: { fullName: { contains: filters.search, mode: "insensitive" } } },
-          ],
-        }
-      : {}),
+    ...(searchConditions.length > 0 ? { OR: searchConditions } : {}),
   };
 }
 
@@ -250,12 +281,11 @@ async function getAccessiblePendingRoom(prisma, roomId, managerId) {
   return { room };
 }
 
-async function ensureVerificationChecks(prisma, roomId) {
+async function ensureVerificationChecks(prisma, roomId, clients = identityClient) {
   const room = await prisma.room.findUnique({
     where: { id: roomId },
     include: {
       images: { select: { id: true } },
-      owner: { select: { fullName: true, name: true, phone: true, phoneVerified: true } },
       verification: {
         include: {
           documents: { select: { type: true } },
@@ -266,9 +296,10 @@ async function ensureVerificationChecks(prisma, roomId) {
   });
 
   if (!room?.verification || room.verification.checks.length > 0) return;
+  const owner = await clients.getUser(room.ownerId);
 
   await prisma.verificationCheck.createMany({
-    data: buildVerificationChecks(room).map((check) => ({
+    data: buildVerificationChecks({ ...room, owner }).map((check) => ({
       ...check,
       verificationId: room.verification.id,
     })),
@@ -276,7 +307,7 @@ async function ensureVerificationChecks(prisma, roomId) {
   });
 }
 
-async function getForHost(prisma, identity, roomId) {
+async function getForHost(prisma, identity, roomId, clients = identityClient) {
   const denied = requireRole(identity, "HOST", "Chỉ chủ nhà được truy cập");
   if (denied) return denied;
 
@@ -294,7 +325,7 @@ async function getForHost(prisma, identity, roomId) {
 
   const notOwner = assertHostOwns(room, identity.userId);
   if (notOwner) return notOwner;
-  return { status: 200, payload: sanitizeForJson(room) };
+  return { status: 200, payload: sanitizeForJson(await hydrateRoomUsers(room, clients)) };
 }
 
 async function addDocument(prisma, identity, roomId, input) {
@@ -348,7 +379,7 @@ async function deleteDocument(prisma, identity, roomId, documentId) {
   return { status: 200, payload: { id: documentId } };
 }
 
-async function submit(prisma, identity, roomId, input) {
+async function submit(prisma, identity, roomId, input, clients = identityClient) {
   const denied = requireRole(identity, "HOST", "Chỉ chủ nhà được gửi xét duyệt");
   if (denied) return denied;
   const parsed = validate(declarationSchema, input);
@@ -359,7 +390,6 @@ async function submit(prisma, identity, roomId, input) {
     include: {
       images: { select: { id: true } },
       verification: { include: { documents: true } },
-      owner: { select: { fullName: true, name: true, phone: true, phoneVerified: true } },
     },
   });
   if (!room) return failure(404, "Không tìm thấy phòng");
@@ -370,10 +400,12 @@ async function submit(prisma, identity, roomId, input) {
   }
   const invalid = validateSubmission(room);
   if (invalid) return invalid;
+  const owner = await clients.getUser(room.ownerId);
+  const hydratedRoom = { ...room, owner };
 
-  const assignedManager = await findBestManagerForRoom(prisma, buildRoomLocation(room));
+  const assignedManager = await findBestManagerForRoom(prisma, buildRoomLocation(room), clients);
   const now = new Date();
-  const verificationChecks = buildVerificationChecks(room);
+  const verificationChecks = buildVerificationChecks(hydratedRoom);
   const declaration = parsed.data;
 
   const updatedRoom = await prisma.$transaction(async (tx) => {
@@ -435,17 +467,20 @@ async function submit(prisma, identity, roomId, input) {
     });
   });
 
-  return { status: 200, payload: sanitizeForJson(updatedRoom) };
+  return { status: 200, payload: sanitizeForJson(await hydrateRoomUsers(updatedRoom, clients)) };
 }
 
-async function listForAdmin(prisma, identity, query) {
+async function listForAdmin(prisma, identity, query, clients = identityClient) {
   const denied = requireRole(identity, "ADMIN", "Chỉ admin được truy cập");
   if (denied) return denied;
   const status = roomStatuses.has(String(query.status)) ? String(query.status) : undefined;
   const search = String(query.search || "").trim() || undefined;
   const page = Math.max(1, Number(query.page || 1));
   const limit = Math.min(50, Math.max(1, Number(query.limit || 20)));
-  const where = buildAdminRoomWhere({ status, search });
+  const ownerIds = search
+    ? (await clients.searchUsers({ search })).map((user) => user.id)
+    : [];
+  const where = buildAdminRoomWhere({ status, search }, ownerIds);
 
   const [rooms, total] = await Promise.all([
     prisma.room.findMany({
@@ -457,21 +492,22 @@ async function listForAdmin(prisma, identity, query) {
     }),
     prisma.room.count({ where }),
   ]);
+  const hydratedRooms = await hydrateRoomsUsers(rooms, clients);
   return {
     status: 200,
-    payload: sanitizeForJson({ rooms, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) }),
+    payload: sanitizeForJson({ rooms: hydratedRooms, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) }),
   };
 }
 
-async function getDetailForAdmin(prisma, identity, roomId) {
+async function getDetailForAdmin(prisma, identity, roomId, clients = identityClient) {
   const denied = requireRole(identity, "ADMIN", "Chỉ admin được truy cập");
   if (denied) return denied;
   const room = await prisma.room.findUnique({ where: { id: roomId }, include: adminRoomInclude });
   if (!room) return failure(404, "Không tìm thấy phòng");
-  return { status: 200, payload: sanitizeForJson(room) };
+  return { status: 200, payload: sanitizeForJson(await hydrateRoomUsers(room, clients)) };
 }
 
-async function listForCommunityManager(prisma, identity, query) {
+async function listForCommunityManager(prisma, identity, query, clients = identityClient) {
   const denied = requireRole(identity, "COMMUNITY_MANAGER", "Chỉ nhân viên quản lý cộng đồng được truy cập");
   if (denied) return denied;
 
@@ -480,8 +516,11 @@ async function listForCommunityManager(prisma, identity, query) {
   const page = Math.max(1, Number(query.page || 1));
   const limit = Math.min(50, Math.max(1, Number(query.limit || 20)));
   const areas = await getManagerActiveAreas(prisma, identity.userId);
+  const ownerIds = search
+    ? (await clients.searchUsers({ search })).map((user) => user.id)
+    : [];
   const where = {
-    ...buildAdminRoomWhere({ status: status || "PENDING", search }),
+    ...buildAdminRoomWhere({ status: status || "PENDING", search }, ownerIds),
     verification: { is: { OR: [{ assignedManagerId: identity.userId }, { assignedManagerId: null }] } },
   };
 
@@ -497,7 +536,10 @@ async function listForCommunityManager(prisma, identity, query) {
     return areas.some((area) => areaMatchesRoom(area, buildRoomLocation(room)));
   });
   const total = accessibleRooms.length;
-  const pagedRooms = accessibleRooms.slice((page - 1) * limit, page * limit);
+  const pagedRooms = await hydrateRoomsUsers(
+    accessibleRooms.slice((page - 1) * limit, page * limit),
+    clients,
+  );
 
   return {
     status: 200,
@@ -505,16 +547,16 @@ async function listForCommunityManager(prisma, identity, query) {
   };
 }
 
-async function getDetailForCommunityManager(prisma, identity, roomId) {
+async function getDetailForCommunityManager(prisma, identity, roomId, clients = identityClient) {
   const denied = requireRole(identity, "COMMUNITY_MANAGER", "Chỉ nhân viên quản lý cộng đồng được truy cập");
   if (denied) return denied;
   const access = await getAccessiblePendingRoom(prisma, roomId, identity.userId);
   if (!access.room) return access;
-  await ensureVerificationChecks(prisma, roomId);
+  await ensureVerificationChecks(prisma, roomId, clients);
 
   const room = await prisma.room.findUnique({ where: { id: roomId }, include: adminRoomInclude });
   if (!room) return failure(404, "Không tìm thấy phòng");
-  return { status: 200, payload: sanitizeForJson(room) };
+  return { status: 200, payload: sanitizeForJson(await hydrateRoomUsers(room, clients)) };
 }
 
 async function updateVerificationCheck(prisma, identity, roomId, checkId, input) {
@@ -540,7 +582,7 @@ async function updateVerificationCheck(prisma, identity, roomId, checkId, input)
   return { status: 200, payload: sanitizeForJson(updatedCheck) };
 }
 
-async function reviewByCommunityManager(prisma, identity, roomId, input) {
+async function reviewByCommunityManager(prisma, identity, roomId, input, clients = identityClient) {
   const denied = requireRole(identity, "COMMUNITY_MANAGER", "Chỉ nhân viên quản lý cộng đồng được xác minh hồ sơ");
   if (denied) return denied;
   const parsed = validate(managerReviewSchema, input);
@@ -599,10 +641,10 @@ async function reviewByCommunityManager(prisma, identity, roomId, input) {
       include: adminRoomInclude,
     });
   });
-  return { status: 200, payload: sanitizeForJson(updatedRoom) };
+  return { status: 200, payload: sanitizeForJson(await hydrateRoomUsers(updatedRoom, clients)) };
 }
 
-async function reviewByAdmin(prisma, identity, roomId, input) {
+async function reviewByAdmin(prisma, identity, roomId, input, clients = identityClient) {
   const denied = requireRole(identity, "ADMIN", "Chỉ admin được xét duyệt");
   if (denied) return denied;
   const parsed = validate(adminReviewSchema, input);
@@ -673,8 +715,9 @@ async function reviewByAdmin(prisma, identity, roomId, input) {
       include: adminRoomInclude,
     });
 
-    await tx.adminLog.create({
-      data: {
+    await enqueueEvent(
+      tx,
+      auditEvent({
         adminId: identity.userId,
         targetUserId: room.ownerId,
         action: `ROOM_${data.action.toUpperCase()}`,
@@ -683,13 +726,21 @@ async function reviewByAdmin(prisma, identity, roomId, input) {
         oldValue: room.status,
         newValue: nextStatus,
         description: data.reason || data.adminNote || `Cập nhật trạng thái phòng thành ${nextStatus}`,
-      },
-    });
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
+      }),
+    );
 
     return { room: updatedRoom, verification };
   });
 
-  return { status: 200, payload: sanitizeForJson(result) };
+  return {
+    status: 200,
+    payload: sanitizeForJson({
+      ...result,
+      room: await hydrateRoomUsers(result.room, clients),
+    }),
+  };
 }
 
 module.exports = {

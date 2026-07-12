@@ -29,6 +29,72 @@ local debugging when you intentionally want to use the legacy fallback code.
 Booking, occupancy and contracts stay in the same Rental bounded context so a
 confirmed booking and room capacity can be committed consistently.
 
+### Rental and Property data boundary
+
+Rental capacity decisions use the `rental_room_snapshots` projection instead
+of reading `Room` directly. The projection has no Prisma relation or foreign
+key to the Property model and contains only `roomId`, owner, availability,
+capacity and display fields needed by Rental.
+
+- Property exposes `GET /v1/internal/rooms/:id/rental-profile` and pushes room
+  changes to `PUT /v1/internal/room-snapshots/:roomId`.
+- Rental exposes `POST /v1/internal/rooms/availability` and room/admin rental
+  statistics so Property does not query Booking or Occupancy tables.
+- Occupancy changes are committed in Rental first, then projected back to
+  Property through `PATCH /v1/internal/rooms/:id/occupancy`.
+- Migration `20260710000000_add_rental_room_snapshots` backfills existing rooms;
+  it does not delete or rewrite Room, Booking or Occupancy data.
+
+This is the first database-ownership slice. Legacy relation declarations remain
+in the shared Prisma schema for the temporary monolith fallback, but Rental
+runtime queries no longer depend on the Property Room relation.
+
+### Rental events and Transactional Outbox
+
+Rental no longer joins Property's `Room` model when returning bookings,
+contracts or applicant evaluations. Booking responses are composed from
+`RentalRoomSnapshot`, while signed contract room data comes from the immutable
+`contentSnapshot` stored with the contract.
+
+Occupancy projection updates use a Transactional Outbox:
+
+1. The occupancy change, Rental room projection and `RentalOutboxEvent` are
+   written in the same database transaction.
+2. Rental's outbox worker claims pending events and publishes them to the
+   durable `coliving.events` RabbitMQ topic exchange.
+3. Property consumes `rental.occupancy.changed` from its durable queue and
+   updates `Room.currentOccupants` and the AVAILABLE/OCCUPIED status.
+4. A broker failure leaves the event PENDING with exponential retry. Events
+   move to DEAD after ten failed attempts instead of being silently lost.
+
+Migrations `20260710010000_expand_rental_room_snapshots` and
+`20260710020000_add_rental_outbox` add the response projection and outbox table.
+Run `npx prisma migrate deploy` before restarting Rental and Property services.
+
+### Central audit ownership
+
+`AdminLog` is owned by Identity. Property and Community no longer write that
+table when an admin approves a room or moderates a review. They publish the
+`audit.admin.action.requested` integration event through RabbitMQ instead:
+
+1. The domain update and a `PropertyOutboxEvent` or `CommunityOutboxEvent` are
+   committed in the same local transaction.
+2. Each service outbox worker publishes the event with its stable outbox ID and
+   source service name.
+3. Identity consumes the durable `identity-service.audit-events` queue and
+   writes `IdentityInboxEvent` plus `AdminLog` in one transaction.
+4. The unique inbox `eventId` makes redelivery idempotent, so an event can be
+   acknowledged repeatedly without creating duplicate audit rows.
+
+Identity-owned account administration still writes `AdminLog` directly because
+the user change and log share the same bounded context. Legacy Next.js fallback
+services may still contain local Prisma log writes, but strict microservice mode
+does not execute those paths.
+
+Migration `20260710030000_add_audit_outbox_inbox` creates both domain outboxes
+and the Identity inbox. Run `npx prisma migrate deploy` before starting the new
+workers.
+
 ## Current extraction
 
 Property Service currently owns these read-only vertical slices:
@@ -56,6 +122,51 @@ Phone OTP creation, attempt limiting and verification are also owned by Identity
 Service; the successful verification updates the OTP record and user identity in
 one database transaction.
 
+### Identity and Preference boundaries
+
+Identity runtime queries no longer join Booking, Room, Review, Invoice or
+Preference data:
+
+- User profile bookings are composed from Rental and profile reviews from
+  Community.
+- Admin user counters come from Rental (`bookings`) and Property (`rooms`)
+  through batch count endpoints.
+- Public user summaries contain only Identity-owned fields; roommate
+  preferences remain owned by Preference/AI.
+- Preference trusts the authenticated internal `x-user-id` and no longer reads
+  the User table before every preference query or update.
+
+Self-service account deletion is an idempotent privacy workflow. Rental first
+blocks deletion while an active booking, contract or occupancy exists.
+Community removes favorites/device tokens and hides review content; Preference
+deletes the preference record. Only after those operations succeed does
+Identity mark the user `DELETED`, replace credentials and redact personal
+fields. The User row and ID remain for contract/audit referential integrity.
+Locked and deleted accounts are rejected during login.
+
+### Identity profile composition
+
+Identity is now the only runtime owner that queries the `User` model. It exposes
+token-protected internal profile contracts for the other bounded contexts:
+
+- `POST /v1/internal/domain/users/batch` resolves many user IDs in one call.
+- `POST /v1/internal/domain/users/search` resolves user IDs for role, status and
+  admin search filters.
+- `GET /v1/internal/domain/users/:id` resolves one domain-safe user profile.
+
+Property uses these contracts for room owners, verification reviewers and
+Community Manager assignment. Rental uses them for booking applicants and
+occupancy members. Community uses them for review authors, resource bookings
+and activity participants. These services store user IDs but no longer join the
+Identity-owned `User` table. Password hashes and other authentication secrets
+are never exposed by the internal profile API.
+
+Contract parties are intentionally different: their names and contact details
+come from the immutable `contentSnapshot` captured when the contract is
+created. This preserves the signed legal content even if either party later
+updates their Identity profile. Contract event actors are still resolved from
+Identity for display.
+
 Rental Service currently owns booking, occupancy, contract and utility-billing
 flows. The BFF routes keep the existing `/api/bookings`, `/api/user/bookings`,
 `/api/host/bookings`, `/api/host/occupancy/*`, `/api/user/occupancy`,
@@ -77,6 +188,28 @@ and device-token registration. The existing `/api/favorites/*`,
 browser-facing contract. Firebase push delivery still happens in the BFF; the
 Community Service returns notification intents for actions that need FCM.
 
+### Community service boundaries
+
+Community runtime code no longer reads Property or Rental tables directly:
+
+- Favorites store only `userId` and `roomId`; room cards are composed from the
+  Property batch profile API.
+- Review eligibility is calculated by Rental from Booking and Contract data.
+  Property supplies room ownership and display information.
+- Shared resource booking and activity creation verify active occupancy through
+  Rental instead of joining the Occupancy table.
+- Resource creation, deletion and host approval verify room ownership through
+  Property. This also prevents one host from managing another host's resource.
+- Admin review search asks Property for matching room IDs and Identity for
+  matching user IDs, then combines those IDs with Community-owned review
+  filters.
+
+The internal contracts are under `/v1/internal/community/*` in Property and
+Rental. Community uses `IDENTITY_SERVICE_URL`, `PROPERTY_SERVICE_URL`,
+`RENTAL_SERVICE_URL`, the shared internal token and the standard microservice
+timeout. A required dependency failure is returned as `503` instead of falling
+back to a cross-database query.
+
 Preference Service currently owns user room-preference storage and update flows.
 The existing `/api/preferences` route remains the browser-facing contract while
 the BFF forwards reads and writes to `PREFERENCE_SERVICE_URL` when configured.
@@ -85,6 +218,8 @@ the BFF forwards reads and writes to `PREFERENCE_SERVICE_URL` when configured.
 
 1. Keep `.env` as the source for database and Supabase secrets.
 2. Run `docker compose -f docker-compose.microservices.yml up --build`.
+   This also starts RabbitMQ on port `5672`; its local management console is
+   exposed on `http://localhost:15672`.
 3. Set `IDENTITY_SERVICE_URL=http://localhost:4001`,
    `PROPERTY_SERVICE_URL=http://localhost:4002`,
    `RENTAL_SERVICE_URL=http://localhost:4003`,
@@ -96,3 +231,60 @@ the BFF forwards reads and writes to `PREFERENCE_SERVICE_URL` when configured.
 Without a service URL, Next.js returns `503 SERVICE_UNAVAILABLE` by default.
 Set `MICROSERVICE_STRICT=false` only when you intentionally want Next.js to use
 the legacy Prisma fallback while developing locally.
+
+## Schema-per-service migration
+
+The Supabase PostgreSQL project can keep the legacy `public` schema while each
+bounded context moves to an independently managed schema:
+
+| Service | PostgreSQL schema | Prisma datamodel |
+| --- | --- | --- |
+| Identity | `identity` | `services/identity-service/prisma/schema.prisma` |
+| Property | `property` | `services/property-service/prisma/schema.prisma` |
+| Rental | `rental` | `services/rental-service/prisma/schema.prisma` |
+| Community | `community` | `services/community-service/prisma/schema.prisma` |
+| Preference | `preference` | `services/preference-service/prisma/schema.prisma` |
+
+Each datamodel has its own generated Prisma client and baseline migration. Cross
+context IDs such as `ownerId`, `userId` and `roomId` are scalar values without
+database foreign keys. Local relations, such as Contract to ContractEvent or
+Room to RoomImage, remain enforced inside the owning schema.
+
+### Safe cutover
+
+1. Back up the current Supabase database and stop application writes.
+2. Use a direct PostgreSQL connection in `SCHEMA_SPLIT_DATABASE_URL`.
+3. Run the non-destructive preparation tool:
+
+   ```powershell
+   $env:CONFIRM_SCHEMA_SPLIT="true"
+   npm run schema:split:prepare
+   ```
+
+   It creates the five schemas, deploys each baseline migration, copies common
+   columns from `public`, preserves UUIDs, converts enum values into each target
+   schema's enum types and uses `ON CONFLICT DO NOTHING` for safe retries. It
+   never drops, truncates or updates a `public` table.
+
+4. Verify row counts independently:
+
+   ```powershell
+   npm run schema:split:verify
+   ```
+
+5. Set `IDENTITY_DATABASE_URL`, `PROPERTY_DATABASE_URL`,
+   `RENTAL_DATABASE_URL`, `COMMUNITY_DATABASE_URL` and
+   `PREFERENCE_DATABASE_URL` using the same Supabase connection with the
+   matching `?schema=` value.
+6. Restart the five services, then run end-to-end login, room, booking,
+   contract, review and preference checks before accepting new writes.
+7. Keep Next.js `DATABASE_URL` on `public` only for controlled legacy rollback.
+
+Unset the five service database URLs to roll service processes back to the
+legacy `public` schema. Do not run old and new writers concurrently for a long
+period because this migration intentionally does not implement dual-write.
+
+Supabase Data API/PostgREST must expose `identity`, `property`, `rental` and
+`preference` before AI reads those schemas. Set `USE_SERVICE_SCHEMAS=true` in
+`ai/.env` only after that configuration is complete; otherwise the AI loader
+continues reading `public` during the transition.

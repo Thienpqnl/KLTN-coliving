@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id                    String            @id @default(uuid())
+  title                 String
+  description           String
+  address               String
+  city                  String?
+  provinceCode          String?
+  ward                  String?
+  wardCode              String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  allowPets             Boolean?          @default(false)
+  allowSmoking          Boolean?          @default(false)
+  areaText              String?
+  areaValue             Decimal?          @db.Decimal(10, 2)
+  cleanlinessRequired   String?
+  curfewPolicy          String?
+  currentOccupants      Int?              @default(0)
+  district              String?
+  districtId            String?
+  expired_date          String?
+  guestPolicy           String?
+  maxOccupants          Int?              @default(1)
+  noiseTolerance        String?
+  ownerId               String?
+  posted_date           String?
+  preferredGender       String?
+  preferredOccupation   String?
+  preferredSleepHabit   String?
+  priceText             String?
+  priceValue            BigInt?
+  roomId                String?
+  sourceUrl             String?
+  status                RoomStatus        @default(DRAFT)
+  latitude              Float?
+  longitude             Float?
+  amenities             RoomAmenity[]
+  images                RoomImage[]
+  verification          RoomVerification?
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("Room")
+}
+
+model Amenity {
+  id    String        @id @default(uuid())
+  name  String        @unique
+  rooms RoomAmenity[]
+}
+
+model RoomAmenity {
+  id        String  @id @default(uuid())
+  roomId    String
+  amenityId String
+  amenity   Amenity @relation(fields: [amenityId], references: [id])
+  room      Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, amenityId])
+}
+
+model RoomImage {
+  id        String   @id @default(uuid())
+  roomId    String
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+}
+
+model RoomVerification {
+  id                           String                          @id @default(uuid())
+  roomId                       String                          @unique
+  reviewerId                   String?
+  assignedManagerId            String?
+  submittedAt                  DateTime?
+  managerAssignedAt            DateTime?
+  managerReviewedAt            DateTime?
+  reviewedAt                   DateTime?
+  revisionReason               String?
+  rejectionReason              String?
+  adminNote                    String?
+  managerNote                  String?
+  inspectionDate               DateTime?
+  inspectionImages             Json?
+  managerRecommendation        CommunityManagerRecommendation @default(PENDING)
+  identityPassed               Boolean                         @default(false)
+  ownershipPassed              Boolean                         @default(false)
+  addressPassed                Boolean                         @default(false)
+  imagesPassed                 Boolean                         @default(false)
+  detailsPassed                Boolean                         @default(false)
+  facilityPassed               Boolean                         @default(false)
+  safetyPassed                 Boolean                         @default(false)
+  legalOccupancyPassed         Boolean                         @default(false)
+  informationAccurateConfirmed Boolean                         @default(false)
+  legalResponsibilityAccepted  Boolean                         @default(false)
+  verificationConsentAccepted  Boolean                         @default(false)
+  declarationAcceptedAt        DateTime?
+  declarationVersion           String?
+  declarationIpAddress         String?
+  declarationUserAgent         String?
+  createdAt                    DateTime                        @default(now())
+  updatedAt                    DateTime                        @updatedAt
+  room                         Room                            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  documents                    RoomVerificationDocument[]
+  checks                       VerificationCheck[]
+
+  @@index([reviewerId])
+  @@index([assignedManagerId])
+  @@index([managerRecommendation])
+  @@index([submittedAt])
+}
+
+model VerificationCheck {
+  id             String                  @id @default(uuid())
+  verificationId String
+  type           VerificationCheckType
+  status         VerificationCheckStatus @default(PENDING)
+  sourceValue    String?
+  targetValue    String?
+  note           String?
+  checkedById    String?
+  checkedAt      DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  verification   RoomVerification        @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@unique([verificationId, type])
+  @@index([verificationId])
+  @@index([type])
+  @@index([status])
+  @@index([checkedById])
+}
+
+model CommunityManagerArea {
+  id           String         @id @default(uuid())
+  managerId    String
+  region       ServiceRegion?
+  city         String?
+  provinceCode String?
+  ward         String?
+  wardCode     String?
+  district     String?
+  districtId   String?
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([managerId, region, city, provinceCode, ward, wardCode, district, districtId], name: "CommunityManagerArea_unique_scope")
+  @@index([managerId])
+  @@index([region])
+  @@index([city])
+  @@index([provinceCode])
+  @@index([ward])
+  @@index([wardCode])
+  @@index([district])
+  @@index([districtId])
+}
+
+model RoomVerificationDocument {
+  id             String                     @id @default(uuid())
+  verificationId String
+  type           VerificationDocumentType
+  fileUrl        String
+  status         VerificationDocumentStatus @default(PENDING)
+  note           String?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  verification   RoomVerification           @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([verificationId])
+  @@index([type])
+}
+
+model PropertyOutboxEvent {
+  id            String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@map("property_outbox_events")
+}
+
+enum ServiceRegion {
+  NORTH
+  CENTRAL
+  SOUTH
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  PENDING
+  HIDDEN
+  DRAFT
+  NEEDS_REVISION
+  REJECTED
+}
+
+enum VerificationDocumentType {
+  IDENTITY
+  OWNERSHIP
+  ADDRESS
+  ROOM_PROOF
+  OTHER
+}
+
+enum VerificationDocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CommunityManagerRecommendation {
+  PENDING
+  NEEDS_REVISION
+  RECOMMEND_APPROVAL
+  RECOMMEND_REJECTION
+}
+
+enum VerificationCheckType {
+  OWNER_PHONE
+  OWNER_IDENTITY_DOCUMENT
+  OWNERSHIP_DOCUMENT
+  ROOM_ADDRESS
+  MAP_LOCATION
+  ROOM_IMAGES
+  LEGAL_DECLARATION
+  ROOM_DETAILS
+}
+
+enum VerificationCheckStatus {
+  PENDING
+  MATCHED
+  MISMATCHED
+  NEEDS_REVIEW
+  UNVERIFIABLE
+}

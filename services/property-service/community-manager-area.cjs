@@ -1,3 +1,5 @@
+const identityClient = require("../shared/identity-client.cjs");
+
 const northernCities = new Set([
   "ha noi",
   "hai phong",
@@ -187,31 +189,26 @@ async function managerCanAccessRoom(prisma, managerId, room) {
   return areas.some((area) => areaMatchesRoom(area, room));
 }
 
-async function findBestManagerForRoom(prisma, room) {
-  const managers = await prisma.user.findMany({
-    where: {
-      role: "COMMUNITY_MANAGER",
-      status: "ACTIVE",
-      communityManagerAreas: { some: { isActive: true } },
-    },
-    select: {
-      id: true,
-      communityManagerAreas: {
-        where: { isActive: true },
-        select: {
-          region: true,
-          city: true,
-          provinceCode: true,
-          ward: true,
-          wardCode: true,
-          district: true,
-          districtId: true,
-        },
-      },
-    },
+async function findBestManagerForRoom(prisma, room, clients = identityClient) {
+  const managers = await clients.searchUsers({
+    role: "COMMUNITY_MANAGER",
+    status: "ACTIVE",
   });
+  const areas = await prisma.communityManagerArea.findMany({
+    where: { managerId: { in: managers.map((manager) => manager.id) }, isActive: true },
+  });
+  const areasByManager = new Map();
+  for (const area of areas) {
+    const values = areasByManager.get(area.managerId) || [];
+    values.push(area);
+    areasByManager.set(area.managerId, values);
+  }
+  const managersWithAreas = managers.map((manager) => ({
+    ...manager,
+    communityManagerAreas: areasByManager.get(manager.id) || [],
+  }));
 
-  const candidates = managers.filter((manager) =>
+  const candidates = managersWithAreas.filter((manager) =>
     manager.communityManagerAreas.some((area) => areaMatchesRoom(area, room)),
   );
   if (candidates.length === 0) return null;
@@ -234,7 +231,7 @@ async function findBestManagerForRoom(prisma, room) {
     })[0];
 }
 
-async function listManagersWithAreas(prisma, identity) {
+async function listManagersWithAreas(prisma, identity, clients = identityClient) {
   if (identity.role !== "ADMIN") {
     return {
       status: 403,
@@ -242,38 +239,37 @@ async function listManagersWithAreas(prisma, identity) {
     };
   }
 
-  const managers = await prisma.user.findMany({
-    where: { role: "COMMUNITY_MANAGER" },
-    select: {
-      id: true,
-      name: true,
-      fullName: true,
-      email: true,
-      phone: true,
-      status: true,
-      communityManagerAreas: {
-        orderBy: [
-          { region: "asc" },
-          { city: "asc" },
-          { ward: "asc" },
-          { district: "asc" },
-        ],
-      },
-      _count: {
-        select: {
-          managedRoomVerifications: {
-            where: { room: { status: "PENDING" } },
-          },
-        },
-      },
-    },
-    orderBy: [{ status: "asc" }, { fullName: "asc" }, { email: "asc" }],
-  });
-
-  return { status: 200, payload: managers };
+  const managers = await clients.searchUsers({ role: "COMMUNITY_MANAGER" });
+  const managerIds = managers.map((manager) => manager.id);
+  const [areas, loads] = await Promise.all([
+    prisma.communityManagerArea.findMany({
+      where: { managerId: { in: managerIds } },
+      orderBy: [{ region: "asc" }, { city: "asc" }, { ward: "asc" }, { district: "asc" }],
+    }),
+    prisma.roomVerification.groupBy({
+      by: ["assignedManagerId"],
+      where: { assignedManagerId: { in: managerIds }, room: { status: "PENDING" } },
+      _count: { _all: true },
+    }),
+  ]);
+  const areasByManager = new Map();
+  for (const area of areas) {
+    const values = areasByManager.get(area.managerId) || [];
+    values.push(area);
+    areasByManager.set(area.managerId, values);
+  }
+  const loadByManager = new Map(loads.map((row) => [row.assignedManagerId, row._count._all]));
+  return {
+    status: 200,
+    payload: managers.map((manager) => ({
+      ...manager,
+      communityManagerAreas: areasByManager.get(manager.id) || [],
+      _count: { managedRoomVerifications: loadByManager.get(manager.id) || 0 },
+    })),
+  };
 }
 
-async function replaceManagerAreas(prisma, identity, managerId, areas) {
+async function replaceManagerAreas(prisma, identity, managerId, areas, clients = identityClient) {
   if (identity.role !== "ADMIN") {
     return {
       status: 403,
@@ -281,10 +277,13 @@ async function replaceManagerAreas(prisma, identity, managerId, areas) {
     };
   }
 
-  const manager = await prisma.user.findUnique({
-    where: { id: managerId },
-    select: { id: true, role: true },
-  });
+  let manager;
+  try {
+    manager = await clients.getUser(managerId);
+  } catch (error) {
+    if (error.status === 404) manager = null;
+    else throw error;
+  }
 
   if (!manager) {
     return {
@@ -300,7 +299,7 @@ async function replaceManagerAreas(prisma, identity, managerId, areas) {
     };
   }
 
-  const managerWithAreas = await prisma.$transaction(async (tx) => {
+  const managerAreas = await prisma.$transaction(async (tx) => {
     await tx.communityManagerArea.deleteMany({ where: { managerId } });
 
     if (areas.length > 0) {
@@ -320,28 +319,13 @@ async function replaceManagerAreas(prisma, identity, managerId, areas) {
       });
     }
 
-    return tx.user.findUnique({
-      where: { id: managerId },
-      select: {
-        id: true,
-        name: true,
-        fullName: true,
-        email: true,
-        phone: true,
-        status: true,
-        communityManagerAreas: {
-          orderBy: [
-            { region: "asc" },
-            { city: "asc" },
-            { ward: "asc" },
-            { district: "asc" },
-          ],
-        },
-      },
+    return tx.communityManagerArea.findMany({
+      where: { managerId },
+      orderBy: [{ region: "asc" }, { city: "asc" }, { ward: "asc" }, { district: "asc" }],
     });
   });
 
-  return { status: 200, payload: managerWithAreas };
+  return { status: 200, payload: { ...manager, communityManagerAreas: managerAreas } };
 }
 
 module.exports = {

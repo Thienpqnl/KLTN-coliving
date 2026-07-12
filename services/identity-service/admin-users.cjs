@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+const domainClients = require("./domain-clients.cjs");
 
 const userListSelect = {
   id: true,
@@ -10,9 +11,6 @@ const userListSelect = {
   status: true,
   createdAt: true,
   updatedAt: true,
-  _count: {
-    select: { bookings: true, rooms: true },
-  },
 };
 
 const userDetailSelect = {
@@ -32,7 +30,7 @@ function parsePositiveInt(value, fallback) {
   return Number.isFinite(number) && number > 0 ? number : fallback;
 }
 
-async function listUsers(prisma, identity, query = {}) {
+async function listUsers(prisma, identity, query = {}, clients = domainClients) {
   const denied = requireAdmin(identity);
   if (denied) return denied;
 
@@ -64,11 +62,28 @@ async function listUsers(prisma, identity, query = {}) {
     }),
     prisma.user.count({ where }),
   ]);
+  let bookingCounts;
+  let propertyCounts;
+  try {
+    [bookingCounts, propertyCounts] = await Promise.all([
+      clients.getBookingCounts(users.map((user) => user.id)),
+      clients.getPropertyCounts(users.map((user) => user.id)),
+    ]);
+  } catch (error) {
+    return { status: error.status || 503, payload: { error: error.message || "Dependency unavailable" } };
+  }
+  const data = users.map((user) => ({
+    ...user,
+    _count: {
+      bookings: Number(bookingCounts[user.id] || 0),
+      rooms: Number(propertyCounts[user.id] || 0),
+    },
+  }));
 
   return {
     status: 200,
     payload: {
-      data: users,
+      data,
       pagination: {
         total,
         page,
@@ -79,7 +94,7 @@ async function listUsers(prisma, identity, query = {}) {
   };
 }
 
-async function getUserById(prisma, identity, userId) {
+async function getUserById(prisma, identity, userId, clients = domainClients) {
   const denied = requireAdmin(identity);
   if (denied) return denied;
 
@@ -88,9 +103,25 @@ async function getUserById(prisma, identity, userId) {
     select: userDetailSelect,
   });
 
-  return user
-    ? { status: 200, payload: user }
-    : { status: 404, payload: { error: "User not found" } };
+  if (!user) return { status: 404, payload: { error: "User not found" } };
+  try {
+    const [bookingCounts, propertyCounts] = await Promise.all([
+      clients.getBookingCounts([userId]),
+      clients.getPropertyCounts([userId]),
+    ]);
+    return {
+      status: 200,
+      payload: {
+        ...user,
+        _count: {
+          bookings: Number(bookingCounts[userId] || 0),
+          rooms: Number(propertyCounts[userId] || 0),
+        },
+      },
+    };
+  } catch (error) {
+    return { status: error.status || 503, payload: { error: error.message || "Dependency unavailable" } };
+  }
 }
 
 async function logAdminAction(prisma, data) {

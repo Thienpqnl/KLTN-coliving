@@ -61,6 +61,12 @@ async function login(prisma, email, password) {
   if (!user) {
     return { status: 400, payload: { message: "Email không tồn tại" } };
   }
+  if (user.status === "LOCKED") {
+    return { status: 403, payload: { message: "Tài khoản đã bị khóa" } };
+  }
+  if (user.status === "DELETED") {
+    return { status: 403, payload: { message: "Tài khoản không còn hoạt động" } };
+  }
   if (!(await bcrypt.compare(password, user.password))) {
     return { status: 400, payload: { message: "Mật khẩu không chính xác" } };
   }
@@ -254,7 +260,6 @@ async function getUserSummaries(prisma, ids = []) {
       fullName: true,
       email: true,
       avatarUrl: true,
-      preference: true,
     },
   });
   const order = new Map(userIds.map((id, index) => [id, index]));

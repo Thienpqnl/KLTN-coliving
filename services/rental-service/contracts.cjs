@@ -2,6 +2,8 @@ const { createHash, randomUUID } = require("node:crypto");
 const { z } = require("zod");
 const { getRoomCapacity, syncRoomOccupancy } = require("./capacity.cjs");
 const { sanitizeForJson } = require("./serialization.cjs");
+const { enqueueOccupancyChanged } = require("./outbox.cjs");
+const { attachContractUsers, identityClient } = require("./user-composition.cjs");
 
 const TERMS_VERSION = "VN-HOUSING-2023-v1";
 const contractStatuses = new Set([
@@ -18,42 +20,6 @@ const contractStatuses = new Set([
 ]);
 
 const contractInclude = {
-  room: {
-    select: {
-      id: true,
-      title: true,
-      address: true,
-      areaText: true,
-      areaValue: true,
-      priceValue: true,
-      city: true,
-      district: true,
-      currentOccupants: true,
-      maxOccupants: true,
-      ownerId: true,
-    },
-  },
-  renter: {
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      phone: true,
-      avatarUrl: true,
-      gender: true,
-      birthDate: true,
-      address: true,
-    },
-  },
-  host: {
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      phone: true,
-      address: true,
-    },
-  },
   booking: {
     select: {
       id: true,
@@ -64,10 +30,36 @@ const contractInclude = {
   },
 };
 
+function roomFromContractSnapshot(contract) {
+  const room = contract?.contentSnapshot?.room;
+  if (!room) return null;
+  return {
+    id: room.id,
+    title: room.title,
+    address: room.address,
+    areaText: room.areaText,
+    areaValue: room.areaSquareMeters,
+    city: room.city,
+    district: room.district,
+    maxOccupants: room.maxOccupants,
+    ownerId: contract.hostId,
+    priceValue: contract.monthlyRent,
+  };
+}
+
+function decorateContract(contract) {
+  if (!contract) return null;
+  return {
+    ...contract,
+    host: contract.host || contract.contentSnapshot?.parties?.host || null,
+    renter: contract.renter || contract.contentSnapshot?.parties?.renter || null,
+    room: roomFromContractSnapshot(contract),
+  };
+}
+
 const contractDetailInclude = {
   ...contractInclude,
   events: {
-    include: { actor: { select: { id: true, fullName: true, role: true } } },
     orderBy: { createdAt: "asc" },
   },
 };
@@ -271,16 +263,26 @@ async function listContracts(prisma, identity, query) {
     }),
     prisma.contract.count({ where }),
   ]);
-  return { status: 200, payload: sanitizeForJson({ contracts, total, page, limit, pages: Math.ceil(total / limit) }) };
+  return {
+    status: 200,
+    payload: sanitizeForJson({
+      contracts: contracts.map(decorateContract),
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    }),
+  };
 }
 
-async function getContract(prisma, identity, contractId) {
+async function getContract(prisma, identity, contractId, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const contract = await prisma.contract.findUnique({ where: { id: contractId }, include: contractDetailInclude });
   if (!contract) return failure(404, "Không tìm thấy hợp đồng");
   if (!canAccessContract(identity, contract)) return failure(403, "Không được phép truy cập hợp đồng này");
-  return { status: 200, payload: sanitizeForJson(contract) };
+  const hydrated = await attachContractUsers(contract, clients);
+  return { status: 200, payload: sanitizeForJson(decorateContract(hydrated)) };
 }
 
 async function getActiveContractByRoom(prisma, identity, roomId) {
@@ -292,16 +294,12 @@ async function getActiveContractByRoom(prisma, identity, roomId) {
       status: "ACTIVE",
       OR: [{ hostId: identity.userId }, { renterId: identity.userId }],
     },
-    include: {
-      host: { select: { id: true, fullName: true, email: true } },
-      renter: { select: { id: true, fullName: true, email: true } },
-      room: { select: { id: true, title: true, address: true } },
-    },
+    include: contractInclude,
   });
-  return { status: 200, payload: sanitizeForJson(contract ?? null) };
+  return { status: 200, payload: sanitizeForJson(decorateContract(contract)) };
 }
 
-async function createContract(prisma, identity, input) {
+async function createContract(prisma, identity, input, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   if (identity.role !== "HOST" && identity.role !== "ADMIN") return failure(403, "Bạn không có quyền tạo hợp đồng");
@@ -309,19 +307,36 @@ async function createContract(prisma, identity, input) {
   if (!parsed.ok) return parsed;
   const data = parsed.data;
 
-  return prisma.$transaction(async (tx) => {
+  const sourceBooking = await prisma.booking.findUnique({
+    where: { id: data.bookingId },
+    select: { userId: true, roomId: true },
+  });
+  if (!sourceBooking) return failure(404, "Booking not found");
+  const sourceRoom = await prisma.rentalRoomSnapshot.findUnique({
+    where: { roomId: sourceBooking.roomId },
+    select: { ownerId: true },
+  });
+  if (!sourceRoom?.ownerId) return failure(400, "Room has no host");
+  const [host, renter] = await Promise.all([
+    clients.getUser(sourceRoom.ownerId),
+    clients.getUser(sourceBooking.userId),
+  ]);
+
+  const result = await prisma.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({
       where: { id: data.bookingId },
       include: {
         contract: { select: { id: true } },
-        room: { select: { id: true, ownerId: true, priceValue: true } },
       },
     });
     if (!booking) return failure(404, "Không tìm thấy booking");
     if (booking.status !== "CONFIRMED") return failure(400, "Chỉ có thể tạo hợp đồng từ booking đã xác nhận");
     if (booking.contract) return failure(400, "Booking này đã có hợp đồng");
-    if (!booking.room.ownerId) return failure(400, "Phòng chưa có chủ nhà");
-    if (identity.role === "HOST" && booking.room.ownerId !== identity.userId) {
+    const roomSnapshot = await tx.rentalRoomSnapshot.findUnique({
+      where: { roomId: booking.roomId },
+    });
+    if (!roomSnapshot?.ownerId) return failure(400, "Phòng chưa có chủ nhà");
+    if (identity.role === "HOST" && roomSnapshot.ownerId !== identity.userId) {
       return failure(403, "Bạn không có quyền tạo hợp đồng cho booking này");
     }
 
@@ -329,21 +344,14 @@ async function createContract(prisma, identity, input) {
     const endDate = data.endDate || booking.endDate;
     if (startDate >= endDate) return failure(400, "Ngày kết thúc phải sau ngày bắt đầu");
 
-    const [room, host, renter] = await Promise.all([
-      tx.room.findUnique({
-        where: { id: booking.roomId },
-        select: { id: true, title: true, address: true, areaText: true, areaValue: true, city: true, district: true, maxOccupants: true, ownerId: true },
-      }),
-      tx.user.findUnique({ where: { id: booking.room.ownerId }, select: { id: true, fullName: true, email: true, phone: true, address: true } }),
-      tx.user.findUnique({ where: { id: booking.userId }, select: { id: true, fullName: true, email: true, phone: true, address: true } }),
-    ]);
+    const room = { id: roomSnapshot.roomId, ...roomSnapshot };
     if (!room) return failure(404, "Không tìm thấy phòng");
     if (!host || room.ownerId !== host.id) return failure(403, "Chủ nhà không sở hữu phòng này");
     if (!renter) return failure(404, "Không tìm thấy người thuê");
 
     const id = randomUUID();
     const contractNumber = `HD-${new Date().getFullYear()}-${id.slice(0, 8).toUpperCase()}`;
-    const monthlyRent = data.monthlyRent ?? Number(booking.room.priceValue ?? 0);
+    const monthlyRent = data.monthlyRent ?? Number(roomSnapshot.priceValue ?? 0);
     const snapshot = buildSnapshot({
       ...data,
       contractNumber,
@@ -369,7 +377,7 @@ async function createContract(prisma, identity, input) {
         bookingId: booking.id,
         roomId: booking.roomId,
         renterId: booking.userId,
-        hostId: booking.room.ownerId,
+        hostId: roomSnapshot.ownerId,
         startDate,
         endDate,
         monthlyRent,
@@ -402,8 +410,9 @@ async function createContract(prisma, identity, input) {
         userAgent: input.userAgent,
       },
     });
-    return { status: 201, payload: sanitizeForJson(contract) };
+    return { status: 201, payload: sanitizeForJson(decorateContract(contract)) };
   });
+  return result;
 }
 
 async function updateContract(prisma, identity, contractId, input) {
@@ -412,7 +421,8 @@ async function updateContract(prisma, identity, contractId, input) {
   if (identity.role !== "HOST" && identity.role !== "ADMIN") return failure(403, "Bạn không có quyền cập nhật hợp đồng");
   const parsed = validate(updateContractSchema, input);
   if (!parsed.ok) return parsed;
-  const current = await prisma.contract.findUnique({ where: { id: contractId }, include: contractDetailInclude });
+  const currentRecord = await prisma.contract.findUnique({ where: { id: contractId }, include: contractDetailInclude });
+  const current = decorateContract(currentRecord);
   if (!current) return failure(404, "Không tìm thấy hợp đồng");
   if (current.status !== "DRAFT") return failure(400, "Chỉ được chỉnh sửa hợp đồng khi còn là bản nháp");
   if (identity.role !== "ADMIN" && current.hostId !== identity.userId) return failure(403, "Bạn không có quyền chỉnh sửa hợp đồng này");
@@ -430,7 +440,7 @@ async function updateContract(prisma, identity, contractId, input) {
     inventory: data.inventory ?? current.inventory,
     host: current.host,
     renter: current.renter,
-    room: current.room,
+    room: roomFromContractSnapshot(current),
   };
   if (merged.startDate >= merged.endDate) return failure(400, "Ngày kết thúc phải sau ngày bắt đầu");
   const snapshot = buildSnapshot(merged);
@@ -459,7 +469,7 @@ async function updateContract(prisma, identity, contractId, input) {
     });
     return contract;
   });
-  return { status: 200, payload: sanitizeForJson(updated) };
+  return { status: 200, payload: sanitizeForJson(decorateContract(updated)) };
 }
 
 async function deleteContract(prisma, identity, contractId, input) {
@@ -485,7 +495,6 @@ async function signContract(prisma, identity, contractId, input) {
   return prisma.$transaction(async (tx) => {
     const contract = await tx.contract.findUnique({
       where: { id: contractId },
-      include: { host: { select: { fullName: true } }, renter: { select: { fullName: true } } },
     });
     if (!contract) return failure(404, "Không tìm thấy hợp đồng");
     const now = new Date();
@@ -498,7 +507,7 @@ async function signContract(prisma, identity, contractId, input) {
       if (contract.status !== "DRAFT" && contract.status !== "PENDING_HOST_SIGNATURE") {
         return failure(400, "Hợp đồng hiện không chờ chữ ký của chủ nhà");
       }
-      const nameError = signatureNameError(contract.host.fullName, data.signatureName);
+      const nameError = signatureNameError(contract.contentSnapshot?.parties?.host?.fullName, data.signatureName);
       if (nameError) return nameError;
       toStatus = "PENDING_RENTER_SIGNATURE";
       type = "HOST_SIGNED";
@@ -513,7 +522,7 @@ async function signContract(prisma, identity, contractId, input) {
       if (contract.status !== "PENDING_RENTER_SIGNATURE" || !contract.hostSignedAt) {
         return failure(400, "Hợp đồng chưa sẵn sàng để người thuê ký");
       }
-      const nameError = signatureNameError(contract.renter.fullName, data.signatureName);
+      const nameError = signatureNameError(contract.contentSnapshot?.parties?.renter?.fullName, data.signatureName);
       if (nameError) return nameError;
       toStatus = contract.depositAmount > 0 ? "PENDING_DEPOSIT" : "PENDING_HANDOVER";
       type = "RENTER_SIGNED";
@@ -541,7 +550,7 @@ async function signContract(prisma, identity, contractId, input) {
         userAgent: input.userAgent,
       },
     });
-    return { status: 200, payload: sanitizeForJson(signed) };
+    return { status: 200, payload: sanitizeForJson(decorateContract(signed)) };
   });
 }
 
@@ -580,7 +589,7 @@ async function confirmDeposit(prisma, identity, contractId, input) {
         userAgent: input.userAgent,
       },
     });
-    return { status: 200, payload: sanitizeForJson(updated) };
+    return { status: 200, payload: sanitizeForJson(decorateContract(updated)) };
   });
 }
 
@@ -591,7 +600,7 @@ async function confirmHandover(prisma, identity, contractId, input) {
   const parsed = validate(handoverSchema, input);
   if (!parsed.ok) return parsed;
   const data = parsed.data;
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const contract = await tx.contract.findUnique({ where: { id: contractId } });
     if (!contract) return failure(404, "Không tìm thấy hợp đồng");
     if (contract.status !== "PENDING_HANDOVER") return failure(400, "Hợp đồng hiện không ở bước bàn giao");
@@ -628,7 +637,8 @@ async function confirmHandover(prisma, identity, contractId, input) {
         create: { roomId: contract.roomId, userId: contract.renterId, joinedAt: contract.startDate, status: "ACTIVE" },
       });
       if (contract.bookingId) await tx.booking.update({ where: { id: contract.bookingId }, data: { status: "COMPLETED" } });
-      await syncRoomOccupancy(tx, contract.roomId);
+      const projection = await syncRoomOccupancy(tx, contract.roomId);
+      await enqueueOccupancyChanged(tx, contract.roomId, projection.currentOccupants);
     }
 
     await tx.contractEvent.create({
@@ -643,8 +653,9 @@ async function confirmHandover(prisma, identity, contractId, input) {
         userAgent: input.userAgent,
       },
     });
-    return { status: 200, payload: sanitizeForJson(updated) };
+    return { status: 200, payload: sanitizeForJson(decorateContract(updated)) };
   });
+  return result;
 }
 
 async function renewContract(prisma, identity, contractId, input) {
@@ -688,7 +699,7 @@ async function renewContract(prisma, identity, contractId, input) {
     });
     return updated;
   });
-  return { status: 200, payload: sanitizeForJson(renewed) };
+  return { status: 200, payload: sanitizeForJson(decorateContract(renewed)) };
 }
 
 async function terminateContract(prisma, identity, contractId, input) {
@@ -714,7 +725,8 @@ async function terminateContract(prisma, identity, contractId, input) {
       where: { roomId: contract.roomId, userId: contract.renterId, status: "ACTIVE" },
       data: { status: "INACTIVE", terminatedAt: now, terminationReason: parsed.data.terminationReason },
     });
-    await syncRoomOccupancy(tx, contract.roomId);
+    const projection = await syncRoomOccupancy(tx, contract.roomId);
+    await enqueueOccupancyChanged(tx, contract.roomId, projection.currentOccupants);
     await tx.contractEvent.create({
       data: {
         contractId,
@@ -729,7 +741,7 @@ async function terminateContract(prisma, identity, contractId, input) {
     });
     return updated;
   });
-  return { status: 200, payload: sanitizeForJson(terminated) };
+  return { status: 200, payload: sanitizeForJson(decorateContract(terminated)) };
 }
 
 async function checkExpiredContracts(prisma, authHeader) {

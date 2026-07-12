@@ -34,7 +34,12 @@ test("addFavorite validates room existence and writes idempotently", async () =>
     },
   };
 
-  const result = await addFavorite(prisma, { userId: "user-1" }, "room-1");
+  const result = await addFavorite(
+    prisma,
+    { userId: "user-1" },
+    "room-1",
+    { getRoom: async () => ({ id: "room-1" }) },
+  );
   assert.equal(result.status, 201);
   assert.equal(result.payload.favorited, true);
   assert.equal(executed, true);

@@ -27,6 +27,10 @@ test("listUsers is admin-only and returns pagination", async () => {
     prisma,
     { userId: "admin-1", role: "ADMIN" },
     { page: "2", limit: "10", role: "HOST", search: "lan" },
+    {
+      getBookingCounts: async () => ({ "user-1": 3 }),
+      getPropertyCounts: async () => ({ "user-1": 2 }),
+    },
   );
 
   assert.equal(result.status, 200);
@@ -34,6 +38,7 @@ test("listUsers is admin-only and returns pagination", async () => {
   assert.equal(findManyArgs.take, 10);
   assert.equal(findManyArgs.where.role, "HOST");
   assert.equal(result.payload.pagination.totalPages, 1);
+  assert.deepEqual(result.payload.data[0]._count, { bookings: 3, rooms: 2 });
 });
 
 test("getUserById returns 404 when user is missing", async () => {

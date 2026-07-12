@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { evaluateApplicant } = require("./applicant-evaluation.cjs");
-const { getActiveContractByRoom } = require("./contracts.cjs");
+const { createContract, getActiveContractByRoom } = require("./contracts.cjs");
 
 test("evaluateApplicant validates host ownership", async () => {
   const prisma = {
@@ -14,8 +14,8 @@ test("evaluateApplicant validates host ownership", async () => {
         user: { id: "renter-1", name: "Lan", email: "lan@example.com" },
       }),
     },
-    room: {
-      findUnique: async () => ({ id: "room-1", ownerId: "host-1" }),
+    rentalRoomSnapshot: {
+      findUnique: async () => ({ roomId: "room-1", ownerId: "host-1", title: "Studio" }),
     },
   };
 
@@ -51,6 +51,70 @@ test("getActiveContractByRoom returns active contract for host or renter", async
   assert.deepEqual(where.OR, [{ hostId: "host-1" }, { renterId: "host-1" }]);
 });
 
+test("createContract builds legal room content from Rental snapshot", async () => {
+  const prisma = {
+    booking: {
+      findUnique: async () => ({
+        id: "booking-1",
+        userId: "renter-1",
+        roomId: "room-1",
+        status: "CONFIRMED",
+        startDate: new Date("2026-08-01"),
+        endDate: new Date("2026-09-01"),
+        contract: null,
+      }),
+    },
+    rentalRoomSnapshot: {
+      findUnique: async () => ({
+        roomId: "room-1",
+        ownerId: "host-1",
+        title: "Studio",
+        address: "Thu Duc",
+        areaText: "25 m2",
+        areaValue: 25,
+        city: "Ho Chi Minh City",
+        district: "Thu Duc",
+        maxOccupants: 2,
+        priceValue: 2500000n,
+      }),
+    },
+    user: {
+      findUnique: async ({ where }) => ({
+        id: where.id,
+        fullName: where.id === "host-1" ? "Host Name" : "Renter Name",
+        email: `${where.id}@example.com`,
+        phone: "0900000000",
+        address: "Vietnam",
+      }),
+    },
+    contract: {
+      create: async ({ data }) => ({ ...data, createdAt: new Date(), updatedAt: new Date() }),
+    },
+    contractEvent: { create: async () => ({}) },
+    $transaction: async (operation) => operation(prisma),
+  };
+
+  const result = await createContract(
+    prisma,
+    { userId: "host-1", role: "HOST" },
+    { bookingId: "booking-1", depositAmount: 1000000 },
+    {
+      getUser: async (id) => ({
+        id,
+        fullName: id === "host-1" ? "Host Name" : "Renter Name",
+        email: `${id}@example.com`,
+        phone: "0900000000",
+        address: "Vietnam",
+      }),
+    },
+  );
+
+  assert.equal(result.status, 201);
+  assert.equal(result.payload.hostId, "host-1");
+  assert.equal(result.payload.room.title, "Studio");
+  assert.equal(result.payload.contentSnapshot.room.areaText, "25 m2");
+});
+
 test("evaluateApplicant returns fallback evaluation when AI is unavailable", async () => {
   const originalFetch = global.fetch;
   const originalError = console.error;
@@ -77,8 +141,8 @@ test("evaluateApplicant returns fallback evaluation when AI is unavailable", asy
         },
       }),
     },
-    room: {
-      findUnique: async () => ({ id: "room-1", ownerId: "host-1", title: "Studio" }),
+    rentalRoomSnapshot: {
+      findUnique: async () => ({ roomId: "room-1", ownerId: "host-1", title: "Studio" }),
     },
   };
 
@@ -88,6 +152,14 @@ test("evaluateApplicant returns fallback evaluation when AI is unavailable", asy
       { userId: "host-1", role: "HOST" },
       "booking-1",
       "http://ai.local",
+      {
+        getUser: async () => ({
+          id: "renter-1",
+          name: "Lan",
+          email: "lan@example.com",
+          fullName: "Nguyen Lan",
+        }),
+      },
     );
 
     assert.equal(result.status, 200);

@@ -1,0 +1,18 @@
+
+> my-app@0.1.0 prestart:rental
+> prisma generate --schema services/rental-service/prisma/schema.prisma
+
+Prisma schema loaded from services\rental-service\prisma\schema.prisma
+
+✔ Generated Prisma Client (v6.19.3) to .\services\rental-service\generated\client in 1.34s
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate
+
+
+> my-app@0.1.0 start:rental
+> node services/rental-service/server.cjs
+
+◇ injected env (28) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[rental-service] listening on port 4003
