@@ -3,7 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const { PrismaClient } = require("./generated/client");
 const { requestIdentity, requireInternalService } = require("../shared/internal-auth.cjs");
-const { startConsumer } = require("../shared/rabbitmq.cjs");
+const { createPublisher, startConsumer } = require("../shared/rabbitmq.cjs");
+const { startOutboxWorker } = require("./outbox.cjs");
 const { handleAdminAuditEvent } = require("./audit-events.cjs");
 const {
   createAdmin,
@@ -305,6 +306,9 @@ const server = app.listen(port, "0.0.0.0", () => {
   console.log(`[identity-service] listening on port ${port}`);
 });
 
+const eventPublisher = createPublisher("identity-service");
+const stopOutboxWorker = startOutboxWorker(prisma, eventPublisher);
+
 const stopAuditConsumer = startConsumer({
   serviceName: "identity-service",
   queueName: process.env.IDENTITY_AUDIT_QUEUE || "identity-service.audit-events",
@@ -315,6 +319,8 @@ const stopAuditConsumer = startConsumer({
 async function shutdown(signal) {
   console.log(`[identity-service] received ${signal}, shutting down`);
   server.close(async () => {
+    await stopOutboxWorker();
+    await eventPublisher.close();
     await stopAuditConsumer();
     await prisma.$disconnect();
     process.exit(0);

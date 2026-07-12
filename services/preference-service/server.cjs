@@ -3,6 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const { PrismaClient } = require("./generated/client");
 const { requestIdentity, requireInternalService } = require("../shared/internal-auth.cjs");
+const { createPublisher } = require("../shared/rabbitmq.cjs");
+const { startOutboxWorker } = require("./outbox.cjs");
 const { deletePreference, getPreference, upsertPreference } = require("./preferences.cjs");
 
 const app = express();
@@ -55,9 +57,14 @@ const server = app.listen(port, "0.0.0.0", () => {
   console.log(`[preference-service] listening on port ${port}`);
 });
 
+const eventPublisher = createPublisher("preference-service");
+const stopOutboxWorker = startOutboxWorker(prisma, eventPublisher);
+
 async function shutdown(signal) {
   console.log(`[preference-service] received ${signal}, shutting down`);
   server.close(async () => {
+    await stopOutboxWorker();
+    await eventPublisher.close();
     await prisma.$disconnect();
     process.exit(0);
   });

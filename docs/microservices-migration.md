@@ -284,7 +284,23 @@ Unset the five service database URLs to roll service processes back to the
 legacy `public` schema. Do not run old and new writers concurrently for a long
 period because this migration intentionally does not implement dual-write.
 
-Supabase Data API/PostgREST must expose `identity`, `property`, `rental` and
-`preference` before AI reads those schemas. Set `USE_SERVICE_SCHEMAS=true` in
-`ai/.env` only after that configuration is complete; otherwise the AI loader
-continues reading `public` during the transition.
+## AI projections
+
+AI owns read models in the `ai` PostgreSQL schema and does not require the
+service schemas to be exposed through Supabase Data API/PostgREST. The current
+projection tables are `user_profiles`, `room_profiles`, `occupancy_profiles`
+and `room_interactions`; `processed_events` reserves idempotency keys for the
+incremental RabbitMQ consumer.
+
+Bootstrap or reconcile the projections with:
+
+```powershell
+npm run ai:projections:bootstrap
+```
+
+The command creates missing AI tables, replaces only projection rows and reads
+the authoritative source schemas. It does not modify domain data. With
+`USE_SERVICE_SCHEMAS=true` and `AI_USE_PROJECTIONS=true`, AI runtime queries
+only the `ai` read models. The bootstrap remains the reconciliation mechanism
+until Identity, Property and Preference publish their change events; Rental
+already publishes `rental.occupancy.changed`.

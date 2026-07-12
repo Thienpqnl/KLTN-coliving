@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("COMMUNITY_DATABASE_URL")
 }
 
 model UserDeviceToken {

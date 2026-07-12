@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("IDENTITY_DATABASE_URL")
 }
 
 model User {
@@ -76,6 +76,25 @@ model IdentityInboxEvent {
 
   @@index([eventType, processedAt])
   @@map("identity_inbox_events")
+}
+
+model IdentityOutboxEvent {
+  id            String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@map("identity_outbox_events")
 }
 
 enum Role {

@@ -144,9 +144,15 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       PREFERENCE_DATABASE_URL: ${PREFERENCE_DATABASE_URL:-}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-coliving}:${RABBITMQ_PASSWORD:-coliving-dev}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-coliving.events}
+      OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-1000}
       PORT: 4005
     ports:
       - "4005:4005"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4005/health"]
       interval: 10s
@@ -159,13 +165,18 @@ services:
     build:
       context: .
       dockerfile: ai/Dockerfile
-    env_file:
-      - ai/.env
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      AI_DATABASE_URL: ${AI_DATABASE_URL}
       USE_SERVICE_SCHEMAS: ${USE_SERVICE_SCHEMAS:-false}
+      AI_USE_PROJECTIONS: ${AI_USE_PROJECTIONS:-false}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-coliving}:${RABBITMQ_PASSWORD:-coliving-dev}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-coliving.events}
+      AI_PROJECTION_QUEUE: ${AI_PROJECTION_QUEUE:-ai-service.projections}
     ports:
       - "8000:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test:
         [

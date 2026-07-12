@@ -37,6 +37,8 @@
     "prisma:validate:services": "prisma validate --schema services/identity-service/prisma/schema.prisma && prisma validate --schema services/property-service/prisma/schema.prisma && prisma validate --schema services/rental-service/prisma/schema.prisma && prisma validate --schema services/community-service/prisma/schema.prisma && prisma validate --schema services/preference-service/prisma/schema.prisma",
     "schema:split:prepare": "node scripts/migrate-to-service-schemas.cjs",
     "schema:split:verify": "node scripts/migrate-to-service-schemas.cjs --verify-only",
+    "ai:projections:bootstrap": "docker compose -f docker-compose.microservices.yml run --rm ai-service python scripts/bootstrap_projections.py",
+    "ai:projections:test-event": "docker compose -f docker-compose.microservices.yml run --rm ai-service python scripts/test_projection_event.py",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

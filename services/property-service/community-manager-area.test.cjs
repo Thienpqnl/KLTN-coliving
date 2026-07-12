@@ -27,6 +27,46 @@ test("area matching understands region and Ho Chi Minh aliases", () => {
   );
 });
 
+test("area matching treats accented and unaccented Da Nang as the same city", () => {
+  assert.equal(
+    areaMatchesRoom(
+      { region: "CENTRAL", city: "Đà Nẵng" },
+      {
+        city: null,
+        address: "Đường Võ Như Hưng, Mỹ An, Ngũ Hành Sơn, Da Nang, Vietnam",
+      },
+    ),
+    true,
+  );
+});
+
+test("area matching supports legacy province names after the 2025 merger", () => {
+  assert.equal(
+    areaMatchesRoom(
+      { region: "CENTRAL", city: "Đà Nẵng", provinceCode: "48" },
+      { address: "Tam Kỳ, Quảng Nam, Vietnam", provinceCode: null },
+    ),
+    true,
+  );
+  assert.equal(
+    areaMatchesRoom(
+      { region: "SOUTH", city: "Thành phố Hồ Chí Minh" },
+      { address: "Dĩ An, Bình Dương, Vietnam" },
+    ),
+    true,
+  );
+});
+
+test("area matching rejects conflicting available administrative codes", () => {
+  assert.equal(
+    areaMatchesRoom(
+      { region: "CENTRAL", city: "Đà Nẵng", provinceCode: "48" },
+      { address: "Đà Nẵng, Vietnam", provinceCode: "79" },
+    ),
+    false,
+  );
+});
+
 test("listManagersWithAreas is admin-only and returns manager areas", async () => {
   const denied = await listManagersWithAreas({}, { userId: "cm-1", role: "COMMUNITY_MANAGER" });
   assert.equal(denied.status, 403);
