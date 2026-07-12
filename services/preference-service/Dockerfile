@@ -3,11 +3,10 @@ FROM node:22-alpine
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-COPY prisma ./prisma
-RUN npm ci --omit=dev
-RUN npx prisma generate
+RUN npm ci
 
 COPY services ./services
+RUN ./node_modules/.bin/prisma generate --schema services/preference-service/prisma/schema.prisma
 
 EXPOSE 4005
 

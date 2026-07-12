@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -7,6 +8,7 @@ from services.landlord_scoring import evaluate_user_for_landlord
 from services.recommend import recommend_rooms
 from services.room_user_similarity import get_detailed_compatibility
 from services.roommate import match_roommates
+from services.projection_consumer import ProjectionConsumer
 
 load_dotenv()
 
@@ -73,12 +75,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+projection_consumer = ProjectionConsumer()
+
+@app.on_event("startup")
+def start_projection_consumer():
+    projection_consumer.start()
+
+@app.on_event("shutdown")
+def stop_projection_consumer():
+    projection_consumer.stop()
+
 
 @app.get("/health")
 def health_check():
     return {
         "status": "ok",
         "service": "ai-service",
+        "dataSource": (
+            "ai-projections"
+            if os.getenv("AI_USE_PROJECTIONS", "false").lower() == "true"
+            else "service-schemas"
+            if os.getenv("USE_SERVICE_SCHEMAS", "false").lower() == "true"
+            else "legacy-public"
+        ),
         "model": "xgboost_retrained_with_real_features",
         "version": "1.0",
     }

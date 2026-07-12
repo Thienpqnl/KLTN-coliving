@@ -5,7 +5,7 @@ function requireAdmin(identity) {
   return null;
 }
 
-async function getRoomStats(prisma, identity) {
+async function getRoomStats(prisma, identity, rentalStats = {}) {
   const denied = requireAdmin(identity);
   if (denied) return denied;
 
@@ -17,15 +17,6 @@ async function getRoomStats(prisma, identity) {
     prisma.room.count({ where: { status: "HIDDEN" } }),
   ]);
 
-  const bookings = await prisma.booking.findMany({
-    where: { status: "COMPLETED" },
-    include: { invoice: true },
-  });
-  const totalRevenue = bookings.reduce(
-    (sum, booking) => sum + (Number(booking.invoice?.totalAmount) || 0),
-    0,
-  );
-
   return {
     status: 200,
     payload: {
@@ -35,39 +26,28 @@ async function getRoomStats(prisma, identity) {
       pending,
       hidden,
       revenue: {
-        total: totalRevenue,
-        completedBookings: bookings.length,
+        total: Number(rentalStats.totalRevenue || 0),
+        completedBookings: Number(rentalStats.completedBookings || 0),
       },
     },
   };
 }
 
-async function getRoomPublicStats(prisma, roomId) {
+async function getRoomPublicStats(prisma, roomId, rentalStats = {}, reviewStats = {}) {
   const room = await prisma.room.findUnique({
     where: { id: roomId },
-    include: {
-      bookings: true,
-      reviews: true,
-    },
   });
 
   if (!room) {
     return { status: 404, payload: { error: "Room not found" } };
   }
 
-  const totalBookings = room.bookings.length;
-  const confirmedBookings = room.bookings.filter((booking) => booking.status === "CONFIRMED").length;
-  const pendingBookings = room.bookings.filter((booking) => booking.status === "PENDING").length;
-  const averageRating = room.reviews.length > 0
-    ? Math.round((room.reviews.reduce((sum, review) => sum + review.rating, 0) / room.reviews.length) * 10) / 10
-    : 0;
-  const totalRevenue = room.bookings.reduce((sum, booking) => {
-    const nights = Math.ceil(
-      (booking.endDate.getTime() - booking.startDate.getTime()) /
-        (1000 * 60 * 60 * 24),
-    );
-    return sum + Number(room.priceValue || 0) * nights;
-  }, 0);
+  const totalBookings = Number(rentalStats.totalBookings || 0);
+  const confirmedBookings = Number(rentalStats.confirmedBookings || 0);
+  const pendingBookings = Number(rentalStats.pendingBookings || 0);
+  const averageRating = Number(reviewStats.averageRating || 0);
+  const totalReviews = Number(reviewStats.totalReviews || 0);
+  const totalRevenue = Number(rentalStats.totalRevenue || 0);
 
   return {
     status: 200,
@@ -77,7 +57,7 @@ async function getRoomPublicStats(prisma, roomId) {
       totalBookings,
       confirmedBookings,
       pendingBookings,
-      totalReviews: room.reviews.length,
+      totalReviews,
       averageRating,
       totalRevenue,
       status: room.status,

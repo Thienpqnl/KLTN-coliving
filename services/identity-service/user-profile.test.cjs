@@ -6,28 +6,24 @@ const {
   updateLegacyProfile,
 } = require("./user-profile.cjs");
 
-test("getLegacyProfile normalizes booking and review room images", async () => {
+test("getLegacyProfile composes Identity, Rental and Community data", async () => {
   const prisma = {
     user: {
       findUnique: async () => ({
         id: "user-1",
-        bookings: [{
-          id: "booking-1",
-          room: {
-            id: "room-1",
-            priceValue: 1000000n,
-            images: [{ url: "room.jpg" }],
-          },
-        }],
-        reviews: [{
-          id: "review-1",
-          room: { id: "room-1", images: [{ url: "review-room.jpg" }] },
-        }],
+        email: "user@example.com",
       }),
     },
   };
 
-  const result = await getLegacyProfile(prisma, { userId: "user-1" });
+  const result = await getLegacyProfile(
+    prisma,
+    { userId: "user-1" },
+    {
+      getProfileBookings: async () => [{ id: "booking-1", room: { price: 1000000, image: ["room.jpg"] } }],
+      getProfileReviews: async () => [{ id: "review-1", room: { image: ["review-room.jpg"] } }],
+    },
+  );
 
   assert.equal(result.status, 200);
   assert.equal(result.payload.bookings[0].room.price, 1000000);
@@ -57,25 +53,45 @@ test("updateLegacyProfile updates basic profile fields", async () => {
   assert.deepEqual(updateData, { name: "Lan", phone: "090" });
 });
 
-test("deleteLegacyAccount removes dependent records before deleting user", async () => {
+test("deleteLegacyAccount checks policy, purges privacy data and anonymizes user", async () => {
   const calls = [];
   const prisma = {
     user: {
       findUnique: async () => ({ id: "user-1" }),
-      delete: async () => calls.push("user.delete"),
+      update: async ({ data }) => calls.push({ kind: "user.update", data }),
     },
-    review: { deleteMany: async () => calls.push("review.deleteMany") },
-    booking: { deleteMany: async () => calls.push("booking.deleteMany") },
-    invoice: { deleteMany: async () => calls.push("invoice.deleteMany") },
   };
 
-  const result = await deleteLegacyAccount(prisma, { userId: "user-1" });
+  const result = await deleteLegacyAccount(
+    prisma,
+    { userId: "user-1" },
+    {
+      getDeletionPolicy: async () => ({ allowed: true }),
+      purgeCommunityData: async () => calls.push({ kind: "community.purge" }),
+      deletePreferences: async () => calls.push({ kind: "preference.delete" }),
+    },
+  );
 
   assert.equal(result.status, 200);
-  assert.deepEqual(calls.sort(), [
-    "booking.deleteMany",
-    "invoice.deleteMany",
-    "review.deleteMany",
-    "user.delete",
-  ].sort());
+  assert.equal(calls.some((call) => call.kind === "community.purge"), true);
+  assert.equal(calls.some((call) => call.kind === "preference.delete"), true);
+  const update = calls.find((call) => call.kind === "user.update");
+  assert.equal(update.data.status, "DELETED");
+  assert.match(update.data.email, /^deleted\+user-1@/);
+});
+
+test("deleteLegacyAccount is blocked before cleanup when rental obligations exist", async () => {
+  let cleanupCalled = false;
+  const prisma = { user: { findUnique: async () => ({ id: "user-1" }) } };
+  const result = await deleteLegacyAccount(
+    prisma,
+    { userId: "user-1" },
+    {
+      getDeletionPolicy: async () => ({ allowed: false, reason: "Active contract" }),
+      purgeCommunityData: async () => { cleanupCalled = true; },
+      deletePreferences: async () => { cleanupCalled = true; },
+    },
+  );
+  assert.equal(result.status, 409);
+  assert.equal(cleanupCalled, false);
 });

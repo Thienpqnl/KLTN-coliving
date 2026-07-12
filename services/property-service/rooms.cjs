@@ -1,24 +1,19 @@
+const identityClient = require("../shared/identity-client.cjs");
+
 const roomListInclude = {
-  owner: {
-    select: { id: true, name: true, fullName: true, email: true },
-  },
   amenities: { include: { amenity: true } },
   images: { orderBy: { sortOrder: "asc" }, take: 1 },
 };
 
 const roomDetailInclude = {
-  owner: {
-    select: { id: true, name: true, fullName: true, email: true },
-  },
   amenities: { include: { amenity: true } },
   images: { orderBy: { sortOrder: "asc" } },
-  reviews: {
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-    },
-  },
-  bookings: true,
 };
+
+async function withOwners(rooms, clients = identityClient) {
+  const owners = await clients.userMap(rooms.map((room) => room.ownerId));
+  return rooms.map((room) => ({ ...room, owner: owners.get(room.ownerId) || null }));
+}
 
 function formatAreaText(area) {
   const value = area?.trim();
@@ -26,18 +21,18 @@ function formatAreaText(area) {
   return /^\d+([.,]\d+)?$/.test(value) ? `${value} m2` : value;
 }
 
-function normalizeRoom(room) {
+function normalizeRoom(room, rentalCapacity) {
   const imageUrls = room.images?.map((image) => image.url) || [];
   const priceValue = room.priceValue == null ? null : Number(room.priceValue);
   const areaValue = room.areaValue == null ? null : Number(room.areaValue);
   const areaText = formatAreaText(room.areaText);
   const now = Date.now();
-  const confirmedReservations =
-    room.bookings?.filter(
+  const confirmedReservations = rentalCapacity?.confirmedReservations ??
+    (room.bookings?.filter(
       (booking) =>
         booking.status === "CONFIRMED" &&
         new Date(booking.endDate).getTime() > now,
-    ).length ?? 0;
+    ).length ?? 0);
   const currentOccupants = Math.max(0, room.currentOccupants ?? 0);
   const maxOccupants = Math.max(1, room.maxOccupants ?? 1);
 
@@ -65,7 +60,7 @@ function optionalNumber(value) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-async function listRooms(prisma, query) {
+async function listRooms(prisma, query, clients = identityClient) {
   const page = Math.max(1, Math.trunc(optionalNumber(query.page) || 1));
   const limit = Math.min(
     100,
@@ -123,41 +118,23 @@ async function listRooms(prisma, query) {
     }),
   ]);
 
-  return { rooms: rooms.map(normalizeRoom), total, page, limit };
+  const hydrated = await withOwners(rooms, clients);
+  return { rooms: hydrated.map(normalizeRoom), total, page, limit };
 }
 
-async function findAvailableRooms(prisma, startDate, endDate) {
+async function findAvailableRooms(prisma, startDate, endDate, availabilityByRoom = {}, clients = identityClient) {
   const rooms = await prisma.room.findMany({
     where: { status: "AVAILABLE" },
-    include: {
-      ...roomDetailInclude,
-      occupancies: {
-        where: { status: "ACTIVE" },
-        select: { id: true },
-      },
-    },
+    include: roomDetailInclude,
   });
 
-  return rooms
-    .filter((room) => {
-      const maxOccupants = Math.max(1, room.maxOccupants ?? 1);
-      const activeOccupants = Math.max(
-        room.currentOccupants ?? 0,
-        room.occupancies.length,
-      );
-      const reservations = room.bookings.filter(
-        (booking) =>
-          booking.status === "CONFIRMED" &&
-          booking.startDate < endDate &&
-          booking.endDate > startDate,
-      ).length;
-
-      return activeOccupants + reservations < maxOccupants;
-    })
-    .map(normalizeRoom);
+  const available = rooms
+    .filter((room) => availabilityByRoom[room.id]?.available === true)
+  const hydrated = await withOwners(available, clients);
+  return hydrated.map((room) => normalizeRoom(room, availabilityByRoom[room.id]));
 }
 
-async function findRoomById(prisma, id, identity = {}) {
+async function findRoomById(prisma, id, identity = {}, clients = identityClient) {
   const room = await prisma.room.findUnique({
     where: { id },
     include: roomDetailInclude,
@@ -172,10 +149,11 @@ async function findRoomById(prisma, id, identity = {}) {
     return null;
   }
 
-  return normalizeRoom(room);
+  const [hydrated] = await withOwners([room], clients);
+  return normalizeRoom(hydrated);
 }
 
-async function findRoomsByIds(prisma, ids = []) {
+async function findRoomsByIds(prisma, ids = [], clients = identityClient) {
   const roomIds = Array.isArray(ids)
     ? [...new Set(ids.map(String).filter(Boolean))]
     : [];
@@ -186,7 +164,8 @@ async function findRoomsByIds(prisma, ids = []) {
     include: roomDetailInclude,
   });
   const order = new Map(roomIds.map((id, index) => [id, index]));
-  return rooms
+  const hydrated = await withOwners(rooms, clients);
+  return hydrated
     .map(normalizeRoom)
     .sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
 }

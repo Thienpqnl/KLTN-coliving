@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("RENTAL_DATABASE_URL")
+}
+
+model Booking {
+  id        String        @id @default(uuid())
+  userId    String
+  roomId    String
+  startDate DateTime
+  endDate   DateTime
+  status    BookingStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  contract  Contract?
+  invoice   Invoice?
+
+  @@index([userId])
+  @@index([roomId])
+  @@index([status])
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  userId      String
+  bookingId   String        @unique
+  totalAmount Float
+  status      InvoiceStatus @default(UNSIGNED)
+  signature   String?
+  hash        String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  booking     Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  payment     Payment?
+
+  @@index([userId])
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  invoiceId String        @unique
+  amount    Float
+  method    String
+  status    PaymentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Contract {
+  id                        String                @id @default(uuid())
+  roomId                    String
+  renterId                  String
+  startDate                 DateTime
+  endDate                   DateTime
+  monthlyRent               Float
+  depositAmount             Float
+  renewalCount              Int                   @default(0)
+  status                    ContractStatus        @default(DRAFT)
+  terminatedAt              DateTime?
+  terminationReason         String?
+  notes                     String?
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  hostId                    String
+  bookingId                 String?               @unique
+  contractNumber            String                @unique
+  depositStatus             ContractDepositStatus @default(PENDING)
+  depositPaidAt             DateTime?
+  depositReference          String?
+  paymentDueDay             Int                   @default(5)
+  paymentMethod             String?
+  electricityRate           Float?
+  waterRate                 Float?
+  utilitiesNotes            String?
+  noticeDays                Int                   @default(30)
+  depositReturnDays         Int                   @default(7)
+  houseRules                String?
+  inventory                 Json?
+  contentSnapshot           Json
+  contentHash               String
+  termsVersion              String                @default("VN-HOUSING-2023-v1")
+  hostSignedAt              DateTime?
+  hostSignatureName         String?
+  hostSignatureIp           String?
+  hostSignatureUserAgent    String?
+  renterSignedAt            DateTime?
+  renterSignatureName       String?
+  renterSignatureIp         String?
+  renterSignatureUserAgent  String?
+  hostHandoverConfirmedAt   DateTime?
+  renterHandoverConfirmedAt DateTime?
+  handoverNotes             String?
+  activatedAt               DateTime?
+  booking                   Booking?              @relation(fields: [bookingId], references: [id])
+  events                    ContractEvent[]
+  utilityBills              UtilityBill[]
+
+  @@index([hostId])
+  @@index([renterId])
+  @@index([roomId])
+  @@index([status])
+}
+
+model ContractEvent {
+  id         String          @id @default(uuid())
+  contractId String
+  actorId    String?
+  type       String
+  fromStatus ContractStatus?
+  toStatus   ContractStatus?
+  note       String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime        @default(now())
+  contract   Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId, createdAt])
+  @@index([actorId])
+}
+
+model Occupancy {
+  id                String    @id @default(uuid())
+  roomId            String
+  userId            String
+  joinedAt          DateTime  @default(now()) @db.Timestamp(6)
+  status            String    @default("ACTIVE")
+  terminatedAt      DateTime?
+  terminationReason String?
+  notes             String?
+
+  @@unique([roomId, userId], name: "Occupancy_room_user_unique")
+  @@index([roomId], map: "Occupancy_roomId_idx")
+  @@index([userId], map: "Occupancy_userId_idx")
+  @@index([status], map: "Occupancy_status_idx")
+  @@index([terminatedAt], map: "Occupancy_terminatedAt_idx")
+  @@map("occupancy")
+}
+
+model RentalRoomSnapshot {
+  roomId           String    @id
+  ownerId          String?
+  status           String
+  maxOccupants     Int       @default(1)
+  currentOccupants Int       @default(0)
+  title            String?
+  address          String?
+  areaText         String?
+  areaValue        Decimal?  @db.Decimal(10, 2)
+  city             String?
+  district         String?
+  priceValue       BigInt?
+  priceText        String?
+  imageUrl         String?
+  images           Json?
+  amenities        Json?
+  sourceUpdatedAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("rental_room_snapshots")
+}
+
+model RentalOutboxEvent {
+  id            String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@map("rental_outbox_events")
+}
+
+model UtilityBill {
+  id                      String    @id @default(uuid())
+  contractId              String
+  month                   Int
+  year                    Int
+  previousReading         Float?
+  currentReading          Float?
+  electricityUsage        Float?
+  waterUsage              Float?
+  electricityCost         Float?
+  waterCost               Float?
+  totalCost               Float
+  status                  String    @default("PENDING")
+  paymentProofUrl         String?
+  paymentProofSubmittedAt DateTime?
+  approvedAt              DateTime?
+  notes                   String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  contract                Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, month, year])
+  @@index([contractId])
+  @@index([status])
+  @@map("utility_bills")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum InvoiceStatus {
+  UNSIGNED
+  SIGNED
+}
+
+enum ContractStatus {
+  DRAFT
+  PENDING_HOST_SIGNATURE
+  PENDING_RENTER_SIGNATURE
+  PENDING_DEPOSIT
+  PENDING_HANDOVER
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  CANCELLED
+  DISPUTED
+}
+
+enum ContractDepositStatus {
+  NOT_REQUIRED
+  PENDING
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FORFEITED
+}

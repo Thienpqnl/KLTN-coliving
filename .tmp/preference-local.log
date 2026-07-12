@@ -1,0 +1,18 @@
+
+> my-app@0.1.0 prestart:preference
+> prisma generate --schema services/preference-service/prisma/schema.prisma
+
+Prisma schema loaded from services\preference-service\prisma\schema.prisma
+
+✔ Generated Prisma Client (v6.19.3) to .\services\preference-service\generated\client in 592ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+
+
+> my-app@0.1.0 start:preference
+> node services/preference-service/server.cjs
+
+◇ injected env (28) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[preference-service] listening on port 4005

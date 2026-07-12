@@ -1,6 +1,11 @@
+require("dotenv").config();
+
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require("./generated/client");
 const { requestIdentity, requireInternalService } = require("../shared/internal-auth.cjs");
+const { createPublisher, startConsumer } = require("../shared/rabbitmq.cjs");
+const { startOutboxWorker } = require("./outbox.cjs");
+const { handleAdminAuditEvent } = require("./audit-events.cjs");
 const {
   createAdmin,
   getAdminLogs,
@@ -19,6 +24,7 @@ const {
   updateProfile,
 } = require("./auth.cjs");
 const { requestPhoneOtp, verifyPhoneOtp } = require("./phone-otp.cjs");
+const { getDomainUser, getDomainUsers, searchDomainUsers } = require("./domain-users.cjs");
 const {
   deleteLegacyAccount,
   getLegacyProfile,
@@ -26,7 +32,9 @@ const {
 } = require("./user-profile.cjs");
 
 const app = express();
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.IDENTITY_DATABASE_URL || process.env.DATABASE_URL } },
+});
 const port = Number(process.env.PORT || 4001);
 
 app.disable("x-powered-by");
@@ -37,6 +45,36 @@ app.get("/health", (_request, response) => {
 });
 
 app.use("/v1", requireInternalService);
+
+app.post("/v1/internal/domain/users/batch", async (request, response) => {
+  try {
+    return response.json(await getDomainUsers(prisma, request.body?.ids || []));
+  } catch (error) {
+    console.error("[identity-service] domain user batch failed", error);
+    return response.status(500).json({ message: "Cannot load domain users" });
+  }
+});
+
+app.post("/v1/internal/domain/users/search", async (request, response) => {
+  try {
+    return response.json(await searchDomainUsers(prisma, request.body || {}));
+  } catch (error) {
+    console.error("[identity-service] domain user search failed", error);
+    return response.status(500).json({ message: "Cannot search domain users" });
+  }
+});
+
+app.get("/v1/internal/domain/users/:id", async (request, response) => {
+  try {
+    const user = await getDomainUser(prisma, request.params.id);
+    return user
+      ? response.json(user)
+      : response.status(404).json({ message: "User not found" });
+  } catch (error) {
+    console.error("[identity-service] domain user failed", error);
+    return response.status(500).json({ message: "Cannot load domain user" });
+  }
+});
 
 app.get("/v1/admin/users", async (request, response) => {
   try {
@@ -268,9 +306,22 @@ const server = app.listen(port, "0.0.0.0", () => {
   console.log(`[identity-service] listening on port ${port}`);
 });
 
+const eventPublisher = createPublisher("identity-service");
+const stopOutboxWorker = startOutboxWorker(prisma, eventPublisher);
+
+const stopAuditConsumer = startConsumer({
+  serviceName: "identity-service",
+  queueName: process.env.IDENTITY_AUDIT_QUEUE || "identity-service.audit-events",
+  bindings: ["audit.admin.action.requested"],
+  handler: (event) => handleAdminAuditEvent(prisma, event),
+});
+
 async function shutdown(signal) {
   console.log(`[identity-service] received ${signal}, shutting down`);
   server.close(async () => {
+    await stopOutboxWorker();
+    await eventPublisher.close();
+    await stopAuditConsumer();
     await prisma.$disconnect();
     process.exit(0);
   });

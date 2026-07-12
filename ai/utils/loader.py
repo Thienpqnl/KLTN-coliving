@@ -14,9 +14,10 @@ print(f"SUPABASE_URL: {'✓ SET' if os.getenv('SUPABASE_URL') else '❌ NOT SET'
 print(f"SUPABASE_SERVICE_KEY: {'✓ SET' if os.getenv('SUPABASE_SERVICE_KEY') else '❌ NOT SET'}")
 print("="*60 + "\n")
 
-USE_SUPABASE = os.getenv("SUPABASE_URL") is not None
+USE_SERVICE_SCHEMAS = os.getenv("USE_SERVICE_SCHEMAS", "false").lower() == "true"
+USE_REMOTE_DATA = USE_SERVICE_SCHEMAS or os.getenv("SUPABASE_URL") is not None
 
-if USE_SUPABASE:
+if USE_REMOTE_DATA:
     print("📊 MODE: Loading from SUPABASE")
     print("="*60)
     from utils.loader_supabase import load_all_data

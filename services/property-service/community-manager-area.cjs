@@ -1,3 +1,5 @@
+const identityClient = require("../shared/identity-client.cjs");
+
 const northernCities = new Set([
   "ha noi",
   "hai phong",
@@ -73,10 +75,42 @@ const southernCities = new Set([
   "ca mau",
 ]);
 
+const mergedProvinceGroups = [
+  ["tuyen quang", "ha giang"],
+  ["lao cai", "yen bai"],
+  ["thai nguyen", "bac kan"],
+  ["phu tho", "vinh phuc", "hoa binh"],
+  ["bac ninh", "bac giang"],
+  ["hung yen", "thai binh"],
+  ["hai phong", "hai duong"],
+  ["ninh binh", "ha nam", "nam dinh"],
+  ["quang tri", "quang binh"],
+  ["da nang", "quang nam"],
+  ["quang ngai", "kon tum"],
+  ["gia lai", "binh dinh"],
+  ["khanh hoa", "ninh thuan"],
+  ["lam dong", "dak nong", "binh thuan"],
+  ["dak lak", "phu yen"],
+  ["ho chi minh", "hcm", "sai gon", "saigon", "binh duong", "ba ria vung tau"],
+  ["dong nai", "binh phuoc"],
+  ["tay ninh", "long an"],
+  ["can tho", "soc trang", "hau giang"],
+  ["vinh long", "ben tre", "tra vinh"],
+  ["dong thap", "tien giang"],
+  ["ca mau", "bac lieu"],
+  ["an giang", "kien giang"],
+];
+
+const mergedProvinceAliases = new Map();
+for (const [currentName, ...legacyNames] of mergedProvinceGroups) {
+  for (const name of [currentName, ...legacyNames]) mergedProvinceAliases.set(name, currentName);
+}
+
 function normalizeLocation(value) {
   return (value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0111\u0110]/g, (character) => (character === "\u0110" ? "D" : "d"))
     .replace(/^(tp|tp\.|thanh pho|tinh|quan|huyen|thi xa)\s+/i, "")
     .replace(/\b(city|province|district|ward|vietnam|viet nam)\b/gi, "")
     .replace(/[.,]/g, " ")
@@ -119,6 +153,23 @@ function locationIncludes(roomValue, areaValue) {
   return roomKey === areaKey || roomKey.includes(areaKey) || areaKey.includes(roomKey);
 }
 
+function provinceKeys(value) {
+  const normalized = normalizeLocation(value);
+  if (!normalized) return new Set();
+  const keys = new Set();
+  for (const [alias, currentName] of mergedProvinceAliases) {
+    if (normalized === alias || normalized.includes(alias)) keys.add(currentName);
+  }
+  if (keys.size === 0) keys.add(canonicalLocationKey(value));
+  return keys;
+}
+
+function provinceMatches(roomValue, areaValue) {
+  const roomKeys = provinceKeys(roomValue);
+  const areaKeys = provinceKeys(areaValue);
+  return [...roomKeys].some((key) => areaKeys.has(key));
+}
+
 function codesMatch(left, right) {
   const leftCode = normalizeLocation(left);
   const rightCode = normalizeLocation(right);
@@ -147,6 +198,11 @@ function inferServiceRegion(city) {
   ) {
     return "CENTRAL";
   }
+  for (const provinceKey of provinceKeys(city)) {
+    if (northernCities.has(provinceKey)) return "NORTH";
+    if (centralCities.has(provinceKey)) return "CENTRAL";
+    if (southernCities.has(provinceKey)) return "SOUTH";
+  }
   if (northernCities.has(normalizedCity)) return "NORTH";
   if (centralCities.has(normalizedCity)) return "CENTRAL";
   if (southernCities.has(normalizedCity)) return "SOUTH";
@@ -165,14 +221,38 @@ function isGlobalScope(area) {
 
 function areaMatchesRoom(area, room) {
   if (isGlobalScope(area)) return true;
-  if (area.wardCode) return codesMatch(area.wardCode, room.wardCode);
-  if (area.ward) return locationIncludes(room.ward, area.ward) || locationIncludes(room.address, area.ward);
-  if (area.provinceCode) return codesMatch(area.provinceCode, room.provinceCode);
-  if (area.city) return locationIncludes(room.city, area.city) || locationIncludes(room.address, area.city);
-  if (area.districtId) return normalizeLocation(area.districtId) === normalizeLocation(room.districtId);
-  if (area.district) return locationIncludes(room.district, area.district) || locationIncludes(room.address, area.district);
-  if (area.region) return area.region === inferServiceRegion(room.city) || area.region === inferServiceRegion(room.address);
-  return false;
+  let matchedCriterion = false;
+
+  if (area.wardCode && room.wardCode) {
+    matchedCriterion = true;
+    if (!codesMatch(area.wardCode, room.wardCode)) return false;
+  }
+  if (area.ward) {
+    matchedCriterion = true;
+    if (!locationIncludes(room.ward, area.ward) && !locationIncludes(room.address, area.ward)) return false;
+  }
+  if (area.provinceCode && room.provinceCode) {
+    matchedCriterion = true;
+    if (!codesMatch(area.provinceCode, room.provinceCode)) return false;
+  }
+  if (area.city) {
+    matchedCriterion = true;
+    const cityMatches = provinceMatches(room.city, area.city) || provinceMatches(room.address, area.city);
+    if (!cityMatches && !locationIncludes(room.city, area.city) && !locationIncludes(room.address, area.city)) return false;
+  }
+  if (area.districtId && room.districtId) {
+    matchedCriterion = true;
+    if (normalizeLocation(area.districtId) !== normalizeLocation(room.districtId)) return false;
+  }
+  if (area.district) {
+    matchedCriterion = true;
+    if (!locationIncludes(room.district, area.district) && !locationIncludes(room.address, area.district)) return false;
+  }
+  if (area.region) {
+    matchedCriterion = true;
+    if (area.region !== inferServiceRegion(room.city) && area.region !== inferServiceRegion(room.address)) return false;
+  }
+  return matchedCriterion;
 }
 
 async function getManagerActiveAreas(prisma, managerId) {
@@ -187,31 +267,26 @@ async function managerCanAccessRoom(prisma, managerId, room) {
   return areas.some((area) => areaMatchesRoom(area, room));
 }
 
-async function findBestManagerForRoom(prisma, room) {
-  const managers = await prisma.user.findMany({
-    where: {
-      role: "COMMUNITY_MANAGER",
-      status: "ACTIVE",
-      communityManagerAreas: { some: { isActive: true } },
-    },
-    select: {
-      id: true,
-      communityManagerAreas: {
-        where: { isActive: true },
-        select: {
-          region: true,
-          city: true,
-          provinceCode: true,
-          ward: true,
-          wardCode: true,
-          district: true,
-          districtId: true,
-        },
-      },
-    },
+async function findBestManagerForRoom(prisma, room, clients = identityClient) {
+  const managers = await clients.searchUsers({
+    role: "COMMUNITY_MANAGER",
+    status: "ACTIVE",
   });
+  const areas = await prisma.communityManagerArea.findMany({
+    where: { managerId: { in: managers.map((manager) => manager.id) }, isActive: true },
+  });
+  const areasByManager = new Map();
+  for (const area of areas) {
+    const values = areasByManager.get(area.managerId) || [];
+    values.push(area);
+    areasByManager.set(area.managerId, values);
+  }
+  const managersWithAreas = managers.map((manager) => ({
+    ...manager,
+    communityManagerAreas: areasByManager.get(manager.id) || [],
+  }));
 
-  const candidates = managers.filter((manager) =>
+  const candidates = managersWithAreas.filter((manager) =>
     manager.communityManagerAreas.some((area) => areaMatchesRoom(area, room)),
   );
   if (candidates.length === 0) return null;
@@ -234,7 +309,7 @@ async function findBestManagerForRoom(prisma, room) {
     })[0];
 }
 
-async function listManagersWithAreas(prisma, identity) {
+async function listManagersWithAreas(prisma, identity, clients = identityClient) {
   if (identity.role !== "ADMIN") {
     return {
       status: 403,
@@ -242,38 +317,37 @@ async function listManagersWithAreas(prisma, identity) {
     };
   }
 
-  const managers = await prisma.user.findMany({
-    where: { role: "COMMUNITY_MANAGER" },
-    select: {
-      id: true,
-      name: true,
-      fullName: true,
-      email: true,
-      phone: true,
-      status: true,
-      communityManagerAreas: {
-        orderBy: [
-          { region: "asc" },
-          { city: "asc" },
-          { ward: "asc" },
-          { district: "asc" },
-        ],
-      },
-      _count: {
-        select: {
-          managedRoomVerifications: {
-            where: { room: { status: "PENDING" } },
-          },
-        },
-      },
-    },
-    orderBy: [{ status: "asc" }, { fullName: "asc" }, { email: "asc" }],
-  });
-
-  return { status: 200, payload: managers };
+  const managers = await clients.searchUsers({ role: "COMMUNITY_MANAGER" });
+  const managerIds = managers.map((manager) => manager.id);
+  const [areas, loads] = await Promise.all([
+    prisma.communityManagerArea.findMany({
+      where: { managerId: { in: managerIds } },
+      orderBy: [{ region: "asc" }, { city: "asc" }, { ward: "asc" }, { district: "asc" }],
+    }),
+    prisma.roomVerification.groupBy({
+      by: ["assignedManagerId"],
+      where: { assignedManagerId: { in: managerIds }, room: { status: "PENDING" } },
+      _count: { _all: true },
+    }),
+  ]);
+  const areasByManager = new Map();
+  for (const area of areas) {
+    const values = areasByManager.get(area.managerId) || [];
+    values.push(area);
+    areasByManager.set(area.managerId, values);
+  }
+  const loadByManager = new Map(loads.map((row) => [row.assignedManagerId, row._count._all]));
+  return {
+    status: 200,
+    payload: managers.map((manager) => ({
+      ...manager,
+      communityManagerAreas: areasByManager.get(manager.id) || [],
+      _count: { managedRoomVerifications: loadByManager.get(manager.id) || 0 },
+    })),
+  };
 }
 
-async function replaceManagerAreas(prisma, identity, managerId, areas) {
+async function replaceManagerAreas(prisma, identity, managerId, areas, clients = identityClient) {
   if (identity.role !== "ADMIN") {
     return {
       status: 403,
@@ -281,10 +355,13 @@ async function replaceManagerAreas(prisma, identity, managerId, areas) {
     };
   }
 
-  const manager = await prisma.user.findUnique({
-    where: { id: managerId },
-    select: { id: true, role: true },
-  });
+  let manager;
+  try {
+    manager = await clients.getUser(managerId);
+  } catch (error) {
+    if (error.status === 404) manager = null;
+    else throw error;
+  }
 
   if (!manager) {
     return {
@@ -300,7 +377,7 @@ async function replaceManagerAreas(prisma, identity, managerId, areas) {
     };
   }
 
-  const managerWithAreas = await prisma.$transaction(async (tx) => {
+  const managerAreas = await prisma.$transaction(async (tx) => {
     await tx.communityManagerArea.deleteMany({ where: { managerId } });
 
     if (areas.length > 0) {
@@ -320,32 +397,18 @@ async function replaceManagerAreas(prisma, identity, managerId, areas) {
       });
     }
 
-    return tx.user.findUnique({
-      where: { id: managerId },
-      select: {
-        id: true,
-        name: true,
-        fullName: true,
-        email: true,
-        phone: true,
-        status: true,
-        communityManagerAreas: {
-          orderBy: [
-            { region: "asc" },
-            { city: "asc" },
-            { ward: "asc" },
-            { district: "asc" },
-          ],
-        },
-      },
+    return tx.communityManagerArea.findMany({
+      where: { managerId },
+      orderBy: [{ region: "asc" }, { city: "asc" }, { ward: "asc" }, { district: "asc" }],
     });
   });
 
-  return { status: 200, payload: managerWithAreas };
+  return { status: 200, payload: { ...manager, communityManagerAreas: managerAreas } };
 }
 
 module.exports = {
   areaMatchesRoom,
+  provinceMatches,
   findBestManagerForRoom,
   getManagerActiveAreas,
   listManagersWithAreas,

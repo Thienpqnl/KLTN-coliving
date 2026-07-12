@@ -22,6 +22,21 @@ test("login keeps validation and invalid credential contracts", async () => {
   );
 });
 
+test("login rejects locked and deleted accounts before password verification", async () => {
+  const locked = await login(
+    { user: { findUnique: async () => ({ status: "LOCKED" }) } },
+    "locked@example.com",
+    "secret",
+  );
+  const deleted = await login(
+    { user: { findUnique: async () => ({ status: "DELETED" }) } },
+    "deleted@example.com",
+    "secret",
+  );
+  assert.equal(locked.status, 403);
+  assert.equal(deleted.status, 403);
+});
+
 test("login returns a compatible JWT and user payload", async () => {
   const previousSecret = process.env.JWT_SECRET;
   process.env.JWT_SECRET = "identity-service-test-secret";

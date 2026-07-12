@@ -1,5 +1,6 @@
 const { z } = require("zod");
 const { sanitizeForJson } = require("./serialization.cjs");
+const domainClients = require("./domain-clients.cjs");
 
 const resourceCreateSchema = z.object({
   name: z.string().min(1, "Tên tài nguyên là bắt buộc"),
@@ -62,7 +63,7 @@ function hasBookingConflict(startTime, endTime, bookings) {
   return bookings.some((booking) => startTime < booking.endTime && endTime > booking.startTime);
 }
 
-async function createHostResource(prisma, identity, input) {
+async function createHostResource(prisma, identity, input, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const parsed = validate(resourceCreateSchema, input);
@@ -70,6 +71,14 @@ async function createHostResource(prisma, identity, input) {
   const data = parsed.data;
   if (!data.roomId) return failure(400, "Room ID không hợp lệ");
   if (identity.role !== "HOST" && identity.role !== "ADMIN") return failure(403, "Chỉ chủ nhà được thêm tài nguyên");
+  try {
+    const room = await clients.getRoom(data.roomId);
+    if (identity.role !== "ADMIN" && room.ownerId !== identity.userId) {
+      return failure(403, "Bạn không sở hữu phòng này");
+    }
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Property Service unavailable");
+  }
   const newResource = await prisma.sharedResource.create({
     data: {
       name: data.name,
@@ -96,7 +105,7 @@ async function createHostResource(prisma, identity, input) {
   };
 }
 
-async function createRoomResource(prisma, identity, roomId, input) {
+async function createRoomResource(prisma, identity, roomId, input, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   if (identity.role !== "HOST" && identity.role !== "ADMIN") {
@@ -104,6 +113,14 @@ async function createRoomResource(prisma, identity, roomId, input) {
   }
   const parsed = validate(roomResourceCreateSchema, input);
   if (!parsed.ok) return parsed;
+  try {
+    const room = await clients.getRoom(roomId);
+    if (identity.role !== "ADMIN" && room.ownerId !== identity.userId) {
+      return failure(403, "Bạn không sở hữu phòng này");
+    }
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Property Service unavailable");
+  }
   const newResource = await prisma.sharedResource.create({
     data: {
       roomId,
@@ -116,22 +133,27 @@ async function createRoomResource(prisma, identity, roomId, input) {
   return { status: 201, payload: sanitizeForJson(newResource) };
 }
 
-async function deleteResource(prisma, identity, resourceId) {
+async function deleteResource(prisma, identity, resourceId, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const resource = await prisma.sharedResource.findUnique({
     where: { id: resourceId },
-    include: { room: true },
   });
   if (!resource) return failure(404, "Tài nguyên không tồn tại");
-  if (identity.role !== "ADMIN" && resource.room.ownerId !== identity.userId) {
+  let room;
+  try {
+    room = await clients.getRoom(resource.roomId);
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Property Service unavailable");
+  }
+  if (identity.role !== "ADMIN" && room.ownerId !== identity.userId) {
     return failure(403, "Bạn không có quyền xóa tài nguyên này");
   }
   await prisma.sharedResource.delete({ where: { id: resourceId } });
   return { status: 200, payload: { message: "Đã xóa tài nguyên thành công" } };
 }
 
-async function listResourceBookings(prisma, identity, roomId) {
+async function listResourceBookings(prisma, identity, roomId, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const resources = await prisma.sharedResource.findMany({
@@ -140,20 +162,43 @@ async function listResourceBookings(prisma, identity, roomId) {
       resourceBookings: {
         where: { status: { not: "CANCELLED" } },
         orderBy: { startTime: "asc" },
-        include: { user: { select: { id: true, name: true, fullName: true } } },
       },
     },
     orderBy: { name: "asc" },
   });
-  return { status: 200, payload: sanitizeForJson(resources) };
+  try {
+    const bookings = resources.flatMap((resource) => resource.resourceBookings);
+    const users = await clients.getIdentityUsers(bookings.map((booking) => booking.userId));
+    const usersById = new Map(users.map((user) => [user.id, user]));
+    return {
+      status: 200,
+      payload: sanitizeForJson(resources.map((resource) => ({
+        ...resource,
+        resourceBookings: resource.resourceBookings.map((booking) => ({
+          ...booking,
+          user: usersById.get(booking.userId) || null,
+        })),
+      }))),
+    };
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Identity Service unavailable");
+  }
 }
 
-async function createResourceBooking(prisma, identity, roomId, input) {
+async function createResourceBooking(prisma, identity, roomId, input, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const parsed = validate(bookingCreateSchema, input);
   if (!parsed.ok) return parsed;
   const data = parsed.data;
+  try {
+    const access = await clients.getOccupancyAccess(identity.userId, roomId);
+    if (!access.active) {
+      return failure(403, "Bạn không có quyền đặt tài nguyên trong không gian chung này");
+    }
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Rental Service unavailable");
+  }
   const booking = await prisma.$transaction(async (tx) => {
     const lockedRows = await tx.$queryRaw`SELECT id FROM shared_resources WHERE id = ${data.resourceId} FOR UPDATE`;
     if (lockedRows.length === 0) return failure(404, "Tài nguyên không tồn tại");
@@ -161,12 +206,6 @@ async function createResourceBooking(prisma, identity, roomId, input) {
     if (!resource) return failure(404, "Tài nguyên không tồn tại");
     if (resource.roomId !== roomId) return failure(400, "Tài nguyên không thuộc phòng này");
     if (resource.status === "MAINTENANCE") return failure(409, "Tài nguyên hiện đang bảo trì, không thể đặt lịch");
-    const isOccupant = await tx.occupancy.findUnique({
-      where: { Occupancy_room_user_unique: { roomId, userId: identity.userId } },
-    });
-    if (!isOccupant || isOccupant.status !== "ACTIVE") {
-      return failure(403, "Bạn không có quyền đặt tài nguyên trong không gian chung này");
-    }
     const durationMinutes = (data.endTime.getTime() - data.startTime.getTime()) / (1000 * 60);
     if (durationMinutes > resource.maxDurationMinutes) {
       return failure(400, `Thời gian đặt vượt quá mức tối đa (${resource.maxDurationMinutes} phút)`);
@@ -195,7 +234,7 @@ async function createResourceBooking(prisma, identity, roomId, input) {
   return booking;
 }
 
-async function updateResourceBooking(prisma, identity, bookingId, input) {
+async function updateResourceBooking(prisma, identity, bookingId, input, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const parsed = validate(updateBookingSchema, input);
@@ -213,6 +252,16 @@ async function updateResourceBooking(prisma, identity, bookingId, input) {
   }
   const isHostOrAdmin = identity.role === "HOST" || identity.role === "ADMIN";
   if (!isHostOrAdmin) return failure(403, "Bạn không có quyền thay đổi trạng thái lịch đặt này");
+  if (identity.role === "HOST") {
+    try {
+      const room = await clients.getRoom(booking.resource.roomId);
+      if (room.ownerId !== identity.userId) {
+        return failure(403, "Bạn không sở hữu phòng của tài nguyên này");
+      }
+    } catch (error) {
+      return failure(error.status || 503, error.message || "Property Service unavailable");
+    }
+  }
   if (booking.status === status) {
     return failure(409, `Lịch đặt này đã ở trạng thái ${status === "APPROVED" ? "đã duyệt" : "đã hủy"}`);
   }
@@ -237,28 +286,41 @@ async function updateResourceBooking(prisma, identity, bookingId, input) {
   };
 }
 
-async function listActivities(prisma, identity, roomId) {
+async function listActivities(prisma, identity, roomId, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const activities = await prisma.sharedSpaceActivity.findMany({
     where: { roomId },
-    include: {
-      assignee: { select: { fullName: true } },
-      creator: { select: { fullName: true } },
-    },
     orderBy: { createdAt: "desc" },
   });
-  return { status: 200, payload: sanitizeForJson(activities) };
+  try {
+    const users = await clients.getIdentityUsers(
+      activities.flatMap((activity) => [activity.creatorId, activity.assignedTo]).filter(Boolean),
+    );
+    const usersById = new Map(users.map((user) => [user.id, user]));
+    return {
+      status: 200,
+      payload: sanitizeForJson(activities.map((activity) => ({
+        ...activity,
+        creator: usersById.get(activity.creatorId) || null,
+        assignee: activity.assignedTo ? usersById.get(activity.assignedTo) || null : null,
+      }))),
+    };
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Identity Service unavailable");
+  }
 }
 
-async function createActivity(prisma, identity, roomId, input) {
+async function createActivity(prisma, identity, roomId, input, clients = domainClients) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
-  const isOccupant = await prisma.occupancy.findUnique({
-    where: { Occupancy_room_user_unique: { roomId, userId: identity.userId } },
-  });
-  if (!isOccupant || isOccupant.status !== "ACTIVE") {
-    return failure(403, "Bạn không có quyền tạo hoạt động trong không gian chung này");
+  try {
+    const access = await clients.getOccupancyAccess(identity.userId, roomId);
+    if (!access.active) {
+      return failure(403, "Bạn không có quyền tạo hoạt động trong không gian chung này");
+    }
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Rental Service unavailable");
   }
   const parsed = validate(activityCreateSchema, input);
   if (!parsed.ok) return parsed;
@@ -270,9 +332,13 @@ async function createActivity(prisma, identity, roomId, input) {
       ...data,
       eventDate: data.eventDate ? new Date(data.eventDate) : null,
     },
-    include: { creator: { select: { fullName: true } } },
   });
-  return { status: 201, payload: sanitizeForJson(newActivity) };
+  try {
+    const creator = await clients.getIdentityUser(identity.userId);
+    return { status: 201, payload: sanitizeForJson({ ...newActivity, creator }) };
+  } catch (error) {
+    return failure(error.status || 503, error.message || "Identity Service unavailable");
+  }
 }
 
 module.exports = {

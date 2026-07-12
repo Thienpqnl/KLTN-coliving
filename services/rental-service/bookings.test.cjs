@@ -5,9 +5,9 @@ const { createBooking, hostBookingStats, updateBooking } = require("./bookings.c
 test("createBooking rejects full rooms before writing a booking", async () => {
   let createCalled = false;
   const prisma = {
-    room: {
+    rentalRoomSnapshot: {
       findUnique: async () => ({
-        id: "room-1",
+        roomId: "room-1",
         ownerId: "host-1",
         status: "AVAILABLE",
         currentOccupants: 1,
@@ -41,6 +41,9 @@ test("createBooking rejects full rooms before writing a booking", async () => {
 
 test("updateBooking only lets host or admin confirm a pending booking", async () => {
   const prisma = {
+    rentalRoomSnapshot: {
+      findUnique: async () => ({ roomId: "room-1", ownerId: "host-1" }),
+    },
     booking: {
       findUnique: async () => ({
         id: "booking-1",
@@ -74,12 +77,17 @@ test("hostBookingStats returns host booking counters and projected revenue", asy
         return bookingCountCalls;
       },
       findMany: async () => [
-        { room: { priceValue: 1000000 } },
-        { room: { priceValue: 2500000 } },
+        { roomId: "room-1" },
+        { roomId: "room-2" },
       ],
     },
-    room: {
-      count: async ({ where }) => (where.status === "OCCUPIED" ? 1 : 4),
+    rentalRoomSnapshot: {
+      findMany: async () => [
+        { roomId: "room-1", status: "OCCUPIED", priceValue: 1000000 },
+        { roomId: "room-2", status: "AVAILABLE", priceValue: 2500000 },
+        { roomId: "room-3", status: "AVAILABLE", priceValue: 0 },
+        { roomId: "room-4", status: "AVAILABLE", priceValue: 0 },
+      ],
     },
   };
 

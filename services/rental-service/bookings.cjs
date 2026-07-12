@@ -1,6 +1,7 @@
 const { z } = require("zod");
 const { getRoomCapacity, runSerializableTransaction } = require("./capacity.cjs");
 const { sanitizeForJson } = require("./serialization.cjs");
+const { attachBookingUsers, identityClient } = require("./user-composition.cjs");
 
 const bookingStatuses = new Set(["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED"]);
 
@@ -17,34 +18,62 @@ const bookingUpdateSchema = z.object({
   status: z.string().refine((value) => bookingStatuses.has(value), "Invalid booking status").optional(),
 });
 
-const bookingInclude = {
-  user: { select: { id: true, name: true, email: true } },
-  room: true,
-  invoice: true,
-};
+const bookingInclude = { invoice: true };
 
 const hostBookingInclude = {
-  user: {
-    select: {
-      id: true,
-      name: true,
-      fullName: true,
-      email: true,
-      phone: true,
-    },
-  },
-  room: {
-    select: {
-      id: true,
-      title: true,
-      priceText: true,
-      priceValue: true,
-      address: true,
-    },
-  },
   invoice: true,
   contract: { select: { id: true, status: true } },
 };
+
+function roomFromSnapshot(snapshot) {
+  if (!snapshot) return null;
+  const priceValue = snapshot.priceValue == null ? null : Number(snapshot.priceValue);
+  const areaValue = snapshot.areaValue == null ? null : Number(snapshot.areaValue);
+  const images = Array.isArray(snapshot.images)
+    ? snapshot.images
+    : snapshot.imageUrl
+      ? [{ url: snapshot.imageUrl, sortOrder: 0 }]
+      : [];
+  return {
+    id: snapshot.roomId,
+    title: snapshot.title,
+    address: snapshot.address,
+    areaText: snapshot.areaText,
+    areaValue,
+    city: snapshot.city,
+    district: snapshot.district,
+    priceText: snapshot.priceText,
+    priceValue,
+    price: priceValue ?? 0,
+    ownerId: snapshot.ownerId,
+    status: snapshot.status,
+    currentOccupants: snapshot.currentOccupants,
+    maxOccupants: snapshot.maxOccupants,
+    images,
+    image: images.map((image) => image.url),
+    amenities: Array.isArray(snapshot.amenities) ? snapshot.amenities : [],
+  };
+}
+
+async function attachRoom(prisma, booking) {
+  if (!booking) return booking;
+  const snapshot = await prisma.rentalRoomSnapshot.findUnique({
+    where: { roomId: booking.roomId },
+  });
+  return { ...booking, room: roomFromSnapshot(snapshot) };
+}
+
+async function attachRooms(prisma, bookings) {
+  const roomIds = [...new Set(bookings.map((booking) => booking.roomId))];
+  const snapshots = await prisma.rentalRoomSnapshot.findMany({
+    where: { roomId: { in: roomIds } },
+  });
+  const byId = new Map(snapshots.map((snapshot) => [snapshot.roomId, snapshot]));
+  return bookings.map((booking) => ({
+    ...booking,
+    room: roomFromSnapshot(byId.get(booking.roomId)),
+  }));
+}
 
 function failure(status, message, errors) {
   return { status, payload: { message, ...(errors ? { errors } : {}) } };
@@ -66,9 +95,9 @@ function requireAuthenticated(identity) {
   return identity?.userId ? null : failure(401, "Unauthorized");
 }
 
-function assertCanManageBooking(actor, booking, status) {
+function assertCanManageBooking(actor, booking, room, status) {
   const isAdmin = actor.role === "ADMIN";
-  const isHost = booking.room.ownerId === actor.userId;
+  const isHost = room?.ownerId === actor.userId;
   const isRenter = booking.userId === actor.userId;
 
   if (status === "CONFIRMED" && !isHost && !isAdmin) {
@@ -86,7 +115,7 @@ function assertCanManageBooking(actor, booking, status) {
   return null;
 }
 
-async function createBooking(prisma, identity, input) {
+async function createBooking(prisma, identity, input, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const parsed = validate(bookingCreateSchema, input);
@@ -121,43 +150,38 @@ async function createBooking(prisma, identity, input) {
     },
     include: bookingInclude,
   });
-  return { status: 201, payload: sanitizeForJson(booking) };
+  const hydrated = await attachBookingUsers(booking, clients);
+  return { status: 201, payload: sanitizeForJson(await attachRoom(prisma, hydrated)) };
 }
 
-async function getBookingById(prisma, identity, id) {
+async function getBookingById(prisma, identity, id, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const booking = await prisma.booking.findUnique({
     where: { id },
-    include: {
-      user: { select: { id: true, name: true, email: true, phone: true } },
-      room: { include: { amenities: { include: { amenity: true } } } },
-      invoice: true,
-    },
+    include: { invoice: true },
   });
   if (!booking) return failure(404, "Không tìm thấy booking");
 
   const canView =
     booking.userId === identity.userId ||
     identity.role === "ADMIN" ||
-    booking.room.ownerId === identity.userId;
+    (await attachRoom(prisma, booking)).room?.ownerId === identity.userId;
   if (!canView) return failure(403, "Bạn không có quyền xem booking này");
-  return { status: 200, payload: sanitizeForJson(booking) };
+  const hydrated = await attachBookingUsers(booking, clients);
+  return { status: 200, payload: sanitizeForJson(await attachRoom(prisma, hydrated)) };
 }
 
-async function listUserBookings(prisma, identity) {
+async function listUserBookings(prisma, identity, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const bookings = await prisma.booking.findMany({
     where: { userId: identity.userId },
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-      room: { include: { amenities: { include: { amenity: true } } } },
-      invoice: true,
-    },
+    include: { invoice: true },
     orderBy: { createdAt: "desc" },
   });
-  return { status: 200, payload: sanitizeForJson(bookings) };
+  const hydrated = await attachBookingUsers(bookings, clients);
+  return { status: 200, payload: sanitizeForJson(await attachRooms(prisma, hydrated)) };
 }
 
 async function listUserBookingCards(prisma, identity) {
@@ -173,83 +197,69 @@ async function listUserBookingCards(prisma, identity) {
           terminatedAt: true,
         },
       },
-      room: {
-        select: {
-          id: true,
-          title: true,
-          address: true,
-          priceValue: true,
-          priceText: true,
-          images: {
-            orderBy: { sortOrder: "asc" },
-            select: { url: true },
-          },
-        },
-      },
     },
     orderBy: { createdAt: "desc" },
   });
 
   return {
     status: 200,
-    payload: sanitizeForJson(bookings.map((booking) => ({
-      ...booking,
-      room: {
-        ...booking.room,
-        priceValue: booking.room.priceValue == null ? null : Number(booking.room.priceValue),
-        price: booking.room.priceValue == null ? 0 : Number(booking.room.priceValue),
-        image: booking.room.images.map((image) => image.url),
-      },
-    }))),
+    payload: sanitizeForJson(await attachRooms(prisma, bookings)),
   };
 }
 
-async function listHostBookings(prisma, identity) {
+async function listHostBookings(prisma, identity, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   if (identity.role !== "HOST" && identity.role !== "ADMIN") {
     return failure(403, "Chỉ chủ nhà hoặc admin được xem booking của phòng");
   }
 
+  const roomSnapshots = await prisma.rentalRoomSnapshot.findMany({
+    where: { ownerId: identity.userId },
+    select: { roomId: true },
+  });
   const bookings = await prisma.booking.findMany({
-    where: { room: { ownerId: identity.userId } },
+    where: { roomId: { in: roomSnapshots.map((room) => room.roomId) } },
     include: hostBookingInclude,
     orderBy: { createdAt: "desc" },
   });
-  return { status: 200, payload: sanitizeForJson(bookings) };
+  const hydrated = await attachBookingUsers(bookings, clients);
+  return { status: 200, payload: sanitizeForJson(await attachRooms(prisma, hydrated)) };
 }
 
-async function listRoomBookings(prisma, query) {
+async function listRoomBookings(prisma, query, clients = identityClient) {
   const roomId = String(query.roomId || "");
   if (!roomId) return failure(400, "Room ID is required");
 
   const bookings = await prisma.booking.findMany({
     where: { roomId },
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-      invoice: true,
-    },
+    include: { invoice: true },
     orderBy: { startDate: "asc" },
   });
-  return { status: 200, payload: sanitizeForJson(bookings) };
+  return { status: 200, payload: sanitizeForJson(await attachBookingUsers(bookings, clients)) };
 }
 
-async function updateBooking(prisma, identity, id, input) {
+async function updateBooking(prisma, identity, id, input, clients = identityClient) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   const parsed = validate(bookingUpdateSchema, input);
   if (!parsed.ok) return parsed;
-  if (!parsed.data.status) return getBookingById(prisma, identity, id);
+  if (!parsed.data.status) return getBookingById(prisma, identity, id, clients);
 
   const status = parsed.data.status;
   if (status === "CONFIRMED") {
     const result = await runSerializableTransaction(prisma, async (tx) => {
       const booking = await tx.booking.findUnique({ where: { id }, include: bookingInclude });
+      const room = booking
+        ? await tx.rentalRoomSnapshot.findUnique({ where: { roomId: booking.roomId } })
+        : null;
       if (!booking) return failure(404, "Không tìm thấy booking");
-      const deniedStatus = assertCanManageBooking(identity, booking, status);
+      const deniedStatus = assertCanManageBooking(identity, booking, room, status);
       if (deniedStatus) return deniedStatus;
 
-      if (booking.status === "CONFIRMED") return { status: 200, payload: sanitizeForJson(booking) };
+      if (booking.status === "CONFIRMED") {
+        return { status: 200, payload: sanitizeForJson({ ...booking, room: roomFromSnapshot(room) }) };
+      }
       if (booking.status !== "PENDING") {
         return failure(409, "Chỉ booking đang chờ mới có thể được xác nhận");
       }
@@ -268,16 +278,23 @@ async function updateBooking(prisma, identity, id, input) {
         data: { status: "CONFIRMED" },
         include: bookingInclude,
       });
-      return { status: 200, payload: sanitizeForJson(updated) };
+      return { status: 200, payload: sanitizeForJson({ ...updated, room: roomFromSnapshot(room) }) };
     });
-    return result;
+    if (result.status !== 200) return result;
+    return { ...result, payload: sanitizeForJson(await attachBookingUsers(result.payload, clients)) };
   }
 
   const booking = await prisma.booking.findUnique({ where: { id }, include: bookingInclude });
+  const room = booking
+    ? await prisma.rentalRoomSnapshot.findUnique({ where: { roomId: booking.roomId } })
+    : null;
   if (!booking) return failure(404, "Không tìm thấy booking");
-  const deniedStatus = assertCanManageBooking(identity, booking, status);
+  const deniedStatus = assertCanManageBooking(identity, booking, room, status);
   if (deniedStatus) return deniedStatus;
-  if (booking.status === status) return { status: 200, payload: sanitizeForJson(booking) };
+  if (booking.status === status) {
+    const hydrated = await attachBookingUsers({ ...booking, room: roomFromSnapshot(room) }, clients);
+    return { status: 200, payload: sanitizeForJson(hydrated) };
+  }
   if (booking.status === "CANCELLED" || booking.status === "COMPLETED") {
     return failure(409, "Booking đã kết thúc và không thể đổi trạng thái");
   }
@@ -287,11 +304,12 @@ async function updateBooking(prisma, identity, id, input) {
     data: { status },
     include: bookingInclude,
   });
-  return { status: 200, payload: sanitizeForJson(updated) };
+  const hydrated = await attachBookingUsers({ ...updated, room: roomFromSnapshot(room) }, clients);
+  return { status: 200, payload: sanitizeForJson(hydrated) };
 }
 
-async function cancelBooking(prisma, identity, id) {
-  const bookingResult = await getBookingById(prisma, identity, id);
+async function cancelBooking(prisma, identity, id, clients = identityClient) {
+  const bookingResult = await getBookingById(prisma, identity, id, clients);
   if (bookingResult.status !== 200) return bookingResult;
   const booking = bookingResult.payload;
   if (booking.status === "COMPLETED" || booking.status === "CANCELLED") {
@@ -303,7 +321,8 @@ async function cancelBooking(prisma, identity, id) {
     data: { status: "CANCELLED" },
     include: bookingInclude,
   });
-  return { status: 200, payload: sanitizeForJson(updated) };
+  const hydrated = await attachBookingUsers(updated, clients);
+  return { status: 200, payload: sanitizeForJson(await attachRoom(prisma, hydrated)) };
 }
 
 async function bookingStats(prisma, query) {
@@ -326,29 +345,35 @@ async function hostBookingStats(prisma, identity) {
     return failure(403, "Chỉ chủ nhà hoặc admin được xem thống kê booking");
   }
 
-  const where = { room: { ownerId: identity.userId } };
-  const [total, pending, confirmed, completed, hostRooms, occupiedRooms, bookings] = await Promise.all([
+  const roomSnapshots = await prisma.rentalRoomSnapshot.findMany({
+    where: { ownerId: identity.userId },
+    select: { roomId: true, status: true, priceValue: true },
+  });
+  const roomIds = roomSnapshots.map((room) => room.roomId);
+  const where = { roomId: { in: roomIds } };
+  const [total, pending, confirmed, completed, bookings] = await Promise.all([
     prisma.booking.count({ where }),
     prisma.booking.count({ where: { ...where, status: "PENDING" } }),
     prisma.booking.count({ where: { ...where, status: "CONFIRMED" } }),
     prisma.booking.count({ where: { ...where, status: "COMPLETED" } }),
-    prisma.room.count({ where: { ownerId: identity.userId } }),
-    prisma.room.count({ where: { ownerId: identity.userId, status: "OCCUPIED" } }),
     prisma.booking.findMany({
       where: {
         ...where,
         status: { in: ["PENDING", "CONFIRMED"] },
       },
-      include: {
-        room: { select: { priceValue: true } },
-      },
+      select: { roomId: true },
     }),
   ]);
 
+  const roomPrice = new Map(
+    roomSnapshots.map((room) => [room.roomId, Number(room.priceValue || 0)]),
+  );
   const projectedRevenue = bookings.reduce(
-    (sum, booking) => sum + Number(booking.room.priceValue || 0),
+    (sum, booking) => sum + (roomPrice.get(booking.roomId) || 0),
     0,
   );
+  const hostRooms = roomSnapshots.length;
+  const occupiedRooms = roomSnapshots.filter((room) => room.status === "OCCUPIED").length;
 
   return {
     status: 200,
@@ -364,7 +389,43 @@ async function hostBookingStats(prisma, identity) {
   };
 }
 
+async function roomRentalStats(prisma, roomId) {
+  const bookings = await prisma.booking.findMany({
+    where: { roomId },
+    include: { invoice: true },
+  });
+  const totalBookings = bookings.length;
+  const confirmedBookings = bookings.filter((booking) => booking.status === "CONFIRMED").length;
+  const pendingBookings = bookings.filter((booking) => booking.status === "PENDING").length;
+  const totalRevenue = bookings.reduce(
+    (sum, booking) => sum + Number(booking.invoice?.totalAmount || 0),
+    0,
+  );
+  return {
+    status: 200,
+    payload: { totalBookings, confirmedBookings, pendingBookings, totalRevenue },
+  };
+}
+
+async function adminRentalStats(prisma) {
+  const completed = await prisma.booking.findMany({
+    where: { status: "COMPLETED" },
+    include: { invoice: true },
+  });
+  return {
+    status: 200,
+    payload: {
+      totalRevenue: completed.reduce(
+        (sum, booking) => sum + Number(booking.invoice?.totalAmount || 0),
+        0,
+      ),
+      completedBookings: completed.length,
+    },
+  };
+}
+
 module.exports = {
+  adminRentalStats,
   bookingStats,
   cancelBooking,
   createBooking,
@@ -374,5 +435,7 @@ module.exports = {
   listUserBookingCards,
   listRoomBookings,
   listUserBookings,
+  roomRentalStats,
+  roomFromSnapshot,
   updateBooking,
 };

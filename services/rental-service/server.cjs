@@ -1,8 +1,22 @@
+require("dotenv").config();
+
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require("./generated/client");
 const { requestIdentity, requireInternalService } = require("../shared/internal-auth.cjs");
+const { createPublisher } = require("../shared/rabbitmq.cjs");
+const { startOutboxWorker } = require("./outbox.cjs");
+const {
+  getOccupancyAccess,
+  getReviewEligibility,
+} = require("./community-access.cjs");
+const {
+  getAccountDeletionPolicy,
+  getUserActivityCounts,
+  getUserProfileBookings,
+} = require("./identity-access.cjs");
 const { evaluateApplicant } = require("./applicant-evaluation.cjs");
 const {
+  adminRentalStats,
   bookingStats,
   cancelBooking,
   createBooking,
@@ -12,8 +26,14 @@ const {
   listRoomBookings,
   listUserBookingCards,
   listUserBookings,
+  roomRentalStats,
   updateBooking,
 } = require("./bookings.cjs");
+const { getRoomsAvailability } = require("./capacity.cjs");
+const {
+  prepareRoomSnapshot,
+  upsertRoomSnapshot,
+} = require("./room-snapshots.cjs");
 const {
   addOccupant,
   getOccupantDetails,
@@ -46,7 +66,9 @@ const {
 } = require("./utility-bills.cjs");
 
 const app = express();
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.RENTAL_DATABASE_URL || process.env.DATABASE_URL } },
+});
 const port = Number(process.env.PORT || 4003);
 
 app.disable("x-powered-by");
@@ -61,6 +83,108 @@ app.use("/v1", requireInternalService);
 function sendResult(response, result) {
   return response.status(result.status).json(result.payload);
 }
+
+app.get("/v1/internal/identity/users/:id/profile-bookings", async (request, response) => {
+  try {
+    return sendResult(response, await getUserProfileBookings(prisma, request.params.id));
+  } catch (error) {
+    console.error("[rental-service] identity profile bookings failed", error);
+    return response.status(500).json({ message: "Cannot load profile bookings" });
+  }
+});
+
+app.post("/v1/internal/identity/user-activity-counts", async (request, response) => {
+  try {
+    return response.json(await getUserActivityCounts(prisma, request.body?.userIds || []));
+  } catch (error) {
+    console.error("[rental-service] identity activity counts failed", error);
+    return response.status(500).json({ message: "Cannot load user activity counts" });
+  }
+});
+
+app.get("/v1/internal/identity/users/:id/deletion-policy", async (request, response) => {
+  try {
+    return response.json(await getAccountDeletionPolicy(prisma, request.params.id));
+  } catch (error) {
+    console.error("[rental-service] account deletion policy failed", error);
+    return response.status(500).json({ message: "Cannot check account deletion policy" });
+  }
+});
+
+app.get("/v1/internal/community/review-eligibility", async (request, response) => {
+  const userId = String(request.query.userId || "");
+  const roomId = String(request.query.roomId || "");
+  if (!userId || !roomId) return response.status(400).json({ message: "userId and roomId are required" });
+  try {
+    return response.json(await getReviewEligibility(prisma, userId, roomId));
+  } catch (error) {
+    console.error("[rental-service] review eligibility failed", error);
+    return response.status(500).json({ message: "Cannot check review eligibility" });
+  }
+});
+
+app.get("/v1/internal/community/occupancy-access", async (request, response) => {
+  const userId = String(request.query.userId || "");
+  const roomId = String(request.query.roomId || "");
+  if (!userId || !roomId) return response.status(400).json({ message: "userId and roomId are required" });
+  try {
+    return response.json(await getOccupancyAccess(prisma, userId, roomId));
+  } catch (error) {
+    console.error("[rental-service] occupancy access failed", error);
+    return response.status(500).json({ message: "Cannot check occupancy access" });
+  }
+});
+
+app.put("/v1/internal/room-snapshots/:roomId", async (request, response) => {
+  try {
+    const snapshot = await upsertRoomSnapshot(
+      prisma,
+      request.params.roomId,
+      request.body || {},
+    );
+    return response.json({
+      ...snapshot,
+      priceValue: snapshot.priceValue == null ? null : String(snapshot.priceValue),
+    });
+  } catch (error) {
+    console.error("[rental-service] room snapshot upsert failed", error);
+    return response.status(400).json({ message: "Cannot update room snapshot" });
+  }
+});
+
+app.post("/v1/internal/rooms/availability", async (request, response) => {
+  const startDate = new Date(request.body?.startDate || "");
+  const endDate = new Date(request.body?.endDate || "");
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate <= startDate) {
+    return response.status(400).json({ message: "Invalid availability interval" });
+  }
+  try {
+    return response.json(
+      await getRoomsAvailability(prisma, request.body?.roomIds || [], { startDate, endDate }),
+    );
+  } catch (error) {
+    console.error("[rental-service] availability query failed", error);
+    return response.status(500).json({ message: "Cannot calculate room availability" });
+  }
+});
+
+app.get("/v1/internal/rooms/:id/stats", async (request, response) => {
+  try {
+    return sendResult(response, await roomRentalStats(prisma, request.params.id));
+  } catch (error) {
+    console.error("[rental-service] room stats failed", error);
+    return response.status(500).json({ message: "Cannot calculate room rental stats" });
+  }
+});
+
+app.get("/v1/internal/stats/admin", async (_request, response) => {
+  try {
+    return sendResult(response, await adminRentalStats(prisma));
+  } catch (error) {
+    console.error("[rental-service] admin stats failed", error);
+    return response.status(500).json({ message: "Cannot calculate rental stats" });
+  }
+});
 
 app.get("/v1/bookings", async (request, response) => {
   try {
@@ -82,6 +206,8 @@ app.get("/v1/user/bookings", async (request, response) => {
 
 app.post("/v1/bookings", async (request, response) => {
   try {
+    const preparation = await prepareRoomSnapshot(prisma, request.body?.roomId);
+    if (preparation) return sendResult(response, preparation);
     return sendResult(response, await createBooking(prisma, requestIdentity(request), request.body || {}));
   } catch (error) {
     console.error("[rental-service] POST /v1/bookings failed", error);
@@ -126,6 +252,16 @@ app.get("/v1/bookings/:id/evaluation", async (request, response) => {
 
 app.put("/v1/bookings/:id", async (request, response) => {
   try {
+    if (request.body?.status === "CONFIRMED") {
+      const booking = await prisma.booking.findUnique({
+        where: { id: request.params.id },
+        select: { roomId: true },
+      });
+      if (booking) {
+        const preparation = await prepareRoomSnapshot(prisma, booking.roomId);
+        if (preparation) return sendResult(response, preparation);
+      }
+    }
     return sendResult(response, await updateBooking(prisma, requestIdentity(request), request.params.id, request.body || {}));
   } catch (error) {
     console.error("[rental-service] PUT /v1/bookings/:id failed", error);
@@ -180,6 +316,8 @@ app.get("/v1/host/occupancy", async (request, response) => {
 
 app.post("/v1/host/occupancy", async (request, response) => {
   try {
+    const preparation = await prepareRoomSnapshot(prisma, request.body?.roomId);
+    if (preparation) return sendResult(response, preparation);
     return sendResult(response, await addOccupant(prisma, requestIdentity(request), request.body || {}));
   } catch (error) {
     console.error("[rental-service] POST /v1/host/occupancy failed", error);
@@ -189,6 +327,8 @@ app.post("/v1/host/occupancy", async (request, response) => {
 
 app.get("/v1/host/occupancy/rooms/:id", async (request, response) => {
   try {
+    const preparation = await prepareRoomSnapshot(prisma, request.params.id);
+    if (preparation) return sendResult(response, preparation);
     return sendResult(response, await listRoomOccupants(prisma, requestIdentity(request), request.params.id));
   } catch (error) {
     console.error("[rental-service] GET /v1/host/occupancy/rooms/:id failed", error);
@@ -198,6 +338,8 @@ app.get("/v1/host/occupancy/rooms/:id", async (request, response) => {
 
 app.get("/v1/host/occupancy/rooms/:id/history", async (request, response) => {
   try {
+    const preparation = await prepareRoomSnapshot(prisma, request.params.id);
+    if (preparation) return sendResult(response, preparation);
     return sendResult(response, await occupancyHistory(prisma, requestIdentity(request), request.params.id));
   } catch (error) {
     console.error("[rental-service] GET /v1/host/occupancy/rooms/:id/history failed", error);
@@ -216,6 +358,14 @@ app.get("/v1/host/occupancy/occupants/:id", async (request, response) => {
 
 app.put("/v1/host/occupancy/occupants/:id", async (request, response) => {
   try {
+    const occupancy = await prisma.occupancy.findUnique({
+      where: { id: request.params.id },
+      select: { roomId: true },
+    });
+    if (occupancy) {
+      const preparation = await prepareRoomSnapshot(prisma, occupancy.roomId);
+      if (preparation) return sendResult(response, preparation);
+    }
     return sendResult(response, await terminateOccupancy(prisma, requestIdentity(request), request.params.id, request.body || {}));
   } catch (error) {
     console.error("[rental-service] PUT /v1/host/occupancy/occupants/:id failed", error);
@@ -306,6 +456,14 @@ app.post("/v1/contracts/:id/deposit", async (request, response) => {
 
 app.post("/v1/contracts/:id/handover", async (request, response) => {
   try {
+    const contract = await prisma.contract.findUnique({
+      where: { id: request.params.id },
+      select: { roomId: true },
+    });
+    if (contract) {
+      const preparation = await prepareRoomSnapshot(prisma, contract.roomId);
+      if (preparation) return sendResult(response, preparation);
+    }
     return sendResult(response, await confirmHandover(prisma, requestIdentity(request), request.params.id, request.body || {}));
   } catch (error) {
     console.error("[rental-service] POST /v1/contracts/:id/handover failed", error);
@@ -324,6 +482,14 @@ app.post("/v1/contracts/:id/renew", async (request, response) => {
 
 app.post("/v1/contracts/:id/terminate", async (request, response) => {
   try {
+    const contract = await prisma.contract.findUnique({
+      where: { id: request.params.id },
+      select: { roomId: true },
+    });
+    if (contract) {
+      const preparation = await prepareRoomSnapshot(prisma, contract.roomId);
+      if (preparation) return sendResult(response, preparation);
+    }
     return sendResult(response, await terminateContract(prisma, requestIdentity(request), request.params.id, request.body || {}));
   } catch (error) {
     console.error("[rental-service] POST /v1/contracts/:id/terminate failed", error);
@@ -389,9 +555,14 @@ const server = app.listen(port, "0.0.0.0", () => {
   console.log(`[rental-service] listening on port ${port}`);
 });
 
+const eventPublisher = createPublisher("rental-service");
+const stopOutboxWorker = startOutboxWorker(prisma, eventPublisher);
+
 async function shutdown(signal) {
   console.log(`[rental-service] received ${signal}, shutting down`);
   server.close(async () => {
+    await stopOutboxWorker();
+    await eventPublisher.close();
     await prisma.$disconnect();
     process.exit(0);
   });
