@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
 
@@ -29,7 +30,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ occupancy, ownedRooms });
   } catch (error) {
-    console.error("Occupancy error:", error);
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return handleApiError(error);
   }
 }

@@ -2,23 +2,85 @@ _format_version: "3.0"
 _transform: true
 
 services:
-  - name: coliving-api-gateway
-    url: http://api-gateway:4000
+  - name: identity-service
+    url: http://identity-service:4001
     connect_timeout: 5000
     read_timeout: 10000
     write_timeout: 10000
     retries: 1
     routes:
-      - name: coliving-service-routes
+      - name: identity-routes
         paths:
-          - /v1/services
-        strip_path: false
-        preserve_host: false
-      - name: coliving-gateway-health
+          - /v1/services/identity-service
+        strip_path: true
+
+  - name: property-service
+    url: http://property-service:4002
+    connect_timeout: 5000
+    read_timeout: 10000
+    write_timeout: 10000
+    retries: 1
+    routes:
+      - name: property-routes
+        paths:
+          - /v1/services/property-service
+        strip_path: true
+
+  - name: rental-service
+    url: http://rental-service:4003
+    connect_timeout: 5000
+    read_timeout: 10000
+    write_timeout: 10000
+    retries: 1
+    routes:
+      - name: rental-routes
+        paths:
+          - /v1/services/rental-service
+        strip_path: true
+
+  - name: community-service
+    url: http://community-service:4004
+    connect_timeout: 5000
+    read_timeout: 10000
+    write_timeout: 10000
+    retries: 1
+    routes:
+      - name: community-routes
+        paths:
+          - /v1/services/community-service
+        strip_path: true
+
+  - name: preference-service
+    url: http://preference-service:4005
+    connect_timeout: 5000
+    read_timeout: 10000
+    write_timeout: 10000
+    retries: 1
+    routes:
+      - name: preference-routes
+        paths:
+          - /v1/services/preference-service
+        strip_path: true
+
+  - name: ai-service
+    url: http://ai-service:8000
+    connect_timeout: 5000
+    read_timeout: 15000
+    write_timeout: 10000
+    retries: 1
+    routes:
+      - name: ai-routes
+        paths:
+          - /v1/services/ai-service
+        strip_path: true
+
+  - name: kong-health-upstream
+    url: http://identity-service:4001
+    routes:
+      - name: kong-health-route
         paths:
           - /health
         strip_path: false
-        preserve_host: false
 
 plugins:
   - name: correlation-id

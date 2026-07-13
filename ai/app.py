@@ -8,7 +8,7 @@ import numpy as np
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from services.landlord_scoring import evaluate_user_for_landlord
 from services.recommend import recommend_rooms
@@ -96,6 +96,29 @@ async def observe_request(request: Request, call_next):
     started = time.perf_counter()
     with metrics_lock:
         requests_in_flight += 1
+    expected_token = os.getenv("INTERNAL_SERVICE_TOKEN", "").strip()
+    public_paths = {"/health", "/metrics"}
+    if (
+        expected_token
+        and request.url.path not in public_paths
+        and request.headers.get("x-internal-service-token", "") != expected_token
+    ):
+        response = JSONResponse(
+            status_code=401,
+            content={
+                "error": "UNAUTHORIZED_SERVICE",
+                "message": "Invalid internal service credentials",
+            },
+        )
+        duration = time.perf_counter() - started
+        with metrics_lock:
+            requests_in_flight -= 1
+            request_counts[(request.method, request.url.path, 401)] += 1
+            metric = request_durations[(request.method, request.url.path, 401)]
+            metric["count"] += 1
+            metric["sum"] += duration
+        response.headers["x-correlation-id"] = correlation_id
+        return response
     try:
         response = await call_next(request)
     except Exception:

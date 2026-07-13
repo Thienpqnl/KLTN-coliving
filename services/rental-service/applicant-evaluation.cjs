@@ -61,9 +61,13 @@ async function evaluateApplicant(prisma, identity, bookingId, aiBaseUrl, clients
 
   let evaluation = null;
   try {
+    const aiHeaders = correlationHeaders();
+    if (process.env.INTERNAL_SERVICE_TOKEN) {
+      aiHeaders["x-internal-service-token"] = process.env.INTERNAL_SERVICE_TOKEN;
+    }
     const response = await fetch(
       `${aiBaseUrl}/v1/landlord/evaluate-applicant/${booking.userId}/${booking.roomId}`,
-      { method: "GET", headers: correlationHeaders() },
+      { method: "GET", headers: aiHeaders },
     );
     if (response.ok) {
       const payload = await response.json();
