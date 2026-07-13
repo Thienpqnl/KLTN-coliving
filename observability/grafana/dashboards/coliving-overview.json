@@ -1,0 +1,60 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Service đang hoạt động",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(up{job=\"coliving-services\"})", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Tổng request / phút",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "expr": "sum(rate(http_requests_total[1m])) * 60", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Tỷ lệ lỗi 5xx",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
+      "targets": [{ "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 0.000001)", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Request đang xử lý",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "targets": [{ "expr": "sum(http_requests_in_flight)", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Request theo service",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "targets": [{ "expr": "sum by (service) (rate(http_requests_total[1m]))", "legendFormat": "{{service}}", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Thời gian phản hồi trung bình",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [{ "expr": "sum by (service) (rate(http_request_duration_seconds_sum[5m])) / clamp_min(sum by (service) (rate(http_request_duration_seconds_count[5m])), 0.000001)", "legendFormat": "{{service}}", "refId": "A" }]
+    },
+    {
+      "type": "table",
+      "title": "Trạng thái scrape",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 13 },
+      "targets": [{ "expr": "up", "format": "table", "instant": true, "refId": "A" }]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["coliving", "microservices"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Coliving Microservices Overview",
+  "uid": "coliving-overview",
+  "version": 1
+}

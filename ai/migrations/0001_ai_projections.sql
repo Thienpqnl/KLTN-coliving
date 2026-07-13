@@ -64,6 +64,18 @@ CREATE TABLE IF NOT EXISTS ai.processed_events (
   processed_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS ai.projection_reconciliation_runs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  started_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz,
+  status text NOT NULL DEFAULT 'RUNNING',
+  details jsonb NOT NULL DEFAULT '{}'::jsonb,
+  error text
+);
+
+CREATE INDEX IF NOT EXISTS ai_reconciliation_runs_started_idx
+  ON ai.projection_reconciliation_runs (started_at DESC);
+
 CREATE INDEX IF NOT EXISTS ai_occupancy_room_status_idx
   ON ai.occupancy_profiles (room_id, status);
 CREATE INDEX IF NOT EXISTS ai_interactions_user_idx

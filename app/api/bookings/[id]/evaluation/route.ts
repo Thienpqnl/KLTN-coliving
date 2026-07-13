@@ -3,8 +3,15 @@ import { getAuthUser } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { tryProxyRentalServiceRaw } from "@/lib/microservices/rental-bff";
+import {
+  gatewayServiceBase,
+  internalServiceHeaders,
+} from "@/lib/microservices/service-client";
 
-const AI_API_BASE_URL = process.env.AI_API_URL || "http://localhost:8000";
+const AI_API_BASE_URL = gatewayServiceBase(
+  "ai-service",
+  process.env.AI_API_URL || process.env.AI_SERVICE_URL || "http://localhost:8000",
+);
 
 export async function GET(
   request: NextRequest,
@@ -56,6 +63,7 @@ export async function GET(
         `${AI_API_BASE_URL}/landlord/evaluate-applicant/${booking.userId}/${booking.roomId}`,
         {
           method: "GET",
+          headers: internalServiceHeaders(),
         }
       );
 

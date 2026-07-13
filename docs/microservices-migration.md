@@ -298,9 +298,114 @@ Bootstrap or reconcile the projections with:
 npm run ai:projections:bootstrap
 ```
 
+On a fresh database, provision tables with an administrator connection before
+creating the runtime role:
+
+```powershell
+$env:AI_PROVISION_SCHEMA="true"
+npm run ai:projections:bootstrap
+Remove-Item Env:AI_PROVISION_SCHEMA
+npm run ai:database:configure-role
+```
+
 The command creates missing AI tables, replaces only projection rows and reads
 the authoritative source schemas. It does not modify domain data. With
 `USE_SERVICE_SCHEMAS=true` and `AI_USE_PROJECTIONS=true`, AI runtime queries
-only the `ai` read models. The bootstrap remains the reconciliation mechanism
-until Identity, Property and Preference publish their change events; Rental
-already publishes `rental.occupancy.changed`.
+only the `ai` read models. Identity, Property, Preference and Rental publish
+transactional outbox events for incremental updates. Bootstrap remains the
+full reconciliation and recovery mechanism.
+
+Run incremental reconciliation manually without truncating projections:
+
+```powershell
+npm run ai:projections:reconcile
+```
+
+AI also schedules this job using `AI_RECONCILIATION_INTERVAL_SECONDS` (24 hours
+by default) and runs it once at startup when `AI_RECONCILIATION_RUN_ON_START`
+is enabled. A PostgreSQL advisory lock prevents overlapping jobs. Each run is
+recorded in `ai.projection_reconciliation_runs`, and `/health` exposes the last
+scheduler result. Bootstrap remains reserved for initial creation or full
+recovery.
+
+The `ai_service_runtime` PostgreSQL role has column-level `SELECT` access only
+to the source fields required by reconciliation and read/write access only to
+schema `ai`. It cannot read `identity.User.password` and cannot update domain
+tables. Rotate or recreate the role safely with:
+
+```powershell
+npm run ai:database:configure-role
+```
+
+The command backs up `.env` and `ai/.env`, rotates a random password, runs
+positive and negative privilege checks, then updates `AI_DATABASE_URL` without
+printing the credential.
+
+`npm run ai:projections:test-event` intentionally performs no-op writes in the
+source schemas to verify the complete outbox pipeline. Supply a separate
+administrator URL through `AI_TEST_SOURCE_DATABASE_URL` only while running
+this privileged integration test; never add that credential to the AI runtime
+container.
+
+## Central observability
+
+The microservice Compose stack includes Prometheus and Grafana. Every HTTP
+service exposes `/metrics`, returns an `x-correlation-id` response header and
+writes a structured JSON access log containing service, correlation ID, path,
+status and duration. Internal Node service clients forward the active
+correlation ID so one request can be followed across service logs.
+
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3001`
+- Dashboard: `Coliving / Coliving Microservices Overview`
+
+Grafana uses `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` (both default to
+`admin` for local development). Set a non-default password in `.env` for any
+shared or deployed environment. Prometheus keeps 15 days of metrics in a named
+Docker volume; Grafana dashboards and datasource provisioning live under
+`observability/` and are version controlled.
+
+## API Gateway compatibility cutover
+
+`api-gateway` is the single synchronous entry point between the Next.js BFF
+and backend services. It runs on `http://localhost:4000` and provides an
+explicit service allowlist, internal-token authentication, correlation ID,
+rate limiting, body-size limits, upstream timeout handling, structured logs
+and Prometheus metrics.
+
+Next.js keeps its existing `app/api` routes as a compatibility layer, so the
+browser contract does not change. When `API_GATEWAY_URL` is set, the shared BFF
+client and direct AI calls use routes shaped like:
+
+```text
+/v1/services/property-service/v1/rooms
+/v1/services/rental-service/v1/bookings
+/v1/services/ai-service/v1/recommend-room/{userId}
+```
+
+To roll back locally, stop Next.js, remove or clear `API_GATEWAY_URL`, then
+restart Next.js. The BFF will call each configured service URL directly again.
+The gateway contains no domain business logic and services continue to require
+`x-internal-service-token`.
+
+## Event retries and dead-letter queues
+
+Consumers retry failed messages a maximum of `EVENT_CONSUMER_MAX_RETRIES`
+times (five by default). Retry attempts use the `x-retry-count` header. A
+message that still fails is published to `RABBITMQ_DEAD_LETTER_EXCHANGE` and
+stored in `<queue>.dlq`; `x-dead-reason` records the final failure.
+
+Inspect the known dead-letter queues:
+
+```powershell
+npm run events:dlq:status
+```
+
+Replay only after correcting the payload or consumer bug:
+
+```powershell
+npm run events:dlq:replay -- ai-service.projections 20
+```
+
+Replay resets the retry count and acknowledges the DLQ message only after the
+broker confirms publication to the primary exchange.

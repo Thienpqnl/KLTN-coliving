@@ -1,3 +1,5 @@
+const { correlationHeaders } = require("../shared/observability.cjs");
+
 function rentalServiceUrl() {
   return String(process.env.RENTAL_SERVICE_URL || "").replace(/\/+$/, "");
 }
@@ -8,7 +10,7 @@ function headers(hasBody = false) {
   if (process.env.INTERNAL_SERVICE_TOKEN) {
     result["x-internal-service-token"] = process.env.INTERNAL_SERVICE_TOKEN;
   }
-  return result;
+  return correlationHeaders(result);
 }
 
 async function requestRental(path, options = {}) {

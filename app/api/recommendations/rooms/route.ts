@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import {
+  gatewayServiceBase,
   getServiceUrl,
+  internalServiceHeaders,
   requestServiceJson,
 } from "@/lib/microservices/service-client";
 import {
@@ -10,7 +12,10 @@ import {
   serviceUnavailableResponse,
 } from "@/lib/microservices/bff-service";
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
+const AI_SERVICE_URL = gatewayServiceBase(
+  "ai-service",
+  process.env.AI_SERVICE_URL || "http://localhost:8000",
+);
 
 interface RoomRecommendation {
   roomId: string;
@@ -62,7 +67,7 @@ export async function GET(req: NextRequest) {
       `${AI_SERVICE_URL}/v1/recommend-room/${authUser.userId}?top_k=${topK}`,
       {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: internalServiceHeaders({ "Content-Type": "application/json" }),
         cache: "no-store",
       },
     );

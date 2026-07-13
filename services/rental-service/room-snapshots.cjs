@@ -1,3 +1,5 @@
+const { correlationHeaders } = require("../shared/observability.cjs");
+
 function failure(status, message, code = "ROOM_SNAPSHOT_ERROR") {
   return { status, payload: { error: code, message } };
 }
@@ -12,7 +14,7 @@ function internalHeaders(hasBody = false) {
   if (process.env.INTERNAL_SERVICE_TOKEN) {
     headers["x-internal-service-token"] = process.env.INTERNAL_SERVICE_TOKEN;
   }
-  return headers;
+  return correlationHeaders(headers);
 }
 
 async function requestJson(url, options = {}) {

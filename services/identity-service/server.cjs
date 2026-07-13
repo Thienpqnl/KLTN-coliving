@@ -4,6 +4,7 @@ const express = require("express");
 const { PrismaClient } = require("./generated/client");
 const { requestIdentity, requireInternalService } = require("../shared/internal-auth.cjs");
 const { createPublisher, startConsumer } = require("../shared/rabbitmq.cjs");
+const { createObservability } = require("../shared/observability.cjs");
 const { startOutboxWorker } = require("./outbox.cjs");
 const { handleAdminAuditEvent } = require("./audit-events.cjs");
 const {
@@ -36,9 +37,12 @@ const prisma = new PrismaClient({
   datasources: { db: { url: process.env.IDENTITY_DATABASE_URL || process.env.DATABASE_URL } },
 });
 const port = Number(process.env.PORT || 4001);
+const observability = createObservability("identity-service");
 
 app.disable("x-powered-by");
+app.use(observability.middleware);
 app.use(express.json({ limit: "1mb" }));
+app.get("/metrics", observability.metrics);
 
 app.get("/health", (_request, response) => {
   response.json({ status: "ok", service: "identity-service" });

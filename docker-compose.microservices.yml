@@ -171,7 +171,12 @@ services:
       AI_USE_PROJECTIONS: ${AI_USE_PROJECTIONS:-false}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-coliving}:${RABBITMQ_PASSWORD:-coliving-dev}@rabbitmq:5672
       RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-coliving.events}
+      RABBITMQ_DEAD_LETTER_EXCHANGE: ${RABBITMQ_DEAD_LETTER_EXCHANGE:-coliving.events.dlx}
+      EVENT_CONSUMER_MAX_RETRIES: ${EVENT_CONSUMER_MAX_RETRIES:-5}
       AI_PROJECTION_QUEUE: ${AI_PROJECTION_QUEUE:-ai-service.projections}
+      AI_RECONCILIATION_INTERVAL_SECONDS: ${AI_RECONCILIATION_INTERVAL_SECONDS:-86400}
+      AI_RECONCILIATION_RUN_ON_START: ${AI_RECONCILIATION_RUN_ON_START:-true}
+      AI_PROVISION_SCHEMA: ${AI_PROVISION_SCHEMA:-false}
     ports:
       - "8000:8000"
     depends_on:
@@ -190,3 +195,92 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    environment:
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+      IDENTITY_SERVICE_URL: http://identity-service:4001
+      PROPERTY_SERVICE_URL: http://property-service:4002
+      RENTAL_SERVICE_URL: http://rental-service:4003
+      COMMUNITY_SERVICE_URL: http://community-service:4004
+      PREFERENCE_SERVICE_URL: http://preference-service:4005
+      AI_SERVICE_URL: http://ai-service:8000
+      MICROSERVICE_TIMEOUT_MS: ${MICROSERVICE_TIMEOUT_MS:-3000}
+      GATEWAY_TIMEOUT_MS: ${GATEWAY_TIMEOUT_MS:-5000}
+      GATEWAY_RATE_LIMIT_WINDOW_MS: ${GATEWAY_RATE_LIMIT_WINDOW_MS:-60000}
+      GATEWAY_RATE_LIMIT_MAX: ${GATEWAY_RATE_LIMIT_MAX:-600}
+      GATEWAY_MAX_BODY_BYTES: ${GATEWAY_MAX_BODY_BYTES:-10485760}
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      identity-service:
+        condition: service_healthy
+      property-service:
+        condition: service_healthy
+      rental-service:
+        condition: service_healthy
+      community-service:
+        condition: service_healthy
+      preference-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.4.2
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      identity-service:
+        condition: service_healthy
+      property-service:
+        condition: service_healthy
+      rental-service:
+        condition: service_healthy
+      community-service:
+        condition: service_healthy
+      preference-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      api-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.0.2
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

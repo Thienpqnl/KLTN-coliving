@@ -10,11 +10,21 @@ ROOM_ID = os.getenv("AI_PROJECTION_TEST_ROOM_ID", "b99cea3c-45c7-49ca-9f11-bdd4e
 
 
 def run():
-    database_url = os.environ["AI_DATABASE_URL"]
-    with psycopg.connect(database_url, connect_timeout=10) as connection:
+    projection_database_url = os.environ["AI_DATABASE_URL"]
+    source_database_url = os.getenv("AI_TEST_SOURCE_DATABASE_URL")
+    if not source_database_url:
+        raise RuntimeError(
+            "AI_TEST_SOURCE_DATABASE_URL is required for this privileged integration test. "
+            "Do not use the AI runtime database role for source writes."
+        )
+
+    with psycopg.connect(projection_database_url, connect_timeout=10) as connection:
         with connection.cursor() as cursor:
             cursor.execute("SELECT count(*) FROM ai.processed_events")
             before = cursor.fetchone()[0]
+
+    with psycopg.connect(source_database_url, connect_timeout=10) as connection:
+        with connection.cursor() as cursor:
             cursor.execute('SELECT "id" FROM identity."User" ORDER BY "createdAt" LIMIT 1')
             user_id = cursor.fetchone()[0]
             cursor.execute('SELECT "userId" FROM preference.user_preferences ORDER BY "createdAt" LIMIT 1')
@@ -39,7 +49,7 @@ def run():
     after = before
     for _ in range(60):
         time.sleep(1)
-        with psycopg.connect(database_url, connect_timeout=10) as connection:
+        with psycopg.connect(source_database_url, connect_timeout=10) as connection:
             with connection.cursor() as cursor:
                 for table, event_type, aggregate_id in expected:
                     cursor.execute(f'''
@@ -50,8 +60,10 @@ def run():
                     row = cursor.fetchone()
                     if row:
                         events[event_type] = row
-                if len(events) == len(expected):
-                    ids = [event[0] for event in events.values()]
+        if len(events) == len(expected):
+            ids = [event[0] for event in events.values()]
+            with psycopg.connect(projection_database_url, connect_timeout=10) as connection:
+                with connection.cursor() as cursor:
                     cursor.execute(
                         "SELECT count(*) FROM ai.processed_events WHERE event_id = ANY(%s)",
                         (ids,),
