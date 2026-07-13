@@ -56,8 +56,7 @@ export async function GET(req: NextRequest) {
       },
     })));
   } catch (error) {
-    console.error("Bookings error:", error);
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return handleApiError(error);
   }
 }
 
@@ -77,7 +76,6 @@ export async function POST(req: NextRequest) {
 
     return successResponse(await bookingService.create(user.userId, data), 201);
   } catch (error) {
-    console.error("Booking creation error:", error);
     return handleApiError(error);
   }
 }

@@ -13,7 +13,6 @@ scrape_configs:
           - community-service:4004
           - preference-service:4005
           - ai-service:8000
-          - api-gateway:4000
 
   - job_name: rabbitmq
     static_configs:

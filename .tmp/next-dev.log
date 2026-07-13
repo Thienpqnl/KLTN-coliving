@@ -19,3 +19,7 @@ Creating turbopack project { dir: 'D:\\coliving', testMode: true }
  GET /api/rooms?page=1 200 in 2.3s (next.js: 467ms, application-code: 1791ms)
   Reload env: .env
  GET /api/rooms?page=1 200 in 1361ms (next.js: 142ms, application-code: 1219ms)
+ GET /api/rooms?page=1 200 in 1631ms (next.js: 4ms, application-code: 1627ms)
+ GET /api/amenities 200 in 1184ms (next.js: 354ms, application-code: 829ms)
+  Reload env: .env
+[?25h

@@ -373,13 +373,13 @@ Kong Gateway is the primary synchronous entry point at
 size limiting, upstream timeout settings and Prometheus metrics. Its Admin API
 is bound to localhost only at `http://localhost:8002`.
 
-The Express `api-gateway` remains behind Kong at port `4000` as a compatibility
-and rollback layer. It validates `x-internal-service-token`, enforces the
-service allowlist and forwards requests to backend services. Neither gateway
-contains domain business logic.
+Kong declares an explicit Service and Route for Identity, Property, Rental,
+Community, Preference and AI. It strips only the gateway service prefix and
+forwards the remaining API path directly to the selected upstream. Kong does
+not contain domain business logic.
 
 ```text
-Browser -> Next.js app/api -> Kong :8008 -> Express Gateway :4000 -> Services
+Browser -> Next.js app/api -> Kong :8008 -> Identity/Property/Rental/Community/Preference/AI
 ```
 
 Next.js keeps its existing `app/api` routes as a compatibility layer, so the
@@ -398,11 +398,9 @@ Validate the declarative configuration after editing it:
 npm run kong:validate
 ```
 
-To bypass Kong temporarily, set `API_GATEWAY_URL=http://localhost:4000` and
-restart Next.js. To roll back both gateway layers, remove or clear
-`API_GATEWAY_URL` and restart Next.js; the BFF then calls configured service
-URLs directly. Backend services continue to require
-`x-internal-service-token` in every mode.
+To bypass Kong temporarily, remove or clear `API_GATEWAY_URL` and restart
+Next.js; the BFF then calls configured service URLs directly. Every upstream,
+including AI, validates `x-internal-service-token` for protected endpoints.
 
 ## Event retries and dead-letter queues
 
