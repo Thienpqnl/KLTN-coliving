@@ -71,7 +71,11 @@ export async function GET() {
         'property-service',
         propertyServiceUrl,
         '/v1/rooms/map',
-        { timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000) },
+        {
+          timeoutMs: Number(
+            process.env.PROPERTY_MAP_TIMEOUT_MS || 12_000,
+          ),
+        },
       );
       return NextResponse.json(rooms);
     } catch (error) {

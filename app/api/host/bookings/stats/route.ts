@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const proxied = await tryProxyRentalService({
       identity: { userId: user.userId, role: user.role },
       path: "/v1/host/bookings/stats",
+      timeoutMs: Number(process.env.RENTAL_HOST_BOOKINGS_TIMEOUT_MS || 12_000),
       fallbackMessage: "Cannot load host booking stats",
     });
     if (proxied) return proxied;

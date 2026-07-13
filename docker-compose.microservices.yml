@@ -54,6 +54,7 @@ services:
       PROPERTY_DATABASE_URL: ${PROPERTY_DATABASE_URL:-}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
       IDENTITY_SERVICE_URL: http://identity-service:4001
+      IDENTITY_SERVICE_TIMEOUT_MS: ${IDENTITY_SERVICE_TIMEOUT_MS:-8000}
       COMMUNITY_SERVICE_URL: http://community-service:4004
       RENTAL_SERVICE_URL: http://rental-service:4003
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-coliving}:${RABBITMQ_PASSWORD:-coliving-dev}@rabbitmq:5672
@@ -83,6 +84,7 @@ services:
       RENTAL_DATABASE_URL: ${RENTAL_DATABASE_URL:-}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
       IDENTITY_SERVICE_URL: http://identity-service:4001
+      IDENTITY_SERVICE_TIMEOUT_MS: ${IDENTITY_SERVICE_TIMEOUT_MS:-8000}
       PROPERTY_SERVICE_URL: http://property-service:4002
       AI_SERVICE_URL: http://ai-service:8000
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-coliving}:${RABBITMQ_PASSWORD:-coliving-dev}@rabbitmq:5672
@@ -112,6 +114,7 @@ services:
       COMMUNITY_DATABASE_URL: ${COMMUNITY_DATABASE_URL:-}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
       IDENTITY_SERVICE_URL: http://identity-service:4001
+      IDENTITY_SERVICE_TIMEOUT_MS: ${IDENTITY_SERVICE_TIMEOUT_MS:-8000}
       PROPERTY_SERVICE_URL: http://property-service:4002
       RENTAL_SERVICE_URL: http://rental-service:4003
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-coliving}:${RABBITMQ_PASSWORD:-coliving-dev}@rabbitmq:5672
@@ -209,6 +212,10 @@ services:
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
       KONG_PROXY_LISTEN: 0.0.0.0:8000
       KONG_STATUS_LISTEN: 0.0.0.0:8100
+      KONG_DNS_VALID_TTL: 1
+      KONG_DNS_STALE_TTL: 4
+      KONG_DNS_NOT_FOUND_TTL: 1
+      KONG_DNS_ERROR_TTL: 1
     volumes:
       - ./kong/kong.yml:/kong/declarative/kong.yml:ro
     ports:

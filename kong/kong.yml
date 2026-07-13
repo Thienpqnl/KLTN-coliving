@@ -17,7 +17,7 @@ services:
   - name: property-service
     url: http://property-service:4002
     connect_timeout: 5000
-    read_timeout: 10000
+    read_timeout: 15000
     write_timeout: 10000
     retries: 1
     routes:
@@ -29,7 +29,7 @@ services:
   - name: rental-service
     url: http://rental-service:4003
     connect_timeout: 5000
-    read_timeout: 10000
+    read_timeout: 15000
     write_timeout: 10000
     retries: 1
     routes:
