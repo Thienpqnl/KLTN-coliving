@@ -7,6 +7,7 @@
     "dev:gateway": "node --watch services/api-gateway/server.cjs",
     "start:gateway": "node services/api-gateway/server.cjs",
     "test:gateway": "node --test services/api-gateway/*.test.cjs services/shared/observability.test.cjs",
+    "kong:validate": "docker compose -f docker-compose.microservices.yml exec -T kong kong config parse /kong/declarative/kong.yml",
     "dev:property": "node --watch services/property-service/server.cjs",
     "predev:property": "prisma generate --schema services/property-service/prisma/schema.prisma",
     "dev:identity": "node --watch services/identity-service/server.cjs",

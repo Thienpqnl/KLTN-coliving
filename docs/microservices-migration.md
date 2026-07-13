@@ -365,13 +365,22 @@ shared or deployed environment. Prometheus keeps 15 days of metrics in a named
 Docker volume; Grafana dashboards and datasource provisioning live under
 `observability/` and are version controlled.
 
-## API Gateway compatibility cutover
+## Kong API Gateway cutover
 
-`api-gateway` is the single synchronous entry point between the Next.js BFF
-and backend services. It runs on `http://localhost:4000` and provides an
-explicit service allowlist, internal-token authentication, correlation ID,
-rate limiting, body-size limits, upstream timeout handling, structured logs
-and Prometheus metrics.
+Kong Gateway is the primary synchronous entry point at
+`http://localhost:8008`. It runs in DB-less mode from the version-controlled
+`kong/kong.yml` file and applies correlation ID, local rate limiting, request
+size limiting, upstream timeout settings and Prometheus metrics. Its Admin API
+is bound to localhost only at `http://localhost:8002`.
+
+The Express `api-gateway` remains behind Kong at port `4000` as a compatibility
+and rollback layer. It validates `x-internal-service-token`, enforces the
+service allowlist and forwards requests to backend services. Neither gateway
+contains domain business logic.
+
+```text
+Browser -> Next.js app/api -> Kong :8008 -> Express Gateway :4000 -> Services
+```
 
 Next.js keeps its existing `app/api` routes as a compatibility layer, so the
 browser contract does not change. When `API_GATEWAY_URL` is set, the shared BFF
@@ -383,10 +392,17 @@ client and direct AI calls use routes shaped like:
 /v1/services/ai-service/v1/recommend-room/{userId}
 ```
 
-To roll back locally, stop Next.js, remove or clear `API_GATEWAY_URL`, then
-restart Next.js. The BFF will call each configured service URL directly again.
-The gateway contains no domain business logic and services continue to require
-`x-internal-service-token`.
+Validate the declarative configuration after editing it:
+
+```powershell
+npm run kong:validate
+```
+
+To bypass Kong temporarily, set `API_GATEWAY_URL=http://localhost:4000` and
+restart Next.js. To roll back both gateway layers, remove or clear
+`API_GATEWAY_URL` and restart Next.js; the BFF then calls configured service
+URLs directly. Backend services continue to require
+`x-internal-service-token` in every mode.
 
 ## Event retries and dead-letter queues
 
