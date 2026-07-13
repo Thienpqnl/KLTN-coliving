@@ -18,7 +18,14 @@ def bootstrap():
     migration = Path(__file__).parents[1] / "migrations" / "0001_ai_projections.sql"
     with psycopg.connect(database_url(), connect_timeout=10) as connection:
         with connection.cursor() as cursor:
-            cursor.execute(migration.read_text(encoding="utf-8"))
+            if os.getenv("AI_PROVISION_SCHEMA", "false").lower() == "true":
+                cursor.execute(migration.read_text(encoding="utf-8"))
+            else:
+                cursor.execute("SELECT to_regclass('ai.user_profiles')")
+                if cursor.fetchone()[0] is None:
+                    raise RuntimeError(
+                        "AI projection schema is missing; provision it with an admin connection before role cutover"
+                    )
 
             cursor.execute("TRUNCATE ai.user_profiles, ai.room_profiles, ai.occupancy_profiles, ai.room_interactions")
             cursor.execute('''

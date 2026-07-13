@@ -1,4 +1,5 @@
 const { identityClient } = require("./user-composition.cjs");
+const { correlationHeaders } = require("../shared/observability.cjs");
 
 function failure(status, message) {
   return { status, payload: { error: message } };
@@ -62,7 +63,7 @@ async function evaluateApplicant(prisma, identity, bookingId, aiBaseUrl, clients
   try {
     const response = await fetch(
       `${aiBaseUrl}/v1/landlord/evaluate-applicant/${booking.userId}/${booking.roomId}`,
-      { method: "GET" },
+      { method: "GET", headers: correlationHeaders() },
     );
     if (response.ok) {
       const payload = await response.json();

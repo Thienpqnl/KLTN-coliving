@@ -1,14 +1,21 @@
 import os
+import json
+import time
+import uuid
+from collections import defaultdict
+from threading import Lock
 import numpy as np
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 
 from services.landlord_scoring import evaluate_user_for_landlord
 from services.recommend import recommend_rooms
 from services.room_user_similarity import get_detailed_compatibility
 from services.roommate import match_roommates
 from services.projection_consumer import ProjectionConsumer
+from services.projection_reconciliation import ProjectionReconciliationScheduler
 
 load_dotenv()
 
@@ -75,14 +82,109 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+metrics_lock = Lock()
+request_counts = defaultdict(int)
+request_durations = defaultdict(lambda: {"count": 0, "sum": 0.0})
+requests_in_flight = 0
+process_started_at = time.time()
+
+
+@app.middleware("http")
+async def observe_request(request: Request, call_next):
+    global requests_in_flight
+    correlation_id = request.headers.get("x-correlation-id") or str(uuid.uuid4())
+    started = time.perf_counter()
+    with metrics_lock:
+        requests_in_flight += 1
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration = time.perf_counter() - started
+        with metrics_lock:
+            requests_in_flight -= 1
+            request_counts[(request.method, request.url.path, 500)] += 1
+            metric = request_durations[(request.method, request.url.path, 500)]
+            metric["count"] += 1
+            metric["sum"] += duration
+        print(json.dumps({
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "level": "error",
+            "service": "ai-service",
+            "correlationId": correlation_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status": 500,
+            "durationMs": round(duration * 1000),
+        }), flush=True)
+        raise
+
+    duration = time.perf_counter() - started
+    status = response.status_code
+    with metrics_lock:
+        requests_in_flight -= 1
+        request_counts[(request.method, request.url.path, status)] += 1
+        metric = request_durations[(request.method, request.url.path, status)]
+        metric["count"] += 1
+        metric["sum"] += duration
+    response.headers["x-correlation-id"] = correlation_id
+    if request.url.path != "/metrics":
+        print(json.dumps({
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "level": "error" if status >= 500 else "info",
+            "service": "ai-service",
+            "correlationId": correlation_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status": status,
+            "durationMs": round(duration * 1000),
+        }), flush=True)
+    return response
+
+
+def metric_labels(method, path, status):
+    safe_path = path.replace('\\', '\\\\').replace('"', '\\"').replace("\n", "\\n")
+    return f'service="ai-service",method="{method}",path="{safe_path}",status="{status}"'
+
+
+@app.get("/metrics", response_class=PlainTextResponse)
+def metrics():
+    with metrics_lock:
+        lines = [
+            "# HELP coliving_service_info Static service information.",
+            "# TYPE coliving_service_info gauge",
+            'coliving_service_info{service="ai-service"} 1',
+            "# HELP process_uptime_seconds Service process uptime.",
+            "# TYPE process_uptime_seconds gauge",
+            f'process_uptime_seconds{{service="ai-service"}} {time.time() - process_started_at}',
+            "# HELP http_requests_in_flight Current HTTP requests in flight.",
+            "# TYPE http_requests_in_flight gauge",
+            f'http_requests_in_flight{{service="ai-service"}} {requests_in_flight}',
+            "# HELP http_requests_total Total completed HTTP requests.",
+            "# TYPE http_requests_total counter",
+        ]
+        for key, count in request_counts.items():
+            lines.append(f"http_requests_total{{{metric_labels(*key)}}} {count}")
+        lines.extend([
+            "# HELP http_request_duration_seconds HTTP request duration.",
+            "# TYPE http_request_duration_seconds summary",
+        ])
+        for key, value in request_durations.items():
+            labels = metric_labels(*key)
+            lines.append(f'http_request_duration_seconds_sum{{{labels}}} {value["sum"]}')
+            lines.append(f'http_request_duration_seconds_count{{{labels}}} {value["count"]}')
+    return "\n".join(lines) + "\n"
+
 projection_consumer = ProjectionConsumer()
+projection_reconciliation = ProjectionReconciliationScheduler()
 
 @app.on_event("startup")
 def start_projection_consumer():
     projection_consumer.start()
+    projection_reconciliation.start()
 
 @app.on_event("shutdown")
 def stop_projection_consumer():
+    projection_reconciliation.stop()
     projection_consumer.stop()
 
 
@@ -99,6 +201,7 @@ def health_check():
             else "legacy-public"
         ),
         "model": "xgboost_retrained_with_real_features",
+        "reconciliation": projection_reconciliation.snapshot(),
         "version": "1.0",
     }
 

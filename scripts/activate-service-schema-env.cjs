@@ -57,7 +57,7 @@ function main() {
   }
 
   const databaseUrl = pooledPrismaUrl(parsed.DATABASE_URL);
-  const aiDatabaseUrl = postgresClientUrl(databaseUrl);
+  const aiDatabaseUrl = parsed.AI_DATABASE_URL || postgresClientUrl(databaseUrl);
   fs.writeFileSync(rootEnvPath, upsertEnv(rootContent, {
     DATABASE_URL: databaseUrl,
     SCHEMA_SPLIT_DATABASE_URL: parsed.SCHEMA_SPLIT_DATABASE_URL || databaseUrl,
@@ -76,7 +76,7 @@ function main() {
     const aiContent = fs.readFileSync(aiEnvPath, "utf8");
     const aiParsed = dotenv.parse(aiContent);
     fs.writeFileSync(aiEnvPath, upsertEnv(aiContent, {
-      AI_DATABASE_URL: postgresClientUrl(aiParsed.DATABASE_URL || aiDatabaseUrl),
+      AI_DATABASE_URL: aiParsed.AI_DATABASE_URL || aiDatabaseUrl,
       USE_SERVICE_SCHEMAS: "true",
       AI_USE_PROJECTIONS: "true",
     }));

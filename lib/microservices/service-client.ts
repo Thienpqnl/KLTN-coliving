@@ -28,6 +28,26 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
 }
 
+function serviceTarget(serviceName: string, baseUrl: string, path: string) {
+  const gatewayUrl = process.env.API_GATEWAY_URL?.trim();
+  if (!gatewayUrl) return `${trimTrailingSlash(baseUrl)}${path}`;
+  return `${trimTrailingSlash(gatewayUrl)}/v1/services/${encodeURIComponent(serviceName)}${path}`;
+}
+
+export function gatewayServiceBase(serviceName: string, directBaseUrl: string) {
+  const gatewayUrl = process.env.API_GATEWAY_URL?.trim();
+  return gatewayUrl
+    ? `${trimTrailingSlash(gatewayUrl)}/v1/services/${encodeURIComponent(serviceName)}`
+    : trimTrailingSlash(directBaseUrl);
+}
+
+export function internalServiceHeaders(headers: HeadersInit = {}) {
+  const result = new Headers(headers);
+  const internalToken = process.env.INTERNAL_SERVICE_TOKEN?.trim();
+  if (internalToken) result.set("x-internal-service-token", internalToken);
+  return result;
+}
+
 export async function requestServiceJson<T>(
   serviceName: string,
   baseUrl: string,
@@ -46,7 +66,7 @@ export async function requestServiceJson<T>(
   }
 
   try {
-    const response = await fetch(`${trimTrailingSlash(baseUrl)}${path}`, {
+    const response = await fetch(serviceTarget(serviceName, baseUrl, path), {
       ...requestOptions,
       headers: requestHeaders,
       cache: "no-store",

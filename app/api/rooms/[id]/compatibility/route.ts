@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  gatewayServiceBase,
+  internalServiceHeaders,
+} from "@/lib/microservices/service-client";
 import { getAuthUser } from "@/lib/auth";
 
 type AIEnvelope<T> = {
@@ -23,12 +27,15 @@ export async function GET(
       return NextResponse.json({ error: "Room ID is required" }, { status: 400 });
     }
 
-    const aiServiceUrl = process.env.AI_SERVICE_URL || "http://localhost:8000";
+    const aiServiceUrl = gatewayServiceBase(
+      "ai-service",
+      process.env.AI_SERVICE_URL || "http://localhost:8000",
+    );
     const response = await fetch(
       `${aiServiceUrl}/v1/compatibility-detail/${payload.userId}/${roomId}`,
       {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: internalServiceHeaders({ "Content-Type": "application/json" }),
       },
     );
 

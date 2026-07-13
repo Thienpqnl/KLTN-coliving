@@ -150,13 +150,19 @@ class ProjectionConsumer:
                 connection = pika.BlockingConnection(parameters)
                 channel = connection.channel()
                 exchange = os.getenv("RABBITMQ_EXCHANGE", "coliving.events")
+                dead_letter_exchange = os.getenv("RABBITMQ_DEAD_LETTER_EXCHANGE", f"{exchange}.dlx")
                 queue = os.getenv("AI_PROJECTION_QUEUE", "ai-service.projections")
                 channel.exchange_declare(exchange=exchange, exchange_type="topic", durable=True)
+                channel.exchange_declare(exchange=dead_letter_exchange, exchange_type="topic", durable=True)
                 channel.queue_declare(queue=queue, durable=True)
+                dead_letter_queue = f"{queue}.dlq"
+                channel.queue_declare(queue=dead_letter_queue, durable=True)
+                channel.queue_bind(exchange=dead_letter_exchange, queue=dead_letter_queue, routing_key=queue)
                 for binding in BINDINGS:
                     channel.queue_bind(exchange=exchange, queue=queue, routing_key=binding)
                 channel.basic_qos(prefetch_count=1)
-                for method, _, body in channel.consume(queue, inactivity_timeout=1):
+                channel.confirm_delivery()
+                for method, properties, body in channel.consume(queue, inactivity_timeout=1):
                     if self.stop_event.is_set():
                         break
                     if method is None:
@@ -166,7 +172,41 @@ class ProjectionConsumer:
                         channel.basic_ack(method.delivery_tag)
                     except Exception as error:
                         print(f"[AI] Projection event failed: {error}")
-                        channel.basic_nack(method.delivery_tag, requeue=True)
+                        headers = dict(properties.headers or {})
+                        retries = int(headers.get("x-retry-count", 0))
+                        max_retries = int(os.getenv("EVENT_CONSUMER_MAX_RETRIES", "5"))
+                        if retries < max_retries:
+                            event = json.loads(body.decode("utf-8"))
+                            headers["x-retry-count"] = retries + 1
+                            channel.basic_publish(
+                                exchange=exchange,
+                                routing_key=event.get("eventType", method.routing_key),
+                                body=body,
+                                properties=pika.BasicProperties(
+                                    delivery_mode=2, content_type="application/json",
+                                    message_id=properties.message_id, type=properties.type,
+                                    app_id=properties.app_id, headers=headers,
+                                ),
+                                mandatory=False,
+                            )
+                        else:
+                            headers.update({
+                                "x-retry-count": retries,
+                                "x-dead-reason": str(error)[:1000],
+                                "x-original-routing-key": method.routing_key,
+                            })
+                            channel.basic_publish(
+                                exchange=dead_letter_exchange,
+                                routing_key=queue,
+                                body=body,
+                                properties=pika.BasicProperties(
+                                    delivery_mode=2, content_type="application/json",
+                                    message_id=properties.message_id, type=properties.type,
+                                    app_id=properties.app_id, headers=headers,
+                                ),
+                                mandatory=False,
+                            )
+                        channel.basic_ack(method.delivery_tag)
                 channel.cancel()
                 connection.close()
             except Exception as error:

@@ -1,3 +1,5 @@
+const { correlationHeaders } = require("../shared/observability.cjs");
+
 function serviceUrl() {
   return String(process.env.COMMUNITY_SERVICE_URL || "").replace(/\/+$/, "");
 }
@@ -11,7 +13,7 @@ async function getRoomReviewStats(roomId) {
     Number(process.env.MICROSERVICE_TIMEOUT_MS || 3000),
   );
   try {
-    const headers = { accept: "application/json" };
+    const headers = correlationHeaders({ accept: "application/json" });
     if (process.env.INTERNAL_SERVICE_TOKEN) {
       headers["x-internal-service-token"] = process.env.INTERNAL_SERVICE_TOKEN;
     }

@@ -1,3 +1,5 @@
+const { correlationHeaders } = require("./observability.cjs");
+
 class IdentityDependencyError extends Error {
   constructor(status, message) {
     super(message);
@@ -18,7 +20,7 @@ async function request(path, options = {}) {
     () => controller.abort(),
     Number(process.env.MICROSERVICE_TIMEOUT_MS || 3000),
   );
-  const headers = new Headers(options.headers);
+  const headers = new Headers(correlationHeaders(options.headers));
   headers.set("accept", "application/json");
   if (process.env.INTERNAL_SERVICE_TOKEN) {
     headers.set("x-internal-service-token", process.env.INTERNAL_SERVICE_TOKEN);
