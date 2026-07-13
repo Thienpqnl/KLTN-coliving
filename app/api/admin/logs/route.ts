@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AdminService } from "@/lib/services/admin.service";
 import { ApiError } from "@/lib/api-error";
 import { getAuthUser } from "@/lib/auth";
+import { tryProxyIdentityServiceRaw } from "@/lib/microservices/identity-bff";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,6 +16,13 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get("action");
     const targetType = searchParams.get("targetType");
     const adminId = searchParams.get("adminId");
+
+    const proxied = await tryProxyIdentityServiceRaw({
+      identity: { userId: payload.userId, role: payload.role },
+      path: `/v1/admin/logs?${searchParams.toString()}`,
+      fallbackMessage: "Cannot load admin logs",
+    });
+    if (proxied) return proxied;
 
     const logs = await AdminService.getAdminLogs({
       page,

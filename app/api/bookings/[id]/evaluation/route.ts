@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { tryProxyRentalServiceRaw } from "@/lib/microservices/rental-bff";
+import {
+  gatewayServiceBase,
+  internalServiceHeaders,
+} from "@/lib/microservices/service-client";
 
-const AI_API_BASE_URL = process.env.AI_API_URL || "http://localhost:8000";
+const AI_API_BASE_URL = gatewayServiceBase(
+  "ai-service",
+  process.env.AI_API_URL || process.env.AI_SERVICE_URL || "http://localhost:8000",
+);
 
 export async function GET(
   request: NextRequest,
@@ -12,6 +20,13 @@ export async function GET(
   try {
     const user = await getAuthUser(request);
     const { id: bookingId } = await params;
+
+    const proxied = await tryProxyRentalServiceRaw({
+      identity: { userId: user.userId, role: user.role },
+      path: `/v1/bookings/${bookingId}/evaluation`,
+      fallbackMessage: "Cannot evaluate booking applicant",
+    });
+    if (proxied) return proxied;
 
     // Get booking details
     const booking = await prisma.booking.findUnique({
@@ -42,12 +57,13 @@ export async function GET(
     }
 
     // Call AI API to get landlord evaluation
-    let evaluation: any = null;
+    let evaluation: unknown = null;
     try {
       const response = await fetch(
         `${AI_API_BASE_URL}/landlord/evaluate-applicant/${booking.userId}/${booking.roomId}`,
         {
           method: "GET",
+          headers: internalServiceHeaders(),
         }
       );
 

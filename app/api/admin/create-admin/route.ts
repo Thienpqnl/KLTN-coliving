@@ -3,6 +3,7 @@ import { prisma }  from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import bcrypt from "bcrypt";
 import { z } from "zod";
+import { tryProxyIdentityServiceRaw } from "@/lib/microservices/identity-bff";
 
 const createAdminSchema = z.object({
   email: z.string().email(),
@@ -25,6 +26,14 @@ export async function POST(request: NextRequest) {
     if (adminSecret !== ADMIN_SECRET_KEY) {
       throw new ApiError(403, "Invalid admin secret key");
     }
+
+    const proxied = await tryProxyIdentityServiceRaw({
+      path: "/v1/admin/create-admin",
+      method: "POST",
+      body: { email, password, name, fullName, adminSecret },
+      fallbackMessage: "Cannot create admin user",
+    });
+    if (proxied) return proxied;
 
     const existingUser = await prisma.user.findUnique({
       where: { email },

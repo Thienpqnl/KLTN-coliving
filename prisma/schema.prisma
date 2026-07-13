@@ -43,14 +43,13 @@ model User {
   reviewedRoomVerifications RoomVerification[]       @relation("RoomVerificationReviewer")
   managedRoomVerifications  RoomVerification[]       @relation("RoomVerificationManager")
   communityManagerAreas     CommunityManagerArea[]
-  verificationChecks        VerificationCheck[]       @relation("VerificationCheckReviewer")
+  verificationChecks        VerificationCheck[]      @relation("VerificationCheckReviewer")
   phoneOtps                 PhoneOtp[]
-  resourceBookings        ResourceBooking[]
-  createdActivities       SharedSpaceActivity[] @relation("ActivityCreator")
-  assignedActivities      SharedSpaceActivity[] @relation("ActivityAssignee")
   deviceTokens              UserDeviceToken[]
-  userPreferences      user_preferences? 
-  userLifestyleProfile user_lifestyle_profiles? 
+  resourceBookings          ResourceBooking[]
+  createdActivities         SharedSpaceActivity[]    @relation("ActivityCreator")
+  assignedActivities        SharedSpaceActivity[]    @relation("ActivityAssignee")
+
   @@map("User")
 }
 
@@ -62,10 +61,11 @@ model UserDeviceToken {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
+
 model user_preferences {
   id                        String   @id @default(uuid())
   userId                    String   @unique
@@ -108,52 +108,52 @@ model user_lifestyle_profiles {
 }
 
 model Room {
-  id                  String            @id @default(uuid())
-  title               String
-  description         String
-  address             String
-  city                String?
-  provinceCode        String?
-  ward                String?
-  wardCode            String?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-  allowPets           Boolean?          @default(false)
-  allowSmoking        Boolean?          @default(false)
-  areaText            String?
-  areaValue           Decimal?          @db.Decimal(10, 2)
-  cleanlinessRequired String?
-  curfewPolicy        String?
-  currentOccupants    Int?              @default(0)
-  district            String?
-  districtId          String?
-  expired_date        String?
-  guestPolicy         String?
-  maxOccupants        Int?              @default(1)
-  noiseTolerance      String?
-  ownerId             String?
-  posted_date         String?
-  preferredGender     String?
-  preferredOccupation String?
-  preferredSleepHabit String?
-  priceText           String?
-  priceValue          BigInt?
-  roomId              String?
-  sourceUrl           String?
-  status              RoomStatus        @default(DRAFT)
-  latitude            Float?
-  longitude           Float?
-  bookings            Booking[]
-  contracts           Contract[]
-  favoritedBy         FavoriteRoom[]
-  reviews             Review[]
-  owner               User?             @relation(fields: [ownerId], references: [id])
-  amenities           RoomAmenity[]
-  images              RoomImage[]
-  RoomInteraction     RoomInteraction[]
-  occupancies         Occupancy[]
-  verification        RoomVerification?
-  sharedResources      SharedResource[]
+  id                    String                @id @default(uuid())
+  title                 String
+  description           String
+  address               String
+  city                  String?
+  provinceCode          String?
+  ward                  String?
+  wardCode              String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  allowPets             Boolean?              @default(false)
+  allowSmoking          Boolean?              @default(false)
+  areaText              String?
+  areaValue             Decimal?              @db.Decimal(10, 2)
+  cleanlinessRequired   String?
+  curfewPolicy          String?
+  currentOccupants      Int?                  @default(0)
+  district              String?
+  districtId            String?
+  expired_date          String?
+  guestPolicy           String?
+  maxOccupants          Int?                  @default(1)
+  noiseTolerance        String?
+  ownerId               String?
+  posted_date           String?
+  preferredGender       String?
+  preferredOccupation   String?
+  preferredSleepHabit   String?
+  priceText             String?
+  priceValue            BigInt?
+  roomId                String?
+  sourceUrl             String?
+  status                RoomStatus            @default(DRAFT)
+  latitude              Float?
+  longitude             Float?
+  bookings              Booking[]
+  contracts             Contract[]
+  favoritedBy           FavoriteRoom[]
+  reviews               Review[]
+  owner                 User?                 @relation(fields: [ownerId], references: [id])
+  amenities             RoomAmenity[]
+  images                RoomImage[]
+  RoomInteraction       RoomInteraction[]
+  occupancies           Occupancy[]
+  verification          RoomVerification?
+  sharedResources       SharedResource[]
   sharedSpaceActivities SharedSpaceActivity[]
 
   @@map("Room")
@@ -259,8 +259,8 @@ model Review {
 }
 
 model RoomVerification {
-  id                           String                     @id @default(uuid())
-  roomId                       String                     @unique
+  id                           String                         @id @default(uuid())
+  roomId                       String                         @unique
   reviewerId                   String?
   assignedManagerId            String?
   submittedAt                  DateTime?
@@ -274,26 +274,26 @@ model RoomVerification {
   inspectionDate               DateTime?
   inspectionImages             Json?
   managerRecommendation        CommunityManagerRecommendation @default(PENDING)
-  identityPassed               Boolean                    @default(false)
-  ownershipPassed              Boolean                    @default(false)
-  addressPassed                Boolean                    @default(false)
-  imagesPassed                 Boolean                    @default(false)
-  detailsPassed                Boolean                    @default(false)
-  facilityPassed               Boolean                    @default(false)
-  safetyPassed                 Boolean                    @default(false)
-  legalOccupancyPassed         Boolean                    @default(false)
-  informationAccurateConfirmed Boolean                    @default(false)
-  legalResponsibilityAccepted  Boolean                    @default(false)
-  verificationConsentAccepted  Boolean                    @default(false)
+  identityPassed               Boolean                        @default(false)
+  ownershipPassed              Boolean                        @default(false)
+  addressPassed                Boolean                        @default(false)
+  imagesPassed                 Boolean                        @default(false)
+  detailsPassed                Boolean                        @default(false)
+  facilityPassed               Boolean                        @default(false)
+  safetyPassed                 Boolean                        @default(false)
+  legalOccupancyPassed         Boolean                        @default(false)
+  informationAccurateConfirmed Boolean                        @default(false)
+  legalResponsibilityAccepted  Boolean                        @default(false)
+  verificationConsentAccepted  Boolean                        @default(false)
   declarationAcceptedAt        DateTime?
   declarationVersion           String?
   declarationIpAddress         String?
   declarationUserAgent         String?
-  createdAt                    DateTime                   @default(now())
-  updatedAt                    DateTime                   @updatedAt
-  room                         Room                       @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  reviewer                     User?                      @relation("RoomVerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
-  assignedManager              User?                      @relation("RoomVerificationManager", fields: [assignedManagerId], references: [id], onDelete: SetNull)
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  room                         Room                           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reviewer                     User?                          @relation("RoomVerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  assignedManager              User?                          @relation("RoomVerificationManager", fields: [assignedManagerId], references: [id], onDelete: SetNull)
   documents                    RoomVerificationDocument[]
   checks                       VerificationCheck[]
 
@@ -301,8 +301,6 @@ model RoomVerification {
   @@index([assignedManagerId])
   @@index([managerRecommendation])
   @@index([submittedAt])
-  @@index([assignedManagerId])
-  @@index([managerRecommendation])
 }
 
 model VerificationCheck {
@@ -328,15 +326,15 @@ model VerificationCheck {
 }
 
 model PhoneOtp {
-  id          String    @id @default(uuid())
-  userId      String
-  phone       String
-  codeHash    String
-  expiresAt   DateTime
-  verifiedAt  DateTime?
-  attemptCount Int      @default(0)
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid())
+  userId       String
+  phone        String
+  codeHash     String
+  expiresAt    DateTime
+  verifiedAt   DateTime?
+  attemptCount Int       @default(0)
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([phone])
@@ -344,20 +342,21 @@ model PhoneOtp {
 }
 
 model CommunityManagerArea {
-  id        String        @id @default(uuid())
-  managerId String
-  region    ServiceRegion?
-  city      String?
+  id           String         @id @default(uuid())
+  managerId    String
+  region       ServiceRegion?
+  city         String?
   provinceCode String?
-  ward      String?
-  wardCode  String?
-  district  String?
-  districtId String?
-  isActive  Boolean       @default(true)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  manager   User          @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  ward         String?
+  wardCode     String?
+  district     String?
+  districtId   String?
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  manager      User           @relation(fields: [managerId], references: [id], onDelete: Cascade)
 
+  @@unique([managerId, region, city, provinceCode, ward, wardCode, district, districtId], name: "CommunityManagerArea_unique_scope")
   @@index([managerId])
   @@index([region])
   @@index([city])
@@ -366,7 +365,6 @@ model CommunityManagerArea {
   @@index([wardCode])
   @@index([district])
   @@index([districtId])
-  @@unique([managerId, region, city, provinceCode, ward, wardCode, district, districtId], name: "CommunityManagerArea_unique_scope")
 }
 
 model RoomVerificationDocument {
@@ -498,6 +496,103 @@ model Occupancy {
   @@map("occupancy")
 }
 
+// Rental-owned projection of the room fields needed for capacity decisions.
+// It intentionally has no relation to Room so the Rental bounded context can
+// move to its own database without carrying a cross-service foreign key.
+model RentalRoomSnapshot {
+  roomId           String    @id
+  ownerId          String?
+  status           String
+  maxOccupants     Int       @default(1)
+  currentOccupants Int       @default(0)
+  title            String?
+  address          String?
+  areaText         String?
+  areaValue        Decimal?  @db.Decimal(10, 2)
+  city             String?
+  district         String?
+  priceValue       BigInt?
+  priceText        String?
+  imageUrl         String?
+  images           Json?
+  amenities        Json?
+  sourceUpdatedAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("rental_room_snapshots")
+}
+
+model RentalOutboxEvent {
+  id            String    @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        String    @default("PENDING")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@map("rental_outbox_events")
+}
+
+model PropertyOutboxEvent {
+  id            String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@map("property_outbox_events")
+}
+
+model CommunityOutboxEvent {
+  id            String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@map("community_outbox_events")
+}
+
+model IdentityInboxEvent {
+  id            String   @id @default(uuid())
+  eventId       String   @unique
+  eventType     String
+  sourceService String?
+  processedAt   DateTime @default(now())
+
+  @@index([eventType, processedAt])
+  @@map("identity_inbox_events")
+}
+
 model RoomInteraction {
   id               String          @id
   userId           String
@@ -591,70 +686,6 @@ model UtilityBill {
   @@index([contractId])
   @@index([status])
   @@map("utility_bills")
-}
-
-model CommunityManagerArea {
-  id           String         @id
-  managerId    String
-  region       ServiceRegion?
-  city         String?
-  district     String?
-  districtId   String?
-  isActive     Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime
-  provinceCode String?
-  ward         String?
-  wardCode     String?
-  User         User           @relation(fields: [managerId], references: [id], onDelete: Cascade)
-
-  @@unique([managerId, region, city, provinceCode, ward, wardCode, district, districtId], map: "CommunityManagerArea_unique_scope")
-  @@index([city])
-  @@index([districtId])
-  @@index([district])
-  @@index([managerId])
-  @@index([provinceCode])
-  @@index([region])
-  @@index([wardCode])
-  @@index([ward])
-}
-
-model PhoneOtp {
-  id           String    @id
-  userId       String
-  phone        String
-  codeHash     String
-  expiresAt    DateTime
-  verifiedAt   DateTime?
-  attemptCount Int       @default(0)
-  createdAt    DateTime  @default(now())
-  User         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([expiresAt])
-  @@index([phone])
-  @@index([userId])
-}
-
-model VerificationCheck {
-  id               String                  @id
-  verificationId   String
-  type             VerificationCheckType
-  status           VerificationCheckStatus @default(PENDING)
-  sourceValue      String?
-  targetValue      String?
-  note             String?
-  checkedById      String?
-  checkedAt        DateTime?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime
-  User             User?                   @relation(fields: [checkedById], references: [id])
-  RoomVerification RoomVerification        @relation(fields: [verificationId], references: [id], onDelete: Cascade)
-
-  @@unique([verificationId, type])
-  @@index([checkedById])
-  @@index([status])
-  @@index([type])
-  @@index([verificationId])
 }
 
 enum SmokingType {
@@ -799,29 +830,3 @@ enum InteractionType {
   BOOKING_REQ
   CONTRACT
 }
-
-enum CommunityManagerRecommendation {
-  PENDING
-  NEEDS_REVISION
-  RECOMMEND_APPROVAL
-  RECOMMEND_REJECTION
-}
-
-enum ServiceRegion {
-  NORTH
-  CENTRAL
-  SOUTH
-}
-
-enum VerificationCheckStatus {
-  PENDING
-  MATCHED
-  MISMATCHED
-  NEEDS_REVIEW
-  UNVERIFIABLE
-}
-@@unique([contractId, month, year])
-@@index([contractId])
-@@index([status])
-@@map("utility_bills")
-

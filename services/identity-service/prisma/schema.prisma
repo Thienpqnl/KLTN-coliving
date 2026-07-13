@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("IDENTITY_DATABASE_URL")
+}
+
+model User {
+  id              String      @id @default(uuid())
+  email           String      @unique
+  password        String
+  fullName        String
+  createdAt       DateTime    @default(now())
+  address         String?
+  avatarUrl       String?
+  birthDate       DateTime?
+  gender          String?
+  name            String
+  phone           String?
+  phoneVerified   Boolean     @default(false)
+  phoneVerifiedAt DateTime?
+  role            Role        @default(CUSTOMER)
+  status          UserStatus  @default(ACTIVE)
+  updatedAt       DateTime    @updatedAt
+  latitude        Float?
+  longitude       Float?
+  adminActions    AdminLog[]  @relation("AdminAction")
+  affectedLogs    AdminLog[]  @relation("AffectedUser")
+  phoneOtps       PhoneOtp[]
+
+  @@map("User")
+}
+
+model PhoneOtp {
+  id           String    @id @default(uuid())
+  userId       String
+  phone        String
+  codeHash     String
+  expiresAt    DateTime
+  verifiedAt   DateTime?
+  attemptCount Int       @default(0)
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([phone])
+  @@index([expiresAt])
+}
+
+model AdminLog {
+  id           String   @id @default(uuid())
+  adminId      String
+  targetUserId String?
+  action       String
+  targetId     String?
+  targetType   String
+  oldValue     String?
+  newValue     String?
+  description  String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  admin        User     @relation("AdminAction", fields: [adminId], references: [id], onDelete: Cascade)
+  targetUser   User?    @relation("AffectedUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+}
+
+model IdentityInboxEvent {
+  id            String   @id @default(uuid())
+  eventId       String   @unique
+  eventType     String
+  sourceService String?
+  processedAt   DateTime @default(now())
+
+  @@index([eventType, processedAt])
+  @@map("identity_inbox_events")
+}
+
+model IdentityOutboxEvent {
+  id            String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@map("identity_outbox_events")
+}
+
+enum Role {
+  CUSTOMER
+  SERVER
+  DELIVER
+  ADMIN
+  HOST
+  COMMUNITY_MANAGER
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+  DELETED
+}

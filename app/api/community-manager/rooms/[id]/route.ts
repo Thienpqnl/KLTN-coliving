@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { getAuthUser } from "@/lib/auth";
 import { ApiError, handleApiError, successResponse } from "@/lib/api-error";
+import { tryProxyPropertyService } from "@/lib/microservices/property-bff";
 import { roomVerificationService } from "@/lib/services/room-verification.service";
 
 const managerChecklistSchema = z.object({
@@ -25,7 +26,7 @@ const managerReviewSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -34,6 +35,13 @@ export async function GET(
     }
 
     const { id } = await params;
+    const proxied = await tryProxyPropertyService({
+      identity: user,
+      path: `/v1/community-manager/rooms/${id}`,
+      fallbackMessage: "Không thể tải chi tiết hồ sơ xác minh",
+    });
+    if (proxied) return proxied;
+
     return successResponse(await roomVerificationService.getDetailForCommunityManager(id, user.userId));
   } catch (error) {
     return handleApiError(error);
@@ -42,7 +50,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -52,6 +60,15 @@ export async function PATCH(
 
     const { id } = await params;
     const data = managerReviewSchema.parse(await request.json());
+    const proxied = await tryProxyPropertyService({
+      identity: user,
+      path: `/v1/community-manager/rooms/${id}`,
+      method: "PATCH",
+      body: data,
+      fallbackMessage: "Không thể cập nhật kết quả xác minh",
+    });
+    if (proxied) return proxied;
+
     return successResponse(await roomVerificationService.reviewByCommunityManager(id, user.userId, data));
   } catch (error) {
     return handleApiError(error);

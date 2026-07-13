@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError, successResponse } from "@/lib/api-error";
+import { tryProxyPropertyService } from "@/lib/microservices/property-bff";
 
 export async function GET(
   request: NextRequest,
@@ -8,6 +9,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const proxied = await tryProxyPropertyService({
+      identity: { userId: "anonymous", role: "PUBLIC" },
+      path: `/v1/rooms/${id}/stats`,
+      fallbackMessage: "Cannot load room stats",
+    });
+    if (proxied) return proxied;
+
     const room = await prisma.room.findUnique({
       where: { id: id },
       include: {

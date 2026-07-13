@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
 
 // GET /api/rooms/[id]/contract - Get active contract for a room
 export async function GET(
@@ -11,6 +12,13 @@ export async function GET(
   try {
     const user = await getAuthUser(request);
     const { id: roomId } = await params;
+
+    const proxied = await tryProxyRentalService({
+      identity: { userId: user.userId, role: user.role },
+      path: `/v1/rooms/${roomId}/contract`,
+      fallbackMessage: "Cannot load active room contract",
+    });
+    if (proxied) return proxied;
 
     // Find active contract for this room where user is either host or renter
     const contract = await prisma.contract.findFirst({

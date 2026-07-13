@@ -1,0 +1,15 @@
+.git
+.next
+node_modules
+services/*/generated
+ai/venv*
+ai/.venv
+**/__pycache__
+*.pyc
+.env*
+**/.env
+**/.env.*
+.backups
+.tmp*
+coverage
+npm-debug.log*

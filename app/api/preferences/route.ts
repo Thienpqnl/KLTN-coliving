@@ -4,6 +4,7 @@ import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { userPreferenceSchema } from "@/lib/validation/preference";
 import { handleApiError } from "@/lib/api-error";
+import { tryProxyPreferenceServiceRaw } from "@/lib/microservices/preference-bff";
 
 type PreferenceRow = {
   id: string;
@@ -66,6 +67,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const proxied = await tryProxyPreferenceServiceRaw({
+      identity: { userId: payload.userId, role: payload.role },
+      path: "/v1/preferences",
+      fallbackMessage: "Cannot load preferences",
+    });
+    if (proxied) return proxied;
+
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       select: { id: true },
@@ -99,6 +107,15 @@ export async function POST(req: NextRequest) {
 
     const data = await req.json();
     const validated = userPreferenceSchema.parse(data);
+
+    const proxied = await tryProxyPreferenceServiceRaw({
+      identity: { userId: payload.userId, role: payload.role },
+      path: "/v1/preferences",
+      method: "POST",
+      body: validated,
+      fallbackMessage: "Cannot update preferences",
+    });
+    if (proxied) return proxied;
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },

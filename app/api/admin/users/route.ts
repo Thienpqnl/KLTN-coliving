@@ -3,6 +3,7 @@ import { Role, UserStatus } from "@prisma/client";
 import { AdminService } from "@/lib/services/admin.service";
 import { ApiError } from "@/lib/api-error";
 import { getAuthUser } from "@/lib/auth";
+import { tryProxyIdentityServiceRaw } from "@/lib/microservices/identity-bff";
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,11 +21,18 @@ export async function GET(request: NextRequest) {
     const status = statusParam && Object.values(UserStatus).includes(statusParam as UserStatus) ? (statusParam as UserStatus) : undefined;
     const search = searchParams.get("search");
 
+    const proxied = await tryProxyIdentityServiceRaw({
+      identity: { userId: payload.userId, role: payload.role },
+      path: `/v1/admin/users?${searchParams.toString()}`,
+      fallbackMessage: "Cannot load users",
+    });
+    if (proxied) return proxied;
+
     const result = await AdminService.getAllUsers({
       page,
       limit,
-      role: (role as any) || undefined,
-      status: (status as any) || undefined,
+      role,
+      status,
       search: search || undefined,
     });
 

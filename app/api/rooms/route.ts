@@ -1,7 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { roomService } from "@/lib/services/room.service";
 import { roomFilterSchema } from "@/lib/validation";
 import { handleApiError, successResponse } from "@/lib/api-error";
+import {
+  getServiceUrl,
+  requestServiceJson,
+} from "@/lib/microservices/service-client";
+import {
+  isMicroserviceStrictMode,
+  serviceUnavailableResponse,
+} from "@/lib/microservices/bff-service";
+
+type RoomListResult = {
+  rooms: unknown[];
+  total: number;
+  page: number;
+  limit: number;
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,6 +39,34 @@ export async function GET(request: NextRequest) {
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
       search: search || undefined,
     });
+
+    const propertyServiceUrl = getServiceUrl("PROPERTY");
+    if (!propertyServiceUrl && isMicroserviceStrictMode()) {
+      return serviceUnavailableResponse(
+        "Property Service",
+        "PROPERTY_SERVICE_URL is not configured",
+      );
+    }
+
+    if (propertyServiceUrl) {
+      try {
+        const result = await requestServiceJson<RoomListResult>(
+          "property-service",
+          propertyServiceUrl,
+          `/v1/rooms?${searchParams.toString()}`,
+          { timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000) },
+        );
+        return successResponse(result);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "Unknown error";
+        if (isMicroserviceStrictMode()) {
+          return serviceUnavailableResponse("Property Service", reason);
+        }
+        console.warn(
+          `[BFF] Property Service unavailable (${reason}); using local rooms implementation.`,
+        );
+      }
+    }
 
     const { rooms, total } = await roomService.getAllPaginated(
       filters, 

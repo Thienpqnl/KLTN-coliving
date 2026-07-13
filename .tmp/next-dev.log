@@ -1,0 +1,25 @@
+
+> my-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.111.1:3000
+- Environments: .env
+✓ Ready in 7.6s
+Creating turbopack project { dir: 'D:\\coliving', testMode: true }
+
+ GET /api/rooms?page=1&limit=1 200 in 2.7s (next.js: 934ms, application-code: 1730ms)
+ GET /api/rooms?page=1&limit=1 200 in 770ms (next.js: 3ms, application-code: 767ms)
+ GET /api/rooms?page=1&limit=1 200 in 1432ms (next.js: 14ms, application-code: 1418ms)
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+ GET / 200 in 1284ms (next.js: 719ms, application-code: 564ms)
+ GET /api/rooms?page=1 200 in 2.3s (next.js: 467ms, application-code: 1791ms)
+  Reload env: .env
+ GET /api/rooms?page=1 200 in 1361ms (next.js: 142ms, application-code: 1219ms)
+ GET /api/rooms?page=1 200 in 1631ms (next.js: 4ms, application-code: 1627ms)
+ GET /api/amenities 200 in 1184ms (next.js: 354ms, application-code: 829ms)
+  Reload env: .env
+[?25h

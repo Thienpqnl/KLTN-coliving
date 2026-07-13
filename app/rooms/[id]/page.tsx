@@ -2,7 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
-import { roomService } from '@/lib/services/room.service';
+import {
+  getPublicRoomById,
+  type PublicRoomDetail,
+} from '@/lib/services/property-gateway.server';
 import { RoommatesSection } from '../components/RoommatesSection';
 import { RoomCompatibility } from './components/RoomCompatibility';
 import { RoomReviews } from './components/RoomReviews';
@@ -10,7 +13,7 @@ import { RoomGallery } from './components/RoomGallery';
 import { FavoriteButton } from './FavoriteButton';
 import { cookies } from 'next/headers';
 import RoomMapView from "@/components/maps/RoomMapView";
-type RoomDetail = Awaited<ReturnType<typeof roomService.getById>>;
+type RoomDetail = PublicRoomDetail;
 type RoomAmenityItem = {
   amenity?: {
     id: string;
@@ -366,7 +369,7 @@ export default async function RoomDetailPage({
 
   try {
     const { id } = await params;
-    room = await roomService.getPublicById(id);
+    room = await getPublicRoomById(id);
   } catch {
     notFound();
   }
