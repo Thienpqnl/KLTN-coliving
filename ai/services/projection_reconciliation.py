@@ -14,7 +14,10 @@ def database_url():
 
 
 def reconcile_projections():
+    return {"status": "DISABLED", "reason": "Manually cutover to AI schema"}
+
     details = {}
+    reconcile_room_profiles = os.getenv("AI_RECONCILE_ROOM_PROFILES", "false").lower() == "true"
     with psycopg.connect(database_url(), connect_timeout=10) as connection:
         with connection.cursor() as cursor:
             cursor.execute("SELECT to_regclass('ai.projection_reconciliation_runs')")
@@ -67,48 +70,52 @@ def reconcile_projections():
             cursor.execute('DELETE FROM ai.user_profiles p WHERE NOT EXISTS (SELECT 1 FROM identity."User" u WHERE u."id" = p.user_id)')
             details["usersDeleted"] = cursor.rowcount
 
-            cursor.execute('''
-                INSERT INTO ai.room_profiles (
-                  room_id, title, address, district, district_id, price_value, owner_id, status,
-                  cleanliness_required, noise_tolerance, guest_policy, preferred_sleep_habit,
-                  max_occupants, current_occupants, allow_smoking, allow_pets, source_updated_at
-                )
-                SELECT "id", "title", "address", "district", "districtId", "priceValue",
-                       "ownerId", "status"::text, "cleanlinessRequired", "noiseTolerance",
-                       "guestPolicy", "preferredSleepHabit", "maxOccupants", "currentOccupants",
-                       "allowSmoking", "allowPets", "updatedAt"
-                FROM property."Room"
-                ON CONFLICT (room_id) DO UPDATE SET
-                  title = EXCLUDED.title, address = EXCLUDED.address, district = EXCLUDED.district,
-                  district_id = EXCLUDED.district_id, price_value = EXCLUDED.price_value,
-                  owner_id = EXCLUDED.owner_id, status = EXCLUDED.status,
-                  cleanliness_required = EXCLUDED.cleanliness_required,
-                  noise_tolerance = EXCLUDED.noise_tolerance, guest_policy = EXCLUDED.guest_policy,
-                  preferred_sleep_habit = EXCLUDED.preferred_sleep_habit,
-                  max_occupants = EXCLUDED.max_occupants,
-                  current_occupants = EXCLUDED.current_occupants,
-                  allow_smoking = EXCLUDED.allow_smoking, allow_pets = EXCLUDED.allow_pets,
-                  source_updated_at = EXCLUDED.source_updated_at, projected_at = now()
-                WHERE (ai.room_profiles.title, ai.room_profiles.address,
-                       ai.room_profiles.district, ai.room_profiles.district_id,
-                       ai.room_profiles.price_value, ai.room_profiles.owner_id,
-                       ai.room_profiles.status, ai.room_profiles.cleanliness_required,
-                       ai.room_profiles.noise_tolerance, ai.room_profiles.guest_policy,
-                       ai.room_profiles.preferred_sleep_habit, ai.room_profiles.max_occupants,
-                       ai.room_profiles.current_occupants, ai.room_profiles.allow_smoking,
-                       ai.room_profiles.allow_pets, ai.room_profiles.source_updated_at)
-                  IS DISTINCT FROM
-                      (EXCLUDED.title, EXCLUDED.address, EXCLUDED.district,
-                       EXCLUDED.district_id, EXCLUDED.price_value, EXCLUDED.owner_id,
-                       EXCLUDED.status, EXCLUDED.cleanliness_required,
-                       EXCLUDED.noise_tolerance, EXCLUDED.guest_policy,
-                       EXCLUDED.preferred_sleep_habit, EXCLUDED.max_occupants,
-                       EXCLUDED.current_occupants, EXCLUDED.allow_smoking,
-                       EXCLUDED.allow_pets, EXCLUDED.source_updated_at)
-            ''')
-            details["roomsUpserted"] = cursor.rowcount
-            cursor.execute('DELETE FROM ai.room_profiles p WHERE NOT EXISTS (SELECT 1 FROM property."Room" r WHERE r."id" = p.room_id)')
-            details["roomsDeleted"] = cursor.rowcount
+            if reconcile_room_profiles:
+                cursor.execute('''
+                    INSERT INTO ai.room_profiles (
+                      room_id, title, address, district, district_id, price_value, owner_id, status,
+                      cleanliness_required, noise_tolerance, guest_policy, preferred_sleep_habit,
+                      max_occupants, current_occupants, allow_smoking, allow_pets, source_updated_at
+                    )
+                    SELECT "id", "title", "address", "district", "districtId", "priceValue",
+                           "ownerId", "status"::text, "cleanlinessRequired", "noiseTolerance",
+                           "guestPolicy", "preferredSleepHabit", "maxOccupants", "currentOccupants",
+                           "allowSmoking", "allowPets", "updatedAt"
+                    FROM property."Room"
+                    ON CONFLICT (room_id) DO UPDATE SET
+                      title = EXCLUDED.title, address = EXCLUDED.address, district = EXCLUDED.district,
+                      district_id = EXCLUDED.district_id, price_value = EXCLUDED.price_value,
+                      owner_id = EXCLUDED.owner_id, status = EXCLUDED.status,
+                      cleanliness_required = EXCLUDED.cleanliness_required,
+                      noise_tolerance = EXCLUDED.noise_tolerance, guest_policy = EXCLUDED.guest_policy,
+                      preferred_sleep_habit = EXCLUDED.preferred_sleep_habit,
+                      max_occupants = EXCLUDED.max_occupants,
+                      current_occupants = EXCLUDED.current_occupants,
+                      allow_smoking = EXCLUDED.allow_smoking, allow_pets = EXCLUDED.allow_pets,
+                      source_updated_at = EXCLUDED.source_updated_at, projected_at = now()
+                    WHERE (ai.room_profiles.title, ai.room_profiles.address,
+                           ai.room_profiles.district, ai.room_profiles.district_id,
+                           ai.room_profiles.price_value, ai.room_profiles.owner_id,
+                           ai.room_profiles.status, ai.room_profiles.cleanliness_required,
+                           ai.room_profiles.noise_tolerance, ai.room_profiles.guest_policy,
+                           ai.room_profiles.preferred_sleep_habit, ai.room_profiles.max_occupants,
+                           ai.room_profiles.current_occupants, ai.room_profiles.allow_smoking,
+                           ai.room_profiles.allow_pets, ai.room_profiles.source_updated_at)
+                      IS DISTINCT FROM
+                          (EXCLUDED.title, EXCLUDED.address, EXCLUDED.district,
+                           EXCLUDED.district_id, EXCLUDED.price_value, EXCLUDED.owner_id,
+                           EXCLUDED.status, EXCLUDED.cleanliness_required,
+                           EXCLUDED.noise_tolerance, EXCLUDED.guest_policy,
+                           EXCLUDED.preferred_sleep_habit, EXCLUDED.max_occupants,
+                           EXCLUDED.current_occupants, EXCLUDED.allow_smoking,
+                           EXCLUDED.allow_pets, EXCLUDED.source_updated_at)
+                ''')
+                details["roomsUpserted"] = cursor.rowcount
+                cursor.execute('DELETE FROM ai.room_profiles p WHERE NOT EXISTS (SELECT 1 FROM property."Room" r WHERE r."id" = p.room_id)')
+                details["roomsDeleted"] = cursor.rowcount
+            else:
+                details["roomsUpserted"] = 0
+                details["roomsDeleted"] = 0
 
             cursor.execute('''
                 INSERT INTO ai.occupancy_profiles (room_id, user_id, status, source_updated_at)
@@ -205,7 +212,7 @@ class ProjectionReconciliationScheduler:
             print(f"[AI] Projection reconciliation failed: {error}")
 
     def _run(self, interval):
-        if os.getenv("AI_RECONCILIATION_RUN_ON_START", "true").lower() == "true":
+        if os.getenv("AI_RECONCILIATION_RUN_ON_START", "false").lower() == "true":
             self._run_once()
         while not self.stop_event.wait(interval):
             self._run_once()

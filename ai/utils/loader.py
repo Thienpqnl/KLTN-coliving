@@ -4,7 +4,6 @@ import os
 from xgboost import XGBClassifier
 from dotenv import load_dotenv
 
-# 🔥 MUST load .env BEFORE checking env vars
 load_dotenv()
 
 print("\n" + "="*60)

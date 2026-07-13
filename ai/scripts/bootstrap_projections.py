@@ -16,6 +16,7 @@ def database_url():
 
 def bootstrap():
     migration = Path(__file__).parents[1] / "migrations" / "0001_ai_projections.sql"
+    reset_tables = os.getenv("AI_BOOTSTRAP_RESET_TABLES", "false").lower() == "true"
     with psycopg.connect(database_url(), connect_timeout=10) as connection:
         with connection.cursor() as cursor:
             if os.getenv("AI_PROVISION_SCHEMA", "false").lower() == "true":
@@ -27,7 +28,8 @@ def bootstrap():
                         "AI projection schema is missing; provision it with an admin connection before role cutover"
                     )
 
-            cursor.execute("TRUNCATE ai.user_profiles, ai.room_profiles, ai.occupancy_profiles, ai.room_interactions")
+            if reset_tables:
+                cursor.execute("TRUNCATE ai.user_profiles, ai.room_profiles, ai.occupancy_profiles, ai.room_interactions")
             cursor.execute('''
                 INSERT INTO ai.user_profiles (
                   user_id, email, full_name, role, budget_min_vnd, budget_max_vnd,
@@ -82,4 +84,9 @@ def bootstrap():
 
 if __name__ == "__main__":
     result = bootstrap()
-    print("AI projections bootstrapped: " + ", ".join(f"{key}={value}" for key, value in result.items()))
+    print(
+        "AI projections bootstrapped (reset="
+        + os.getenv("AI_BOOTSTRAP_RESET_TABLES", "false")
+        + "): "
+        + ", ".join(f"{key}={value}" for key, value in result.items())
+    )

@@ -22,6 +22,7 @@ export default function PreferenceQuestionnaire() {
     acceptSmokingRoommates: false,
     acceptPets: false,
   });
+  const [selectedCity, setSelectedCity] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
   // Load preferences khi component mount
@@ -262,6 +263,35 @@ export default function PreferenceQuestionnaire() {
               {currentStep === 2 && (
                 <div className="transition-opacity duration-300 animate-in fade-in slide-in-from-right-4 space-y-8">
                   <div>
+                    <h2 className="text-3xl font-bold text-slate-900 mb-3">Thành phố ưa thích</h2>
+                    <p className="text-slate-600 mb-6">Chọn thành phố nơi bạn muốn sống.</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                      {[
+                        { value: "HO_CHI_MINH", label: "TP. Hồ Chí Minh" },
+                        { value: "HA_NOI", label: "Hà Nội" },
+                        { value: "DA_NANG", label: "Đà Nẵng"},
+                      ].map((city) => (
+                        <button
+                          key={city.value}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCity(city.value);
+                            setForm({ ...form, preferredDistrict: "" });
+                          }}
+                          className={`p-6 rounded-xl border-2 transition text-center ${
+                            selectedCity === city.value
+                              ? "border-orange-600 bg-orange-50"
+                              : "border-slate-200 bg-slate-50 hover:border-orange-300"
+                          }`}
+                        >
+                          <p className="font-bold text-slate-900">{city.label}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
                     <h2 className="text-3xl font-bold text-slate-900 mb-3">Khu vực ưa thích</h2>
                     <p className="text-slate-600 mb-6">Chọn quận/huyện nơi bạn muốn sống (tùy chọn).</p>
                     
@@ -269,38 +299,283 @@ export default function PreferenceQuestionnaire() {
   value={form.preferredDistrict}
   onChange={(e) => setForm({ ...form, preferredDistrict: e.target.value })}
   className="w-full px-6 py-4 text-lg border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-100 focus:outline-none transition bg-white"
+  disabled={!selectedCity}
 >
-  <option value="">-- Không ưu tiên khu vực --</option>
-  
-  {/* Các Quận nội thành */}
-  <option value="Q1">Quận 1</option>
-  <option value="Q3">Quận 3</option>
-  <option value="Q4">Quận 4</option>
-  <option value="Q5">Quận 5</option>
-  <option value="Q6">Quận 6</option>
-  <option value="Q7">Quận 7</option>
-  <option value="Q8">Quận 8</option>
-  <option value="Q10">Quận 10</option>
-  <option value="Q11">Quận 11</option>
-  <option value="Q12">Quận 12</option>
-  
-  {/* Các Quận có tên chữ */}
-  <option value="BTN">Quận Bình Tân</option>
-  <option value="BT">Quận Bình Thạnh</option>
-  <option value="GV">Quận Gò Vấp</option>
-  <option value="PN">Quận Phú Nhuận</option>
-  <option value="TB">Quận Tân Bình</option>
-  <option value="TP">Quận Tân Phú</option>
-  
-  {/* Thành phố trực thuộc */}
-  <option value="TĐ">Thành phố Thủ Đức</option>
-  
-  {/* Các Huyện ngoại thành */}
-  <option value="BC">Huyện Bình Chánh</option>
-  <option value="CG">Huyện Cần Giờ</option>
-  <option value="CC">Huyện Củ Chi</option>
-  <option value="HM">Huyện Hóc Môn</option>
-  <option value="NB">Huyện Nhà Bè</option>
+  <option value="">{selectedCity ? "-- Chọn quận/huyện --" : "-- Vui lòng chọn thành phố trước --"}</option>
+
+  {/* TP.HCM */}
+  {selectedCity === "HO_CHI_MINH" && (
+    <>
+      <optgroup label="Quận nội thành">
+        <option value="SAI_GON">P. Sài Gòn</option>
+        <option value="TAN_DINH">P. Tân Định</option>
+        <option value="BEN_THANH">P. Bến Thành</option>
+        <option value="CAU_ONG_LANH">P. Cầu Ông Lãnh</option>
+        <option value="BAN_CO">P. Bàn Cờ</option>
+        <option value="XUAN_HOA">P. Xuân Hòa</option>
+        <option value="NHIEU_LOC">P. Nhiêu Lộc</option>
+        <option value="XOM_CHIEU">P. Xóm Chiếu</option>
+        <option value="KHANH_HOI">P. Khánh Hội</option>
+        <option value="VINH_HOI">P. Vĩnh Hội</option>
+        <option value="CHO_QUAN">P. Chợ Quán</option>
+        <option value="AN_DONG">P. An Đông</option>
+        <option value="CHO_LON">P. Chợ Lớn</option>
+        <option value="BINH_TAY">P. Bình Tây</option>
+        <option value="BINH_TIEN">P. Bình Tiên</option>
+        <option value="BINH_PHU">P. Bình Phú</option>
+        <option value="PHU_LAM">P. Phú Lâm</option>
+        <option value="TAN_THUAN">P. Tân Thuận</option>
+        <option value="PHU_THUAN">P. Phú Thuận</option>
+        <option value="TAN_MY">P. Tân Mỹ</option>
+        <option value="TAN_HUNG">P. Tân Hưng</option>
+        <option value="CHANH_HUNG">P. Chánh Hưng</option>
+        <option value="PHU_DINH">P. Phú Định</option>
+        <option value="BINH_DONG">P. Bình Đông</option>
+        <option value="DIEN_HONG">P. Diên Hồng</option>
+        <option value="VUON_LAI">P. Vườn Lài</option>
+        <option value="HOA_HUNG">P. Hòa Hưng</option>
+        <option value="MINH_PHUNG">P. Minh Phụng</option>
+        <option value="BINH_THOI">P. Bình Thới</option>
+        <option value="HOA_BINH">P. Hòa Bình</option>
+        <option value="PHU_THO">P. Phú Thọ</option>
+        <option value="DONG_HUNG_THUAN">P. Đông Hưng Thuận</option>
+        <option value="TRUNG_MY_TAY">P. Trung Mỹ Tây</option>
+        <option value="TAN_THOI_HIEP">P. Tân Thới Hiệp</option>
+        <option value="THOI_AN">P. Thới An</option>
+        <option value="AN_PHU_DONG">P. An Phú Đông</option>
+        <option value="AN_LAC">P. An Lạc</option>
+        <option value="TAN_TAO">P. Tân Tạo</option>
+        <option value="BINH_TAN">P. Bình Tân</option>
+        <option value="BINH_TRI_DONG">P. Bình Trị Đông</option>
+        <option value="BINH_HUNG_HOA">P. Bình Hưng Hòa</option>
+        <option value="GIA_DINH">P. Gia Định</option>
+        <option value="BINH_THANH">P. Bình Thạnh</option>
+        <option value="BINH_LOI_TRUNG">P. Bình Lợi Trung</option>
+        <option value="THANH_MY_TAY">P. Thạnh Mỹ Tây</option>
+        <option value="BINH_QUOI">P. Bình Quới</option>
+        <option value="HANH_THONG">P. Hạnh Thông</option>
+        <option value="AN_NHON">P. An Nhơn</option>
+        <option value="GO_VAP">P. Gò Vấp</option>
+        <option value="AN_HOI_DONG">P. An Hội Đông</option>
+        <option value="THONG_TAY_HOI">P. Thông Tây Hội</option>
+        <option value="AN_HOI_TAY">P. An Hội Tây</option>
+        <option value="DUC_NHUAN">P. Đức Nhuận</option>
+        <option value="CAU_KIEU">P. Cầu Kiệu</option>
+        <option value="PHU_NHUAN">P. Phú Nhuận</option>
+        <option value="TAN_SON_HOA">P. Tân Sơn Hòa</option>
+        <option value="TAN_SON_NHAT">P. Tân Sơn Nhất</option>
+        <option value="TAN_HOA">P. Tân Hòa</option>
+        <option value="BAY_HIEN">P. Bảy Hiền</option>
+        <option value="TAN_BINH">P. Tân Bình</option>
+        <option value="TAN_SON">P. Tân Sơn</option>
+        <option value="TAY_THANH">P. Tây Thạnh</option>
+        <option value="TAN_SON_NHI">P. Tân Sơn Nhì</option>
+        <option value="PHU_THO_HOA">P. Phú Thọ Hòa</option>
+        <option value="TAN_PHU">P. Tân Phú</option>
+        <option value="PHU_THANH">P. Phú Thạnh</option>
+        <option value="HIEP_BINH">P. Hiệp Bình</option>
+        <option value="THU_DUC">P. Thủ Đức</option>
+        <option value="TAM_BINH">P. Tam Bình</option>
+        <option value="LINH_XUAN">P. Linh Xuân</option>
+        <option value="TANG_NHON_PHU">P. Tăng Nhơn Phú</option>
+        <option value="LONG_BINH">P. Long Bình</option>
+        <option value="LONG_PHUOC">P. Long Phước</option>
+        <option value="LONG_TRUONG">P. Long Trường</option>
+        <option value="CAT_LAI">P. Cát Lái</option>
+        <option value="BINH_TRUNG">P. Bình Trưng</option>
+        <option value="PHUOC_LONG">P. Phước Long</option>
+        <option value="AN_KHANH">P. An Khánh</option>
+      </optgroup>
+      <optgroup label="Huyện ngoại thành">
+        <option value="VINH_LOC">Xã Vĩnh Lộc</option>
+        <option value="TAN_VINH_LOC">Xã Tân Vĩnh Lộc</option>
+        <option value="BINH_LOI">Xã Bình Lợi</option>
+        <option value="TAN_NHUT">Xã Tân Nhựt</option>
+        <option value="BINH_CHANH">Xã Bình Chánh</option>
+        <option value="HUNG_LONG">Xã Hưng Long</option>
+        <option value="BINH_HUNG">Xã Bình Hưng</option>
+        <option value="BINH_KHANH">Xã Bình Khánh</option>
+        <option value="AN_THOI_DONG">Xã An Thới Đông</option>
+        <option value="CAN_GIO">Xã Cần Giờ</option>
+        <option value="CU_CHI">Xã Củ Chi</option>
+        <option value="TAN_AN_HOI">Xã Tân An Hội</option>
+        <option value="THAI_MY">Xã Thái Mỹ</option>
+        <option value="AN_NHON_TAY">Xã An Nhơn Tây</option>
+        <option value="NHUAN_DUC">Xã Nhuận Đức</option>
+        <option value="PHU_HOA_DONG">Xã Phú Hòa Đông</option>
+        <option value="BINH_MY">Xã Bình Mỹ</option>
+        <option value="DONG_THANH">Xã Đông Thạnh</option>
+        <option value="HOC_MON">Xã Hóc Môn</option>
+        <option value="XUAN_THOI_SON">Xã Xuân Thới Sơn</option>
+        <option value="BA_DIEM">Xã Bà Điểm</option>
+        <option value="NHA_BE">Xã Nhà Bè</option>
+        <option value="HIEP_PHUOC">Xã Hiệp Phước</option>
+        <option value="LONG_SON">Xã Long Sơn</option>
+        <option value="HOA_HIEP">Xã Hòa Hiệp</option>
+        <option value="BINH_CHAU">Xã Bình Châu</option>
+        <option value="THANH_AN">Xã Thạnh An</option>
+
+{/* Bình Dương */}
+<option value="DONG_HOA">P. Đông Hòa</option>
+<option value="DI_AN">P. Dĩ An</option>
+<option value="TAN_DONG_HIEP">P. Tân Đông Hiệp</option>
+<option value="THUAN_AN">P. Thuận An</option>
+<option value="THUAN_GIAO">P. Thuận Giao</option>
+<option value="BINH_HOA">P. Bình Hòa</option>
+<option value="LAI_THIEU">P. Lái Thiêu</option>
+<option value="AN_PHU">P. An Phú</option>
+<option value="BINH_DUONG">P. Bình Dương</option>
+<option value="CHANH_HIEP">P. Chánh Hiệp</option>
+<option value="THU_DAU_MOT">P. Thủ Dầu Một</option>
+<option value="PHU_LOI">P. Phú Lợi</option>
+<option value="VINH_TAN">P. Vĩnh Tân</option>
+<option value="BINH_CO">P. Bình Cơ</option>
+<option value="TAN_UYEN">P. Tân Uyên</option>
+<option value="TAN_HIEP">P. Tân Hiệp</option>
+<option value="TAN_KHANH">P. Tân Khánh</option>
+<option value="HOA_LOI">P. Hòa Lợi</option>
+<option value="PHU_AN">P. Phú An</option>
+<option value="TAY_NAM">P. Tây Nam</option>
+<option value="LONG_NGUYEN">P. Long Nguyên</option>
+<option value="BEN_CAT">P. Bến Cát</option>
+<option value="CHANH_PHU_HOA">P. Chánh Phú Hòa</option>
+<option value="THOI_HOA">P. Thới Hòa</option>
+
+<option value="BAC_TAN_UYEN">Xã Bắc Tân Uyên</option>
+<option value="THUONG_TAN">Xã Thường Tân</option>
+<option value="AN_LONG">Xã An Long</option>
+<option value="PHUOC_THANH">Xã Phước Thành</option>
+<option value="PHUOC_HOA">Xã Phước Hòa</option>
+<option value="PHU_GIAO">Xã Phú Giáo</option>
+<option value="TRU_VAN_THO">Xã Trừ Văn Thố</option>
+<option value="BAU_BANG">Xã Bàu Bàng</option>
+<option value="MINH_THANH">Xã Minh Thạnh</option>
+<option value="LONG_HOA">Xã Long Hòa</option>
+<option value="DAU_TIENG">Xã Dầu Tiếng</option>
+<option value="THANH_AN_BD">Xã Thanh An</option>
+
+{/* Bà Rịa - Vũng Tàu */}
+<option value="VUNG_TAU">P. Vũng Tàu</option>
+<option value="TAM_THANG">P. Tam Thắng</option>
+<option value="RACH_DUA">P. Rạch Dừa</option>
+<option value="PHUOC_THANG">P. Phước Thắng</option>
+<option value="BA_RIA">P. Bà Rịa</option>
+<option value="LONG_HUONG">P. Long Hương</option>
+<option value="PHU_MY">P. Phú Mỹ</option>
+<option value="TAM_LONG">P. Tam Long</option>
+<option value="TAN_THANH">P. Tân Thành</option>
+<option value="TAN_PHUOC">P. Tân Phước</option>
+<option value="TAN_HAI">P. Tân Hải</option>
+
+<option value="CHAU_PHA">Xã Châu Pha</option>
+<option value="NGAI_GIAO">Xã Ngãi Giao</option>
+<option value="BINH_GIA">Xã Bình Giã</option>
+<option value="KIM_LONG">Xã Kim Long</option>
+<option value="CHAU_DUC">Xã Châu Đức</option>
+<option value="XUAN_SON">Xã Xuân Sơn</option>
+<option value="NGHIA_THANH">Xã Nghĩa Thành</option>
+<option value="HO_TRAM">Xã Hồ Tràm</option>
+<option value="XUYEN_MOC">Xã Xuyên Mộc</option>
+<option value="HOA_HOI">Xã Hòa Hội</option>
+<option value="BAU_LAM">Xã Bàu Lâm</option>
+<option value="PHUOC_HAI">Xã Phước Hải</option>
+<option value="LONG_HAI">Xã Long Hải</option>
+<option value="DAT_DO">Xã Đất Đỏ</option>
+<option value="LONG_DIEN">Xã Long Điền</option>
+
+<option value="CON_DAO">Đặc khu Côn Đảo</option>
+      </optgroup>
+    </>
+  )}
+
+  {/* Hà Nội */}
+  {selectedCity === "HA_NOI" && (
+    <>
+      <optgroup label="Quận nội thành">
+        <option value="HOAN_KIEM">P. Hoàn Kiếm</option>
+        <option value="BA_DINH">P. Ba Đình</option>
+        <option value="NGOC_HA">P. Ngọc Hà</option>
+        <option value="GIANG_VO">P. Giảng Võ</option>
+        <option value="DONG_DA">P. Đống Đa</option>
+        <option value="VAN_MIEU">P. Văn Miếu - Quốc Tử Giám</option>
+        <option value="LANG">P. Láng</option>
+        <option value="HAI_BA_TRUNG">P. Hai Bà Trưng</option>
+        <option value="BACH_MAI">P. Bạch Mai</option>
+        <option value="VINH_TUY">P. Vĩnh Tuy</option>
+        <option value="THANH_XUAN">P. Thanh Xuân</option>
+        <option value="KHUONG_DINH">P. Khương Đình</option>
+        <option value="CAU_GIAY">P. Cầu Giấy</option>
+        <option value="NGHIA_DO">P. Nghĩa Đô</option>
+        <option value="YEN_HOA">P. Yên Hòa</option>
+        <option value="TAY_HO">P. Tây Hồ</option>
+        <option value="PHU_THUONG">P. Phú Thượng</option>
+        <option value="LONG_BIEN">P. Long Biên</option>
+        <option value="BO_DE">P. Bồ Đề</option>
+        <option value="VIET_HUNG">P. Việt Hưng</option>
+        <option value="HOANG_MAI">P. Hoàng Mai</option>
+        <option value="LINH_DAM">P. Linh Đàm</option>
+        <option value="DINH_CONG">P. Định Công</option>
+        <option value="HA_DONG">P. Hà Đông</option>
+        <option value="DUONG_NOI">P. Dương Nội</option>
+        <option value="VAN_PHUC">P. Vạn Phúc</option>
+        <option value="NAM_TU_LIEM">P. Nam Từ Liêm</option>
+        <option value="MY_DINH">P. Mỹ Đình</option>
+        <option value="XUAN_PHUONG">P. Xuân Phương</option>
+        <option value="BAC_TU_LIEM">P. Bắc Từ Liêm</option>
+        <option value="MINH_KHAI">P. Minh Khai</option>
+        <option value="CO_NHUE">P. Cổ Nhuế</option>
+        <option value="SON_TAY">P. Sơn Tây</option>
+      </optgroup>
+      <optgroup label="Huyện ngoại thành">
+        <option value="DONG_ANH">Xã Đông Anh</option>
+        <option value="ME_LINH">Xã Mê Linh</option>
+        <option value="SOC_SON">Xã Sóc Sơn</option>
+        <option value="GIA_LAM">Xã Gia Lâm</option>
+        <option value="BAT_TRANG">Xã Bát Tràng</option>
+        <option value="THANH_TRI">Xã Thanh Trì</option>
+        <option value="TU_HIEP">Xã Tứ Hiệp</option>
+        <option value="HOAI_DUC">Xã Hoài Đức</option>
+        <option value="DAN_PHUONG">Xã Đan Phượng</option>
+        <option value="THACH_THAT">Xã Thạch Thất</option>
+        <option value="QUOC_OAI">Xã Quốc Oai</option>
+        <option value="CHUONG_MY">Xã Chương Mỹ</option>
+        <option value="THUONG_TIN">Xã Thường Tín</option>
+        <option value="PHU_XUYEN">Xã Phú Xuyên</option>
+        <option value="UNG_HOA">Xã Ứng Hòa</option>
+        <option value="MY_DUC">Xã Mỹ Đức</option>
+        <option value="BA_VI">Xã Ba Vì</option>
+        <option value="PHUC_THO">Xã Phúc Thọ</option>
+      </optgroup>
+    </>
+  )}
+
+  {/* Đà Nẵng */}
+  {selectedCity === "DA_NANG" && (
+    <>
+      <optgroup label="Quận nội thành">
+        <option value="HAI_CHAU">P. Hải Châu</option>
+        <option value="THACH_THANG">P. Thạch Thang</option>
+        <option value="THANH_BINH">P. Thanh Bình</option>
+        <option value="SON_TRA">P. Sơn Trà</option>
+        <option value="AN_HAI">P. An Hải</option>
+        <option value="NGU_HANH_SON">P. Ngũ Hành Sơn</option>
+        <option value="HOA_XUAN">P. Hòa Xuân</option>
+        <option value="CAM_LE">P. Cẩm Lệ</option>
+        <option value="HOA_THO">P. Hòa Thọ</option>
+        <option value="LIEN_CHIEU">P. Liên Chiểu</option>
+        <option value="HOA_KHANH">P. Hòa Khánh</option>
+        <option value="THANH_KHE">P. Thanh Khê</option>
+        <option value="AN_KHE">P. An Khê</option>
+      </optgroup>
+      <optgroup label="Huyện ngoại thành">
+        <option value="HOA_VANG">Xã Hòa Vang</option>
+        <option value="HOA_BAC">Xã Hòa Bắc</option>
+        <option value="HOA_LIEN">Xã Hòa Liên</option>
+        <option value="HOA_NINH">Xã Hòa Ninh</option>
+        <option value="HOANG_SA">Đặc khu Hoàng Sa</option>
+      </optgroup>
+    </>
+  )}
 </select>
 
                   </div>

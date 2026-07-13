@@ -4,6 +4,7 @@
 
 import math
 import random
+from decimal import Decimal, InvalidOperation
 import pandas as pd
 import numpy as np
 from sklearn.cluster import KMeans
@@ -18,6 +19,22 @@ MAX_SIMILARITY = 0.95
 MIN_SIMILARITY = 0.1
 
 
+def _to_float(value, default=0.0):
+    if value is None:
+        return float(default)
+    if isinstance(value, Decimal):
+        return float(value)
+    try:
+        if pd.isna(value):
+            return float(default)
+    except (TypeError, ValueError):
+        pass
+    try:
+        return float(value)
+    except (TypeError, ValueError, InvalidOperation):
+        return float(default)
+
+
 def location_similarity(user_loc, room_loc):
     if not user_loc or not room_loc:
         return MIN_SIMILARITY
@@ -30,6 +47,10 @@ def budget_similarity(
     user_budget_max,
     room_price
 ):
+    user_budget_min = _to_float(user_budget_min, 0.0)
+    user_budget_max = _to_float(user_budget_max, 0.0)
+    room_price = _to_float(room_price, 0.0)
+
     if room_price <= 0:
         return MIN_SIMILARITY
 
@@ -78,6 +99,9 @@ def binary_match(a, b):
 # =====================================================
 
 def occupancy_ratio(current, maximum):
+    current = _to_float(current, 0.0)
+    maximum = _to_float(maximum, 0.0)
+
     if maximum <= 0:
         return 0.5
 
@@ -110,9 +134,11 @@ def cleanliness_compatibility(
     }
 
     room_priority = requirement_map.get(
-        room_requirement.lower(),
+        str(room_requirement or "medium").lower(),
         3
     )
+
+    user_priority = _to_float(user_priority, 3.0)
 
     diff = abs(user_priority - room_priority)
     penalty = ((diff / 4.0) ** 3) * 1.5
@@ -149,14 +175,16 @@ def social_compatibility(
     }
 
     noise_score = noise_map.get(
-        room_noise_tolerance.lower(),
+        str(room_noise_tolerance or "medium").lower(),
         3
     )
 
     guest_score = guest_map.get(
-        room_guest_policy.lower(),
+        str(room_guest_policy or "occasionally").lower(),
         3
     )
+
+    user_social_priority = _to_float(user_social_priority, 3.0)
 
     room_social = (noise_score + guest_score) / 2
 
@@ -238,9 +266,11 @@ def guest_tolerance_compatibility(
     }
 
     policy_score = guest_map.get(
-        room_guest_policy.lower(),
+        str(room_guest_policy or "occasionally").lower(),
         3
     )
+
+    user_social_priority = _to_float(user_social_priority, 3.0)
 
     diff = abs(user_social_priority - policy_score)
 
@@ -327,6 +357,9 @@ def compatibility_with_roommates(
     roommate_ids,
     users_df
 ):
+    user_cleanliness = _to_float(user_cleanliness, 3.0)
+    user_social = _to_float(user_social, 3.0)
+
     if not roommate_ids:
         return 0.3 # Giảm điểm default nếu không có roommate info
 
@@ -341,14 +374,16 @@ def compatibility_with_roommates(
             # -------------------------
             # CLEANLINESS
             # -------------------------
-            clean_diff = abs(user_cleanliness - roommate["priority_cleanliness"])
+            roommate_cleanliness = _to_float(roommate["priority_cleanliness"], 3.0)
+            clean_diff = abs(user_cleanliness - roommate_cleanliness)
             # Phạt nặng: bậc 3
             clean_score = 1 - ((clean_diff / 4.0) ** 3) * 1.5
 
             # -------------------------
             # SOCIAL
             # -------------------------
-            social_diff = abs(user_social - roommate["priority_social_environment"])
+            roommate_social = _to_float(roommate["priority_social_environment"], 3.0)
+            social_diff = abs(user_social - roommate_social)
             # Phạt nặng: bậc 3
             social_score = 1 - ((social_diff / 4.0) ** 3) * 1.5
 

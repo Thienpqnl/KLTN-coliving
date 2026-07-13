@@ -1,5 +1,6 @@
 
 import pandas as pd
+from decimal import Decimal
 from utils.loader_supabase import (
     users_df,
     rooms_df,
@@ -21,6 +22,22 @@ from services.collaborative_filtering import calculate_collaborative_scores
 from services.scoring import calculate_xgboost_score
 from services.roommate import get_roommates
 from services.explain import explain_recommendation
+
+
+def _safe_float(value, default=0.0):
+    if value is None:
+        return float(default)
+    if isinstance(value, Decimal):
+        return float(value)
+    try:
+        if pd.isna(value):
+            return float(default)
+    except (TypeError, ValueError):
+        pass
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
 
 def recommend_rooms(userId, top_k=10):
     print(f"\n[RECOMMEND] ===== STARTING RECOMMENDATIONS =====")
@@ -51,17 +68,25 @@ def recommend_rooms(userId, top_k=10):
         # 2. Lấy điểm Collaborative Filtering tương ứng của phòng (mặc định 0.5 nếu là Cold Start)
         cf_score = cf_scores_dict.get(roomId, 0.5)
 
+        user_budget_min = _safe_float(user.get("budget_min_vnd"), 3000000)
+        user_budget_max = _safe_float(user.get("budget_max_vnd"), 15000000)
+        room_minimum_budget = _safe_float(room.get("minimumBudget"), 5000000)
+        priority_cleanliness = _safe_float(user.get("priority_cleanliness"), 3)
+        priority_social_environment = _safe_float(user.get("priority_social_environment"), 3)
+        room_current_occupants = _safe_float(room.get("current_occupants"), 0)
+        room_max_occupants = _safe_float(room.get("maxOccupants"), 1)
+
         # Tính toán các chỉ số tương đồng (Feature Engineering)
         row = {
             "location_similarity": location_similarity(user["preferred_location_district_id"], room["districtId"]),
-            "budget_similarity": budget_similarity(user["budget_min_vnd"], user["budget_max_vnd"], room["minimumBudget"]),
+            "budget_similarity": budget_similarity(user_budget_min, user_budget_max, room_minimum_budget),
             "smoking_match": binary_match(user["accept_smoking_roommates"], room["allowSmoking"]),
             "pet_match": binary_match(user["accept_pets"], room["allowPets"]),
             "sleep_similarity": sleep_compatibility(user["lifestyle_archetype"], room["preferredSleepHabit"]),
-            "cleanliness_similarity": cleanliness_compatibility(user["priority_cleanliness"], room["cleanlinessRequired"]),
-            "social_similarity": social_compatibility(user["priority_social_environment"], room["noiseTolerance"], room["guestPolicy"]),
-            "guest_similarity": guest_tolerance_compatibility(user["priority_social_environment"], room["guestPolicy"]),
-            "occupancy_ratio": occupancy_ratio(room["current_occupants"], room["maxOccupants"]),
+            "cleanliness_similarity": cleanliness_compatibility(priority_cleanliness, room["cleanlinessRequired"]),
+            "social_similarity": social_compatibility(priority_social_environment, room["noiseTolerance"], room["guestPolicy"]),
+            "guest_similarity": guest_tolerance_compatibility(priority_social_environment, room["guestPolicy"]),
+            "occupancy_ratio": occupancy_ratio(room_current_occupants, room_max_occupants),
             
             # Đính kèm điểm Collaborative Filtering từ hành vi tương tác thực tế
             "cf_score": cf_score,
@@ -69,7 +94,7 @@ def recommend_rooms(userId, top_k=10):
             "roomId": room["roomId"],
             "title": room.get("title", "Phòng Coliving"),
             "districtId": room["districtId"],
-            "price": room["minimumBudget"]
+            "price": room_minimum_budget
         }
         rows.append(row)
 

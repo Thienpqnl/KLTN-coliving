@@ -55,27 +55,51 @@ export default function SharedSpacePage({ params }: PageProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pageFeedback, setPageFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const hoursGrid = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00"];
-  useEffect(() => {
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
     const today = new Date();
     const currentDayOfWeek = today.getDay();
     const distanceToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() + distanceToMonday);
+    return startOfWeek;
+  });
 
+  useEffect(() => {
     const days = [];
     const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-    
+
     for (let i = 0; i < 7; i++) {
-      const nextDay = new Date(startOfWeek);
-      nextDay.setDate(startOfWeek.getDate() + i);
+      const nextDay = new Date(currentWeekStart);
+      nextDay.setDate(currentWeekStart.getDate() + i);
       days.push({
         dayName: dayNames[i],
         dayNum: nextDay.getDate(),
-        dateStr: nextDay.toLocaleDateString('sv-SE') 
+        dateStr: nextDay.toLocaleDateString('sv-SE')
       });
     }
     setWeekDays(days);
-  }, []);
+  }, [currentWeekStart]);
+
+  const goToPreviousWeek = () => {
+    const newStart = new Date(currentWeekStart);
+    newStart.setDate(newStart.getDate() - 7);
+    setCurrentWeekStart(newStart);
+  };
+
+  const goToNextWeek = () => {
+    const newStart = new Date(currentWeekStart);
+    newStart.setDate(newStart.getDate() + 7);
+    setCurrentWeekStart(newStart);
+  };
+
+  const goToToday = () => {
+    const today = new Date();
+    const currentDayOfWeek = today.getDay();
+    const distanceToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() + distanceToMonday);
+    setCurrentWeekStart(startOfWeek);
+  };
 
   const fetchSharedSpaceData = async () => {
     try {
@@ -204,10 +228,10 @@ export default function SharedSpacePage({ params }: PageProps) {
           </div>
           <nav className="space-y-1">
             <button className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-slate-400 hover:text-slate-700 transition rounded-xl">
-              OVERVIEW
+              Tổng hợp
             </button>
             <button className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold bg-[#844216] text-white transition rounded-xl shadow-sm shadow-amber-900/20">
-               CALENDAR
+               Lịch
             </button>
           </nav>
 
@@ -375,7 +399,44 @@ export default function SharedSpacePage({ params }: PageProps) {
 
           {/* BẢNG LƯỚI LỊCH */}
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden relative">
-            
+
+            {/* Navigation Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={goToPreviousWeek}
+                  className="p-2 hover:bg-slate-200 rounded-lg transition text-slate-600"
+                  title="Tuần trước"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <button
+                  onClick={goToToday}
+                  className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+                >
+                  Hôm nay
+                </button>
+                <button
+                  onClick={goToNextWeek}
+                  className="p-2 hover:bg-slate-200 rounded-lg transition text-slate-600"
+                  title="Tuần sau"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              <div className="text-sm font-bold text-slate-700">
+                {weekDays.length > 0 && (
+                  <>
+                    {weekDays[0].dateStr} - {weekDays[6].dateStr}
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* Header Ngày */}
             <div className="grid grid-cols-8 border-b border-slate-100 bg-slate-50/50 sticky top-0 z-20">
               <div className="p-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-center">Giờ</div>

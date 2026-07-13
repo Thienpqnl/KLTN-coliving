@@ -24,6 +24,7 @@ def _database_url():
 
 
 def _upsert_event(cursor, event):
+    return False
     event_type = event.get("eventType")
     payload = event.get("payload") or {}
 
@@ -109,6 +110,7 @@ def _upsert_event(cursor, event):
 
 
 def process_event(event):
+    return False
     event_id = str(event.get("id") or "")
     if not event_id:
         raise ValueError("Projection event id is missing")

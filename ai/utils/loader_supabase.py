@@ -360,3 +360,19 @@ __all__ = [
     'load_all_data', 'load_service_rows', 'use_service_schemas', 'use_ai_projections',
     'refresh_projection_cache', 'cache_lock'
 ]
+if 'rooms_df' in locals() or 'rooms_df' in globals():
+    if not rooms_df.empty:
+        for col in rooms_df.columns:
+            if rooms_df[col].dtype == 'object':
+                try:
+                    rooms_df[col] = rooms_df[col].astype(float)
+                except (TypeError, ValueError):
+                    pass
+if 'users_df' in locals() or 'users_df' in globals():
+    if not users_df.empty:
+        for col in users_df.columns:
+            if users_df[col].dtype == 'object':
+                try:
+                    users_df[col] = users_df[col].astype(float)
+                except (TypeError, ValueError):
+                    pass
