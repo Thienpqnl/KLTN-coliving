@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const proxied = await tryProxyRentalService({
       identity: user,
       path: "/v1/host/bookings",
+      timeoutMs: Number(process.env.RENTAL_HOST_BOOKINGS_TIMEOUT_MS || 12_000),
       fallbackMessage: "Không thể tải booking của chủ nhà",
     });
     if (proxied) return proxied;
