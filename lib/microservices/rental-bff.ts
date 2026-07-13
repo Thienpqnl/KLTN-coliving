@@ -20,6 +20,7 @@ type RentalProxyOptions = {
   body?: unknown;
   successStatus?: number;
   fallbackMessage: string;
+  timeoutMs?: number;
 };
 
 type ServiceErrorPayload = {
@@ -35,6 +36,7 @@ export async function tryProxyRentalService({
   body,
   successStatus = 200,
   fallbackMessage,
+  timeoutMs,
 }: RentalProxyOptions): Promise<NextResponse | null> {
   const rentalServiceUrl = getServiceUrl("RENTAL");
   if (!rentalServiceUrl) {
@@ -55,7 +57,7 @@ export async function tryProxyRentalService({
           ...(body === undefined ? {} : { "content-type": "application/json" }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
-        timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
+        timeoutMs: timeoutMs ?? Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
       },
     );
     return successResponse(data, successStatus);
@@ -86,6 +88,7 @@ export async function tryProxyRentalServiceRaw({
   method = "GET",
   body,
   fallbackMessage,
+  timeoutMs,
 }: RentalProxyOptions): Promise<NextResponse | null> {
   const rentalServiceUrl = getServiceUrl("RENTAL");
   if (!rentalServiceUrl) {
@@ -106,7 +109,7 @@ export async function tryProxyRentalServiceRaw({
           ...(body === undefined ? {} : { "content-type": "application/json" }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
-        timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
+        timeoutMs: timeoutMs ?? Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
       },
     );
     return NextResponse.json(data);

@@ -37,7 +37,7 @@ export function FeaturedProperty() {
       try {
         const [roomResponse, hostBookings] = await Promise.all([
           apiClient.get<{ rooms: HostRoom[] }>("/rooms-upload"),
-          bookingClientService.getHostAll(),
+          bookingClientService.getHostAll().catch(() => []),
         ])
 
         setRooms(roomResponse.rooms || [])

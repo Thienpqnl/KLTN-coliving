@@ -18,7 +18,11 @@ async function request(path, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
-    Number(process.env.MICROSERVICE_TIMEOUT_MS || 3000),
+    Number(
+      process.env.IDENTITY_SERVICE_TIMEOUT_MS ||
+      process.env.MICROSERVICE_TIMEOUT_MS ||
+      3000,
+    ),
   );
   const headers = new Headers(correlationHeaders(options.headers));
   headers.set("accept", "application/json");
