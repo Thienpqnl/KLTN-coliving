@@ -48,6 +48,7 @@ model User {
   resourceBookings        ResourceBooking[]
   createdActivities       SharedSpaceActivity[] @relation("ActivityCreator")
   assignedActivities      SharedSpaceActivity[] @relation("ActivityAssignee")
+  deviceTokens              UserDeviceToken[]
   userPreferences      user_preferences? 
   userLifestyleProfile user_lifestyle_profiles? 
   @@map("User")
@@ -812,13 +813,15 @@ enum ServiceRegion {
   SOUTH
 }
 
-enum VerificationCheckType {
-  OWNER_PHONE
-  OWNER_IDENTITY_DOCUMENT
-  OWNERSHIP_DOCUMENT
-  ROOM_ADDRESS
-  MAP_LOCATION
-  ROOM_IMAGES
-  LEGAL_DECLARATION
-  ROOM_DETAILS
+enum VerificationCheckStatus {
+  PENDING
+  MATCHED
+  MISMATCHED
+  NEEDS_REVIEW
+  UNVERIFIABLE
 }
+@@unique([contractId, month, year])
+@@index([contractId])
+@@index([status])
+@@map("utility_bills")
+
