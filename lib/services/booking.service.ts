@@ -1,6 +1,6 @@
 import { BookingStatus } from "@prisma/client";
 import { prisma } from "../prisma";
-import { BookingCreate } from "../validation";
+import { BookingCancellation, BookingCreate } from "../validation";
 import { ApiError } from "../api-error";
 import {
   getRoomCapacity,
@@ -203,6 +203,16 @@ export const bookingService = {
     ) {
       throw new ApiError(409, "Booking đã kết thúc và không thể đổi trạng thái");
     }
+    if (status === BookingStatus.CANCELLED) {
+      const isAdmin = actor.role === "ADMIN";
+      const isHost = booking.room.ownerId === actor.userId;
+      if (!isAdmin && !isHost) {
+        throw new ApiError(400, "Người thuê phải sử dụng chức năng hủy booking và cung cấp lý do");
+      }
+      if (booking.status !== BookingStatus.PENDING) {
+        throw new ApiError(409, "Chủ nhà chỉ có thể từ chối booking đang chờ xác nhận");
+      }
+    }
 
     return prisma.booking.update({
       where: { id },
@@ -211,19 +221,85 @@ export const bookingService = {
     });
   },
 
-  cancel: async (id: string, userId: string) => {
-    const booking = await bookingService.getById(id, userId);
-    if (
-      booking.status === BookingStatus.COMPLETED ||
-      booking.status === BookingStatus.CANCELLED
-    ) {
-      throw new ApiError(400, "Booking này không thể hủy");
-    }
+  cancel: async (id: string, actor: BookingActor, data: BookingCancellation) => {
+    return runSerializableTransaction(async (tx) => {
+      const booking = await tx.booking.findUnique({
+        where: { id },
+        include: {
+          ...bookingInclude,
+          contract: {
+            select: { id: true, status: true, depositStatus: true },
+          },
+        },
+      });
+      if (!booking) throw new ApiError(404, "Không tìm thấy booking");
+      assertCanManageBooking(actor, booking, BookingStatus.CANCELLED);
 
-    return prisma.booking.update({
-      where: { id },
-      data: { status: BookingStatus.CANCELLED },
-      include: bookingInclude,
+      if (
+        booking.status === BookingStatus.COMPLETED ||
+        booking.status === BookingStatus.CANCELLED
+      ) {
+        throw new ApiError(409, "Booking đã kết thúc và không thể hủy");
+      }
+
+      const protectedContractStatuses = new Set([
+        "PENDING_DEPOSIT",
+        "PENDING_HANDOVER",
+        "ACTIVE",
+        "EXPIRED",
+        "TERMINATED",
+        "DISPUTED",
+      ]);
+      if (booking.contract && protectedContractStatuses.has(booking.contract.status)) {
+        throw new ApiError(
+          409,
+          booking.contract.status === "ACTIVE"
+            ? "Hợp đồng đã có hiệu lực. Vui lòng sử dụng chức năng rời phòng hoặc chấm dứt hợp đồng."
+            : "Booking đang ở giai đoạn thực hiện hợp đồng và không thể hủy trực tiếp."
+        );
+      }
+
+      const now = new Date();
+      const cancellationActor = actor.role === "ADMIN"
+        ? "ADMIN"
+        : booking.room.ownerId === actor.userId
+          ? "HOST"
+          : "RENTER";
+      const updated = await tx.booking.update({
+        where: { id },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: now,
+          cancelledById: actor.userId,
+          cancellationActor,
+          cancellationReason: data.reason,
+        },
+        include: bookingInclude,
+      });
+
+      if (booking.contract && booking.contract.status !== "CANCELLED") {
+        await tx.contract.update({
+          where: { id: booking.contract.id },
+          data: {
+            status: "CANCELLED",
+            terminatedAt: now,
+            terminationReason: data.reason,
+          },
+        });
+        await tx.contractEvent.create({
+          data: {
+            contractId: booking.contract.id,
+            actorId: actor.userId,
+            type: "BOOKING_CANCELLED",
+            fromStatus: booking.contract.status,
+            toStatus: "CANCELLED",
+            note: data.reason,
+            metadata: { bookingId: booking.id, actor: cancellationActor },
+          },
+        });
+      }
+
+      return updated;
     });
   },
 

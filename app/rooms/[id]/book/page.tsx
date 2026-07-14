@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation';
 import { Footer } from '@/components/Footer';
 import { Navigation } from '@/components/Navigation';
-import { roomService } from '@/lib/services/room.service';
+import {
+  getPublicRoomById,
+  type PublicRoomDetail,
+} from '@/lib/services/property-gateway.server';
 import { BookingRequestForm } from './BookingRequestForm';
 
-type RoomDetail = Awaited<ReturnType<typeof roomService.getById>>;
+type RoomDetail = PublicRoomDetail;
 type RoomAmenityItem = {
   amenity?: {
     name?: string | null;
@@ -145,7 +148,7 @@ export default async function RoomBookingPage({
 
   try {
     const { id } = await params;
-    room = await roomService.getById(id);
+    room = await getPublicRoomById(id);
   } catch {
     notFound();
   }

@@ -69,6 +69,10 @@ export const bookingUpdateSchema = z.object({
   status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED"]).optional(),
 });
 
+export const bookingCancellationSchema = z.object({
+  reason: z.string().trim().min(5, "Lý do hủy phải có ít nhất 5 ký tự").max(500, "Lý do hủy không được vượt quá 500 ký tự"),
+});
+
 // Amenity Schemas
 export const amenityCreateSchema = z.object({
   name: z.string().min(2, "Amenity name must be at least 2 characters"),
@@ -133,6 +137,7 @@ export type RoomUpdate = z.infer<typeof roomUpdateSchema>;
 export type RoomFilter = z.infer<typeof roomFilterSchema>;
 export type BookingCreate = z.infer<typeof bookingCreateSchema>;
 export type BookingUpdate = z.infer<typeof bookingUpdateSchema>;
+export type BookingCancellation = z.infer<typeof bookingCancellationSchema>;
 export type AmenityCreate = z.infer<typeof amenityCreateSchema>;
 export type AmenityUpdate = z.infer<typeof amenityUpdateSchema>;
 export type ReviewCreate = z.infer<typeof reviewCreateSchema>;

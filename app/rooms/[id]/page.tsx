@@ -14,6 +14,7 @@ import { FavoriteButton } from './FavoriteButton';
 import { cookies } from 'next/headers';
 import RoomMapView from "@/components/maps/RoomMapView";
 type RoomDetail = PublicRoomDetail;
+type RoomOwner = NonNullable<RoomDetail['owner']>;
 type RoomAmenityItem = {
   amenity?: {
     id: string;
@@ -139,6 +140,128 @@ function SectionHeading({
           </h2>
           <div className="mt-2 h-1 w-16 rounded-full bg-gradient-to-r from-orange-600 to-amber-300" />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function HostProfileCard({ owner }: { owner?: RoomOwner | null }) {
+  if (!owner) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+          <span className="material-symbols-outlined text-2xl">person</span>
+        </div>
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-700">Chủ nhà</p>
+        <h2 className="mt-2 text-xl font-black text-slate-950">Thông tin đang được cập nhật</h2>
+        <p className="mt-3 text-sm leading-6 text-slate-500">
+          Hồ sơ người đăng sẽ được bổ sung sau khi hoàn tất xác minh.
+        </p>
+      </div>
+    );
+  }
+
+  const displayName = owner.fullName?.trim() || owner.name?.trim() || 'Chủ nhà';
+  const initial = displayName.charAt(0).toLocaleUpperCase('vi-VN');
+  const joinedAt = owner.createdAt instanceof Date ? owner.createdAt : new Date(owner.createdAt);
+  const joinedYear = Number.isNaN(joinedAt.getTime()) ? null : joinedAt.getFullYear();
+  const phone = owner.phone?.trim();
+  const email = owner.email?.trim();
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-orange-100 bg-white shadow-lg shadow-slate-900/5">
+      <div className="border-b border-orange-100 bg-gradient-to-r from-orange-50 to-amber-50 px-6 py-5">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-700">Thông tin chủ nhà</p>
+      </div>
+
+      <div className="p-6">
+        <div className="flex items-center gap-4">
+          {owner.avatarUrl ? (
+            <img
+              src={owner.avatarUrl}
+              alt={`Ảnh đại diện của ${displayName}`}
+              className="h-16 w-16 shrink-0 rounded-full object-cover ring-4 ring-orange-50"
+            />
+          ) : (
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-orange-100 text-2xl font-black text-orange-800 ring-4 ring-orange-50">
+              {initial}
+            </div>
+          )}
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-black text-slate-950">{displayName}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">Chủ nhà của phòng này</p>
+            {owner.phoneVerified && (
+              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+                <span className="material-symbols-outlined text-sm">verified</span>
+                Đã xác minh điện thoại
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-6 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-slate-50/70 px-4">
+          <div className="flex items-start gap-3 py-4">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+              <span className="material-symbols-outlined text-xl">phone_iphone</span>
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Số điện thoại</p>
+              {phone ? (
+                <a href={`tel:${phone}`} className="mt-1 block font-black text-slate-950 hover:text-orange-700">
+                  {phone}
+                </a>
+              ) : (
+                <p className="mt-1 text-sm font-semibold text-slate-500">Chưa cập nhật</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 py-4">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-700">
+              <span className="material-symbols-outlined text-xl">mail</span>
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Email</p>
+              {email ? (
+                <a href={`mailto:${email}`} className="mt-1 block break-all text-xs font-bold leading-5 text-slate-950 hover:text-orange-700">
+                  {email}
+                </a>
+              ) : (
+                <p className="mt-1 text-sm font-semibold text-slate-500">Chưa cập nhật</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {joinedYear && (
+          <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-5 text-sm font-semibold text-slate-500">
+            <span className="material-symbols-outlined text-xl text-orange-700">calendar_month</span>
+            Thành viên từ năm {joinedYear}
+          </div>
+        )}
+
+        {(phone || email) && (
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            {phone ? (
+              <a
+                href={`tel:${phone}`}
+                className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-orange-700 px-3 text-sm font-black text-white transition-colors hover:bg-orange-800"
+              >
+                <span className="material-symbols-outlined text-lg">call</span>
+                Gọi điện
+              </a>
+            ) : <span />}
+            {email && (
+              <a
+                href={`mailto:${email}`}
+                className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 transition-colors hover:border-orange-200 hover:bg-orange-50"
+              >
+                <span className="material-symbols-outlined text-lg">mail</span>
+                Gửi email
+              </a>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -420,6 +543,7 @@ export default async function RoomDetailPage({
           title={room.title}
           postedDate={postedDate}
           occupancy={occupancy}
+          hostPanel={<HostProfileCard owner={room.owner} />}
         />
 
         <section className="mx-auto max-w-7xl px-8">

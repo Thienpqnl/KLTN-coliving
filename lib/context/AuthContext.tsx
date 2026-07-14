@@ -37,19 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUser = async () => {
     try {
       const storedToken = localStorage.getItem('token');
-      setToken(storedToken);
-
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-      }
 
       const response = await fetch('/api/auth/me', {
         method: 'GET',
-        headers,
         credentials: 'include',
         cache: 'no-store',
       });
@@ -58,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const userData = await response.json();
+        setToken(storedToken);
         setUser(userData);
       } else if (response.status === 401) {
         localStorage.removeItem('token');
@@ -66,10 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         const errorText = await response.text();
         console.warn('[AuthContext] /api/auth/me failed:', response.status, errorText);
+        setToken(null);
         setUser(null);
       }
     } catch (error) {
       console.warn('[AuthContext] fetchUser error:', error);
+      setToken(null);
       setUser(null);
     } finally {
       setIsLoading(false);

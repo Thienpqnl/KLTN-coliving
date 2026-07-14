@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  AlertTriangle,
   CalendarDays,
+  CalendarX2,
   Camera,
   CreditCard,
   Home,
@@ -46,6 +48,9 @@ interface Booking {
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   startDate: string;
   endDate: string;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancellationActor?: string | null;
   contract?: {
     id: string;
     status: string;
@@ -75,6 +80,27 @@ interface UserOccupancy {
     title: string;
     address: string;
   }[];
+}
+
+const bookingStatusLabels: Record<Booking['status'], string> = {
+  PENDING: 'Đang chờ xác nhận',
+  CONFIRMED: 'Đã xác nhận',
+  CANCELLED: 'Đã hủy',
+  COMPLETED: 'Đã hoàn tất',
+};
+
+function bookingStatusClass(status: Booking['status']) {
+  if (status === 'PENDING') return 'bg-amber-50 text-amber-800 ring-amber-200';
+  if (status === 'CONFIRMED') return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+  if (status === 'COMPLETED') return 'bg-blue-50 text-blue-800 ring-blue-200';
+  return 'bg-slate-100 text-slate-600 ring-slate-200';
+}
+
+function canCancelBooking(booking: Booking) {
+  if (booking.status !== 'PENDING' && booking.status !== 'CONFIRMED') return false;
+  if (!booking.contract) return true;
+  return ['DRAFT', 'PENDING_HOST_SIGNATURE', 'PENDING_RENTER_SIGNATURE', 'CANCELLED']
+    .includes(booking.contract.status);
 }
 
 type UserPreferences = {
@@ -163,6 +189,10 @@ export default function ProfilePage() {
   const [otpMessage, setOtpMessage] = useState('');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancellationError, setCancellationError] = useState('');
+  const [isCancellingBooking, setIsCancellingBooking] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -507,6 +537,65 @@ export default function ProfilePage() {
       setOtpMessage(err instanceof Error ? err.message : 'Không thể xác minh OTP.');
     } finally {
       setIsVerifyingOtp(false);
+    }
+  };
+
+  const openCancellationDialog = (booking: Booking) => {
+    setBookingToCancel(booking);
+    setCancellationReason('');
+    setCancellationError('');
+  };
+
+  const closeCancellationDialog = () => {
+    if (isCancellingBooking) return;
+    setBookingToCancel(null);
+    setCancellationReason('');
+    setCancellationError('');
+  };
+
+  const handleCancelBooking = async () => {
+    if (!bookingToCancel) return;
+    const reason = cancellationReason.trim();
+    if (reason.length < 5) {
+      setCancellationError('Vui lòng nhập lý do hủy có ít nhất 5 ký tự.');
+      return;
+    }
+
+    setIsCancellingBooking(true);
+    setCancellationError('');
+    try {
+      const response = await fetch(`/api/bookings/${bookingToCancel.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ reason }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.message || payload?.error || 'Không thể hủy đặt phòng.');
+      }
+
+      const updated = (payload?.data || payload) as Booking;
+      setBookings((current) => current.map((booking) => (
+        booking.id === bookingToCancel.id
+          ? {
+              ...booking,
+              ...updated,
+              status: 'CANCELLED',
+              cancelledAt: updated?.cancelledAt || new Date().toISOString(),
+              cancellationReason: updated?.cancellationReason || reason,
+            }
+          : booking
+      )));
+      setSuccess('Đã hủy đặt phòng thành công.');
+      setBookingToCancel(null);
+      setCancellationReason('');
+    } catch (reasonError) {
+      setCancellationError(
+        reasonError instanceof Error ? reasonError.message : 'Không thể hủy đặt phòng.'
+      );
+    } finally {
+      setIsCancellingBooking(false);
     }
   };
 
@@ -972,6 +1061,120 @@ export default function ProfilePage() {
                 )}
               </section>
 
+              <section
+                id="booking-history"
+                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
+                      Đặt phòng
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold text-slate-950">Lịch sử đặt phòng</h2>
+                  </div>
+                  <span className="text-sm font-semibold text-slate-500">
+                    {bookings.length} yêu cầu
+                  </span>
+                </div>
+
+                {bookings.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <CalendarDays className="mx-auto h-10 w-10 text-slate-300" />
+                    <p className="mt-3 font-bold text-slate-900">Bạn chưa có yêu cầu đặt phòng</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {bookings.map((booking) => {
+                      const canCancel = canCancelBooking(booking);
+                      const hasActiveContract = booking.contract?.status === 'ACTIVE';
+                      const contractInProgress = booking.contract && [
+                        'PENDING_DEPOSIT',
+                        'PENDING_HANDOVER',
+                        'ACTIVE',
+                        'DISPUTED',
+                      ].includes(booking.contract.status);
+
+                      return (
+                        <article
+                          key={booking.id}
+                          className="grid gap-5 rounded-lg border border-slate-200 p-4 transition-colors hover:border-orange-200 md:grid-cols-[128px_minmax(0,1fr)_auto] md:items-center"
+                        >
+                          <div className="aspect-[4/3] overflow-hidden rounded-lg bg-slate-100">
+                            {booking.room.image?.[0] ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={booking.room.image[0]}
+                                alt={booking.room.title}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-slate-300">
+                                <Home className="h-8 w-8" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`rounded-full px-3 py-1 text-xs font-bold ring-1 ${bookingStatusClass(booking.status)}`}>
+                                {bookingStatusLabels[booking.status]}
+                              </span>
+                              {booking.contract && (
+                                <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700 ring-1 ring-violet-200">
+                                  Có hợp đồng
+                                </span>
+                              )}
+                            </div>
+                            <Link
+                              href={`/rooms/${booking.room.id}`}
+                              className="mt-3 block truncate text-lg font-bold text-slate-950 hover:text-orange-700"
+                            >
+                              {booking.room.title}
+                            </Link>
+                            <p className="mt-1 truncate text-sm text-slate-500">{booking.room.address}</p>
+                            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-slate-600">
+                              <span className="flex items-center gap-1.5">
+                                <CalendarDays className="h-4 w-4 text-orange-600" />
+                                {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
+                              </span>
+                              {booking.cancelledAt && (
+                                <span>Hủy ngày {formatDate(booking.cancelledAt)}</span>
+                              )}
+                            </div>
+                            {booking.status === 'CANCELLED' && booking.cancellationReason && (
+                              <p className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                                <span className="font-bold">Lý do:</span> {booking.cancellationReason}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 md:w-36 md:flex-col">
+                            {canCancel && (
+                              <button
+                                type="button"
+                                onClick={() => openCancellationDialog(booking)}
+                                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-bold text-red-700 transition-colors hover:bg-red-50"
+                              >
+                                <CalendarX2 className="h-4 w-4" />
+                                Hủy đặt phòng
+                              </button>
+                            )}
+                            {contractInProgress && (
+                              <Link
+                                href="/contracts"
+                                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-center text-sm font-bold text-white transition-colors hover:bg-slate-800"
+                              >
+                                {hasActiveContract ? 'Rời phòng' : 'Xem hợp đồng'}
+                              </Link>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
               {/* Host Managed Rooms Section */}
               {occupancy?.ownedRooms && occupancy.ownedRooms.length > 0 && (
                 <section
@@ -1241,6 +1444,91 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
+      {bookingToCancel && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-booking-title"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) closeCancellationDialog();
+          }}
+        >
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-700">
+                  <AlertTriangle className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 id="cancel-booking-title" className="text-xl font-bold text-slate-950">
+                    Hủy đặt phòng
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">{bookingToCancel.room.title}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeCancellationDialog}
+                disabled={isCancellingBooking}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                aria-label="Đóng"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+              Booking đã xác nhận sẽ giải phóng chỗ đang giữ. Hợp đồng ở giai đoạn nháp hoặc chờ ký cũng sẽ được hủy cùng yêu cầu này.
+            </div>
+
+            <label className="mt-5 block">
+              <span className="text-sm font-bold text-slate-800">Lý do hủy</span>
+              <textarea
+                value={cancellationReason}
+                onChange={(event) => {
+                  setCancellationReason(event.target.value);
+                  setCancellationError('');
+                }}
+                rows={4}
+                maxLength={500}
+                disabled={isCancellingBooking}
+                placeholder="Ví dụ: Tôi thay đổi kế hoạch chuyển đến..."
+                className="mt-2 w-full resize-none rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50"
+              />
+              <span className="mt-1 block text-right text-xs text-slate-400">
+                {cancellationReason.length}/500
+              </span>
+            </label>
+
+            {cancellationError && (
+              <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {cancellationError}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeCancellationDialog}
+                disabled={isCancellingBooking}
+                className="min-h-11 rounded-lg border border-slate-300 px-5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Giữ đặt phòng
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelBooking}
+                disabled={isCancellingBooking || cancellationReason.trim().length < 5}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-5 text-sm font-bold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isCancellingBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarX2 className="h-4 w-4" />}
+                Xác nhận hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <Footer />
     </>
   );

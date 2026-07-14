@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { bookingService } from "@/lib/services/booking.service";
-import { bookingUpdateSchema } from "@/lib/validation";
+import { bookingCancellationSchema, bookingUpdateSchema } from "@/lib/validation";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, successResponse } from "@/lib/api-error";
 import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
@@ -63,16 +63,22 @@ export async function DELETE(
   try {
     const user = await getAuthUser(request);
     const { id } = await params;
+    const data = bookingCancellationSchema.parse(await request.json().catch(() => ({})));
     const proxied = await tryProxyRentalService({
       identity: user,
       path: `/v1/bookings/${id}`,
       method: "DELETE",
+      body: data,
       fallbackMessage: "Không thể hủy booking",
     });
     if (proxied) return proxied;
 
-    await bookingService.cancel(id, user.userId);
-    return successResponse({ message: "Booking cancelled successfully" });
+    const booking = await bookingService.cancel(
+      id,
+      { userId: user.userId, role: user.role ?? "CUSTOMER" },
+      data,
+    );
+    return successResponse(booking);
   } catch (error) {
     return handleApiError(error);
   }

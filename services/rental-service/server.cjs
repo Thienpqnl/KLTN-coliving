@@ -275,7 +275,12 @@ app.put("/v1/bookings/:id", async (request, response) => {
 
 app.delete("/v1/bookings/:id", async (request, response) => {
   try {
-    return sendResult(response, await cancelBooking(prisma, requestIdentity(request), request.params.id));
+    return sendResult(response, await cancelBooking(
+      prisma,
+      requestIdentity(request),
+      request.params.id,
+      request.body || {},
+    ));
   } catch (error) {
     console.error("[rental-service] DELETE /v1/bookings/:id failed", error);
     return response.status(500).json({ message: "Cannot cancel booking" });

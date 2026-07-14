@@ -10,6 +10,11 @@ const roomInclude = {
       name: true,
       fullName: true,
       email: true,
+      phone: true,
+      avatarUrl: true,
+      phoneVerified: true,
+      createdAt: true,
+      role: true,
     },
   },
   amenities: {
@@ -33,6 +38,11 @@ const roomListInclude = {
       name: true,
       fullName: true,
       email: true,
+      phone: true,
+      avatarUrl: true,
+      phoneVerified: true,
+      createdAt: true,
+      role: true,
     },
   },
   amenities: {
