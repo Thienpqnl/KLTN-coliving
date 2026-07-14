@@ -64,7 +64,7 @@ export function Navigation() {
             href="/"
             className="whitespace-nowrap font-headline text-xl font-bold tracking-tighter text-orange-900 md:text-2xl"
           >
-            The Curated Hearth
+            NhàHợp
           </Link>
         </div>
 
@@ -88,12 +88,6 @@ export function Navigation() {
             }`}
           >
             Danh sách phòng
-          </Link>
-          <Link
-            href="/#community"
-            className="font-medium text-slate-600 transition-colors hover:text-orange-600"
-          >
-            Cộng đồng
           </Link>
         </div>
 

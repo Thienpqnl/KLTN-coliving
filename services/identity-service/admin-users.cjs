@@ -139,6 +139,63 @@ async function logAdminAction(prisma, data) {
   });
 }
 
+async function createUser(prisma, identity, input = {}) {
+  const denied = requireAdmin(identity);
+  if (denied) return denied;
+
+  const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
+  const fullName = typeof input.fullName === "string" ? input.fullName.trim() : "";
+  const phone = typeof input.phone === "string" ? input.phone.trim() : "";
+  const password = input.password;
+  const role = typeof input.role === "string" ? input.role : "CUSTOMER";
+  const allowedRoles = ["CUSTOMER", "HOST", "COMMUNITY_MANAGER"];
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { status: 400, payload: { error: "Email không hợp lệ" } };
+  }
+  if (fullName.length < 2) {
+    return { status: 400, payload: { error: "Họ và tên cần ít nhất 2 ký tự" } };
+  }
+  if (typeof password !== "string" || password.length < 8 || password.length > 72) {
+    return { status: 400, payload: { error: "Mật khẩu phải có từ 8 đến 72 ký tự" } };
+  }
+  if (phone && !/^\+?[0-9]{9,15}$/.test(phone.replace(/[\s.-]/g, ""))) {
+    return { status: 400, payload: { error: "Số điện thoại không hợp lệ" } };
+  }
+  if (!allowedRoles.includes(role)) {
+    return { status: 400, payload: { error: "Vai trò không hợp lệ" } };
+  }
+
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    return { status: 409, payload: { error: "Email này đã được sử dụng" } };
+  }
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      password: await bcrypt.hash(password, 10),
+      name: fullName,
+      fullName,
+      phone: phone ? phone.replace(/[\s.-]/g, "") : null,
+      role,
+      status: "ACTIVE",
+    },
+    select: userListSelect,
+  });
+
+  await logAdminAction(prisma, {
+    adminId: identity.userId,
+    action: "create_user",
+    targetUserId: user.id,
+    oldValue: {},
+    newValue: { role: user.role, status: user.status },
+    description: `Created user account ${user.email}`,
+  });
+
+  return { status: 201, payload: { message: "Tạo người dùng thành công", user } };
+}
+
 async function updateUserAction(prisma, identity, userId, input = {}) {
   const denied = requireAdmin(identity);
   if (denied) return denied;
@@ -342,6 +399,7 @@ async function createAdmin(prisma, input = {}, expectedSecret) {
 
 module.exports = {
   createAdmin,
+  createUser,
   getAdminLogs,
   getUserById,
   getUserStats,

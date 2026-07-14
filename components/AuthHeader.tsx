@@ -10,7 +10,7 @@ export function AuthHeader({ page }: { page: 'login' | 'register' }) {
           href="/"
           className="shrink-0 font-headline text-xl font-extrabold tracking-tight text-orange-900"
         >
-          The Curated Hearth
+          NhàHợp
         </Link>
 
         <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-600 md:flex">

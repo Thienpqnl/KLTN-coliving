@@ -51,7 +51,7 @@ export default function PreferenceQuestionnaire() {
             console.log("Loaded preferences:", data);
           }
         }
-      } catch (error) {
+      } catch {
         console.log(" No existing preferences found (first time user)");
       } finally {
         setIsLoading(false);
@@ -99,15 +99,21 @@ export default function PreferenceQuestionnaire() {
       }
 
       if (!form.lifestyleArchetype) {
-        alert(" Vui lòng chọn kiểu lối sống");
+        alert("Vui lòng chọn kiểu lối sống");
+        setLoading(false);
+        return;
+      }
+
+      if (Number(form.budgetMinVnd) > Number(form.budgetMaxVnd)) {
+        alert("Ngân sách tối đa phải lớn hơn hoặc bằng ngân sách tối thiểu");
         setLoading(false);
         return;
       }
 
       // Convert to proper types
       const data = {
-        budgetMinVnd: form.budgetMinVnd ? parseInt(form.budgetMinVnd) : null,
-        budgetMaxVnd: form.budgetMaxVnd ? parseInt(form.budgetMaxVnd) : null,
+        budgetMinVnd: form.budgetMinVnd ? Number.parseInt(form.budgetMinVnd, 10) : null,
+        budgetMaxVnd: form.budgetMaxVnd ? Number.parseInt(form.budgetMaxVnd, 10) : null,
         preferredDistrict: form.preferredDistrict || null,
         lifestyleArchetype: form.lifestyleArchetype || null,
         priorityCleanliness: form.priorityCleanliness,
@@ -126,7 +132,10 @@ export default function PreferenceQuestionnaire() {
         let errorMsg = "Lỗi khi lưu preferences";
         try {
           const error = await response.json();
-          errorMsg = error.error || error.message || errorMsg;
+          const validationMessage = error.errors
+            ? Object.values(error.errors as Record<string, string[]>).flat()[0]
+            : null;
+          errorMsg = validationMessage || error.error || error.message || errorMsg;
         } catch {
           errorMsg = `Lỗi server: ${response.status} ${response.statusText}`;
         }
@@ -139,7 +148,7 @@ export default function PreferenceQuestionnaire() {
     } catch (error: unknown) {
       if (!(error instanceof Error)) throw error;
       alert(`❌ Lỗi: ${error.message}`);
-      console.error(error);
+      console.warn("Không thể lưu sở thích:", error.message);
     } finally {
       setLoading(false);
     }

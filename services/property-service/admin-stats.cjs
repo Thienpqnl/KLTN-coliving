@@ -28,6 +28,8 @@ async function getRoomStats(prisma, identity, rentalStats = {}) {
       revenue: {
         total: Number(rentalStats.totalRevenue || 0),
         completedBookings: Number(rentalStats.completedBookings || 0),
+        projectedMonthly: Number(rentalStats.projectedMonthlyRevenue || 0),
+        activeContracts: Number(rentalStats.activeContracts || 0),
       },
     },
   };

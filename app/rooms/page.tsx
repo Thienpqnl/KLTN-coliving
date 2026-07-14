@@ -226,8 +226,17 @@ export default function RoomsPage() {
   const [preferredSleepHabit, setPreferredSleepHabit] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [queryReady, setQueryReady] = useState(false);
   const limit = 12;
   const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setLocation(params.get('location') || '');
+    setMaxPrice(params.get('maxPrice') || '');
+    setRequiredSlots(params.get('minAvailableSlots') || '');
+    setQueryReady(true);
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -249,6 +258,8 @@ export default function RoomsPage() {
   ]);
 
   useEffect(() => {
+    if (!queryReady) return;
+
     const fetchRooms = async () => {
       try {
         setLoading(true);
@@ -308,6 +319,7 @@ export default function RoomsPage() {
     noiseTolerance,
     guestPolicy,
     preferredSleepHabit,
+    queryReady,
   ]);
 
   const useCurrentLocation = () => {

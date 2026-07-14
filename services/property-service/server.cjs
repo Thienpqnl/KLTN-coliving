@@ -23,7 +23,13 @@ const {
 } = require("./amenities.cjs");
 const { getRoomPublicStats, getRoomStats } = require("./admin-stats.cjs");
 const { getRoomReviewStats } = require("./community-client.cjs");
-const { findAvailableRooms, findRoomById, findRoomsByIds, listRooms } = require("./rooms.cjs");
+const {
+  applyRentalCapacity,
+  findAvailableRooms,
+  findRoomById,
+  findRoomsByIds,
+  listRooms,
+} = require("./rooms.cjs");
 const {
   createRoom,
   deleteRoom,
@@ -361,7 +367,12 @@ app.get("/v1/rooms/:id", async (request, response) => {
       });
     }
 
-    return response.json(room);
+    const rentalCapacity = await getRoomRentalStats(request.params.id).catch((error) => {
+      console.warn("[property-service] Rental capacity unavailable for room detail", error.message);
+      return null;
+    });
+
+    return response.json(applyRentalCapacity(room, rentalCapacity));
   } catch (error) {
     console.error("[property-service] GET /v1/rooms/:id failed", error);
     return response.status(500).json({

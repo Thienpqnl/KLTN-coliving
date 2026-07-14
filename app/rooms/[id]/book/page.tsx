@@ -155,7 +155,9 @@ export default async function RoomBookingPage({
 
   const maxOccupants = Math.max(1, Number(room.maxOccupants ?? 1));
   const currentOccupants = Math.max(0, Number(room.currentOccupants ?? 0));
-  const isRoomFull = room.status === 'OCCUPIED' || currentOccupants >= maxOccupants;
+  const confirmedReservations = Math.max(0, Number(room.confirmedReservations ?? 0));
+  const isRoomFull = room.status === 'OCCUPIED' ||
+    currentOccupants + confirmedReservations >= maxOccupants;
 
   return (
     <>

@@ -29,8 +29,8 @@ function toJsonResponse<T>(value: T): T {
   );
 }
 
-function nullableNumber(value: number | "" | undefined) {
-  return value === "" || value === undefined ? null : value;
+function nullableNumber(value: number | "" | null | undefined) {
+  return value === "" || value === null || value === undefined ? null : value;
 }
 
 async function findPreferenceByUserId(userId: string) {

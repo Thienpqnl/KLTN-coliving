@@ -78,8 +78,9 @@ function getOccupancyInfo(room: RoomDetail): OccupancyInfo | null {
 
   const current = Math.min(maxOccupants, Math.max(0, currentOccupants));
   const reserved = Math.max(0, confirmedReservations);
-  const available = Math.max(0, maxOccupants - current);
-  const percentage = Math.round((current / maxOccupants) * 100);
+  const used = Math.min(maxOccupants, current + reserved);
+  const available = Math.max(0, maxOccupants - used);
+  const percentage = Math.round((used / maxOccupants) * 100);
   const tone = available === 0 ? 'full' : available <= 1 ? 'limited' : 'available';
 
   return {

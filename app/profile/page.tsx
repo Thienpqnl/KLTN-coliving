@@ -10,6 +10,7 @@ import {
   Camera,
   CreditCard,
   Home,
+  Heart,
   KeyRound,
   Loader2,
   LogOut,
@@ -19,6 +20,7 @@ import {
   Phone,
   Save,
   ShieldCheck,
+  Sparkles,
   Trash2,
   UserRound,
   X,
@@ -82,6 +84,18 @@ interface UserOccupancy {
   }[];
 }
 
+interface UserPreferences {
+  id?: string;
+  budgetMinVnd?: string | number | null;
+  budgetMaxVnd?: string | number | null;
+  preferredDistrict?: string | null;
+  lifestyleArchetype?: string | null;
+  priorityCleanliness?: number | null;
+  prioritySocialEnvironment?: number | null;
+  acceptSmokingRoommates?: boolean | null;
+  acceptPets?: boolean | null;
+}
+
 const bookingStatusLabels: Record<Booking['status'], string> = {
   PENDING: 'Đang chờ xác nhận',
   CONFIRMED: 'Đã xác nhận',
@@ -102,17 +116,6 @@ function canCancelBooking(booking: Booking) {
   return ['DRAFT', 'PENDING_HOST_SIGNATURE', 'PENDING_RENTER_SIGNATURE', 'CANCELLED']
     .includes(booking.contract.status);
 }
-
-type UserPreferences = {
-  budgetMinVnd?: number | string | null;
-  budgetMaxVnd?: number | string | null;
-  preferredDistrict?: string | null;
-  lifestyleArchetype?: string | null;
-  priorityCleanliness?: number | null;
-  prioritySocialEnvironment?: number | null;
-  acceptSmokingRoommates?: boolean | null;
-  acceptPets?: boolean | null;
-};
 
 type FormData = Pick<UserProfile, 'fullName' | 'phone' | 'gender' | 'address'> & {
   birthDate: string;
@@ -170,8 +173,8 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [occupancy, setOccupancy] = useState<UserOccupancy | null>(null);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -210,7 +213,7 @@ export default function ProfilePage() {
       setError('');
 
       try {
-        const [profileRes, bookingsRes, preferencesRes, occupancyRes] = await Promise.all([
+        const [profileRes, bookingsRes, occupancyRes, preferencesRes] = await Promise.all([
           fetch('/api/user/profile', {
             credentials: 'include',
             signal: controller.signal,
@@ -219,11 +222,11 @@ export default function ProfilePage() {
             credentials: 'include',
             signal: controller.signal,
           }),
-          fetch('/api/preferences', {
+          fetch('/api/user/occupancy', {
             credentials: 'include',
             signal: controller.signal,
           }),
-          fetch('/api/user/occupancy', {
+          fetch('/api/preferences', {
             credentials: 'include',
             signal: controller.signal,
           }),
@@ -247,14 +250,14 @@ export default function ProfilePage() {
           setBookings(bookingsData);
         }
 
-        if (preferencesRes.ok) {
-          const preferencesData = await preferencesRes.json();
-          setPreferences(preferencesData);
-        }
-
         if (occupancyRes.ok) {
           const occupancyData = await occupancyRes.json();
           setOccupancy(occupancyData);
+        }
+
+        if (preferencesRes.ok) {
+          const preferencesData = (await preferencesRes.json()) as UserPreferences;
+          setPreferences(preferencesData.id ? preferencesData : null);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -756,7 +759,7 @@ export default function ProfilePage() {
                   href="#preferences"
                   className="flex items-center gap-3 rounded-md px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
                 >
-                  <span className="material-symbols-outlined text-base">favorite</span>
+                  <Heart className="h-4 w-4" />
                   Sở thích phòng
                 </a>
                 <a
@@ -1212,112 +1215,85 @@ export default function ProfilePage() {
 
               <section
                 id="preferences"
-                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+                className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
               >
-                <div className="mb-5">
-                  <p className="text-xs font-bold uppercase tracking-widest text-purple-700">
-                    Sở thích
-                  </p>
-                  <h2 className="mt-1 text-2xl font-bold text-slate-950">Sở thích phòng ở</h2>
+                <div className="mb-6 flex items-start justify-between gap-6">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
+                      Cá nhân hóa gợi ý
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold text-slate-950">Sở thích phòng ở</h2>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Những tiêu chí hệ thống đang sử dụng để tìm phòng phù hợp với bạn.
+                    </p>
+                  </div>
+                  <Sparkles className="h-6 w-6 shrink-0 text-orange-600" />
                 </div>
 
-                <p className="text-sm text-slate-600 mb-6">
-                  Thông tin này giúp chúng tôi gợi ý những phòng phù hợp nhất với bạn.
-                </p>
-
                 {preferences ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 p-6 border border-blue-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-blue-700 mb-2">Ngân sách</p>
-                        <p className="text-lg font-bold text-slate-900">
-                          {preferences.budgetMinVnd && preferences.budgetMaxVnd 
-                            ? `${Number(preferences.budgetMinVnd).toLocaleString('vi-VN')} - ${Number(preferences.budgetMaxVnd).toLocaleString('vi-VN')} VND`
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-lg border border-orange-100 bg-orange-50 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-orange-700">Ngân sách mỗi tháng</p>
+                        <p className="mt-2 text-lg font-bold text-slate-950">
+                          {preferences.budgetMinVnd && preferences.budgetMaxVnd
+                            ? `${Number(preferences.budgetMinVnd).toLocaleString('vi-VN')} - ${Number(preferences.budgetMaxVnd).toLocaleString('vi-VN')} đ`
                             : 'Chưa cập nhật'}
                         </p>
-                        <p className="text-xs text-blue-600 mt-2">mỗi tháng</p>
                       </div>
-
-                      <div className="rounded-lg bg-gradient-to-br from-green-50 to-green-100 p-6 border border-green-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-green-700 mb-2">Khu vực ưa thích</p>
-                        <p className="text-lg font-bold text-slate-900">{preferences.preferredDistrict || 'Không ưu tiên'}</p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 p-6 border border-purple-200">
-                      <p className="text-xs font-bold uppercase tracking-widest text-purple-700 mb-2">Lối sống</p>
-                      <p className="text-lg font-bold text-slate-900">{preferences.lifestyleArchetype || 'Chưa chọn'}</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 p-6 border border-amber-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-amber-700 mb-3">Độ sạch sẽ</p>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-amber-500 to-amber-600" style={{width: `${(preferences.priorityCleanliness || 0) * 20}%`}}></div>
-                            </div>
-                          </div>
-                          <span className="text-lg font-bold text-slate-900">{preferences.priorityCleanliness || 0}/5</span>
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg bg-gradient-to-br from-pink-50 to-pink-100 p-6 border border-pink-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-pink-700 mb-3">Môi trường xã hội</p>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <div className="h-2 bg-pink-200 rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-pink-500 to-pink-600" style={{width: `${(preferences.prioritySocialEnvironment || 0) * 20}%`}}></div>
-                            </div>
-                          </div>
-                          <span className="text-lg font-bold text-slate-900">{preferences.prioritySocialEnvironment || 0}/5</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 p-6 border border-slate-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-2">Roommate hút thuốc</p>
-                        <p className="text-base font-semibold text-slate-900">
-                          {preferences.acceptSmokingRoommates ? 'Chấp nhận' : 'Không chấp nhận'}
+                      <div className="rounded-lg border border-blue-100 bg-blue-50 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Khu vực mong muốn</p>
+                        <p className="mt-2 text-lg font-bold text-slate-950">
+                          {preferences.preferredDistrict || 'Không ưu tiên khu vực'}
                         </p>
                       </div>
+                    </div>
 
-                      <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 p-6 border border-slate-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-2">Roommate có thú cưng</p>
-                        <p className="text-base font-semibold text-slate-900">
-                          {preferences.acceptPets ? 'Chấp nhận' : 'Không chấp nhận'}
-                        </p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="rounded-lg border border-slate-200 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Phong cách sống</p>
+                        <p className="mt-2 font-bold text-slate-950">{preferences.lifestyleArchetype || 'Chưa chọn'}</p>
                       </div>
+                      <div className="rounded-lg border border-slate-200 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Ưu tiên sạch sẽ</p>
+                        <p className="mt-2 text-xl font-bold text-emerald-700">{preferences.priorityCleanliness || 3}/5</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Mức độ giao lưu</p>
+                        <p className="mt-2 text-xl font-bold text-blue-700">{preferences.prioritySocialEnvironment || 3}/5</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                      <span className={`rounded-full px-3 py-1.5 ${preferences.acceptSmokingRoommates ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                        {preferences.acceptSmokingRoommates ? 'Chấp nhận người hút thuốc' : 'Không ở cùng người hút thuốc'}
+                      </span>
+                      <span className={`rounded-full px-3 py-1.5 ${preferences.acceptPets ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {preferences.acceptPets ? 'Chấp nhận thú cưng' : 'Không ưu tiên thú cưng'}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-3 border-t border-slate-200 pt-5">
+                      <Link href="/preferences" className="rounded-full bg-orange-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-700">
+                        Cập nhật sở thích
+                      </Link>
+                      <Link href="/rooms/recommendations" className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50">
+                        Xem phòng phù hợp
+                      </Link>
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-                    <p className="text-slate-600 mb-4">Chưa cập nhật sở thích của bạn</p>
-                    <Link
-                      href="/preferences"
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-purple-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-purple-700"
-                    >
-                      Cập nhật ngay
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+                    <Heart className="mx-auto h-7 w-7 text-orange-600" />
+                    <h3 className="mt-3 font-bold text-slate-950">Bạn chưa thiết lập sở thích phòng ở</h3>
+                    <p className="mt-1 text-sm text-slate-500">Hoàn thành vài câu hỏi để nhận danh sách phòng phù hợp hơn.</p>
+                    <Link href="/preferences" className="mt-5 inline-flex rounded-full bg-orange-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-700">
+                      Thiết lập sở thích
                     </Link>
                   </div>
                 )}
-
-                <div className="mt-6 flex gap-3">
-                  <Link
-                    href="/preferences"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-purple-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-purple-700"
-                  >
-                    Cập nhật sở thích
-                  </Link>
-                  <Link
-                    href="/rooms/recommendations"
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-purple-300 px-5 py-2.5 text-sm font-bold text-purple-700 transition-colors hover:bg-purple-50"
-                  >
-                    Xem gợi ý
-                  </Link>
-                </div>
               </section>
+
 
               <section
                 id="security"

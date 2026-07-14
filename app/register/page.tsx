@@ -152,7 +152,7 @@ export default function RegisterPage() {
 
           <div className="relative z-10 w-full max-w-2xl">
             <span className="mb-7 inline-block rounded-full bg-white/95 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-orange-700 shadow-sm">
-              The Curated Hearth
+              NhàHợp
             </span>
             <h1 className="max-w-xl font-headline text-5xl font-extrabold leading-[0.95] text-white drop-shadow-lg lg:text-7xl">
               Tìm không gian
@@ -315,7 +315,7 @@ export default function RegisterPage() {
           </div>
 
           <footer className="mt-12 text-center text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-            © 2026 The Curated Hearth. Bảo lưu mọi quyền.
+            © 2026 NhàHợp. Bảo lưu mọi quyền.
           </footer>
         </section>
       </main>

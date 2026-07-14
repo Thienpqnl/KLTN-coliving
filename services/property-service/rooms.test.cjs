@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  applyRentalCapacity,
   distanceInKilometers,
   findRoomById,
   listRooms,
@@ -29,7 +30,19 @@ test("normalizeRoom preserves the public room contract", () => {
   assert.equal(room.area, "25 m2");
   assert.deepEqual(room.image, ["first.jpg", "second.jpg"]);
   assert.equal(room.confirmedReservations, 1);
-  assert.equal(room.availableOccupantSlots, 2);
+  assert.equal(room.availableOccupantSlots, 1);
+});
+
+test("applyRentalCapacity subtracts confirmed reservations from public room slots", () => {
+  const room = applyRentalCapacity(
+    { id: "room-1", currentOccupants: 0, maxOccupants: 3 },
+    { currentOccupants: 1, confirmedReservations: 1, maxOccupants: 3 },
+  );
+
+  assert.equal(room.currentOccupants, 1);
+  assert.equal(room.confirmedReservations, 1);
+  assert.equal(room.usedOccupantSlots, 2);
+  assert.equal(room.availableOccupantSlots, 1);
 });
 
 test("listRooms applies pagination and returns the gateway payload", async () => {

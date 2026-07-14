@@ -33,8 +33,18 @@ function normalizeRoom(room, rentalCapacity) {
         booking.status === "CONFIRMED" &&
         new Date(booking.endDate).getTime() > now,
     ).length ?? 0);
-  const currentOccupants = Math.max(0, room.currentOccupants ?? 0);
-  const maxOccupants = Math.max(1, room.maxOccupants ?? 1);
+  const currentOccupants = Math.max(
+    0,
+    rentalCapacity?.currentOccupants ?? room.currentOccupants ?? 0,
+  );
+  const maxOccupants = Math.max(
+    1,
+    rentalCapacity?.maxOccupants ?? room.maxOccupants ?? 1,
+  );
+  const usedOccupantSlots = Math.min(
+    maxOccupants,
+    currentOccupants + confirmedReservations,
+  );
 
   return {
     ...room,
@@ -44,8 +54,40 @@ function normalizeRoom(room, rentalCapacity) {
     price: priceValue ?? 0,
     area: areaText || (areaValue == null ? "" : `${areaValue} m2`),
     image: imageUrls,
+    currentOccupants,
+    maxOccupants,
     confirmedReservations,
-    availableOccupantSlots: Math.max(0, maxOccupants - currentOccupants),
+    usedOccupantSlots,
+    availableOccupantSlots: Math.max(0, maxOccupants - usedOccupantSlots),
+  };
+}
+
+function applyRentalCapacity(room, rentalCapacity) {
+  if (!room || !rentalCapacity) return room;
+  const currentOccupants = Math.max(
+    0,
+    Number(rentalCapacity.currentOccupants ?? room.currentOccupants ?? 0),
+  );
+  const confirmedReservations = Math.max(
+    0,
+    Number(rentalCapacity.confirmedReservations ?? 0),
+  );
+  const maxOccupants = Math.max(
+    1,
+    Number(rentalCapacity.maxOccupants ?? room.maxOccupants ?? 1),
+  );
+  const usedOccupantSlots = Math.min(
+    maxOccupants,
+    currentOccupants + confirmedReservations,
+  );
+
+  return {
+    ...room,
+    currentOccupants,
+    confirmedReservations,
+    maxOccupants,
+    usedOccupantSlots,
+    availableOccupantSlots: Math.max(0, maxOccupants - usedOccupantSlots),
   };
 }
 
@@ -268,6 +310,7 @@ async function findRoomsByIds(prisma, ids = [], clients = identityClient) {
 }
 
 module.exports = {
+  applyRentalCapacity,
   findAvailableRooms,
   findRoomById,
   findRoomsByIds,

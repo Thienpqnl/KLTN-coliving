@@ -1,6 +1,38 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { cancelBooking, createBooking, hostBookingStats, updateBooking } = require("./bookings.cjs");
+const {
+  adminRentalStats,
+  cancelBooking,
+  createBooking,
+  hostBookingStats,
+  roomRentalStats,
+  updateBooking,
+} = require("./bookings.cjs");
+
+test("adminRentalStats separates paid revenue from active contract projections", async () => {
+  const prisma = {
+    payment: {
+      aggregate: async () => ({ _sum: { amount: 1800000 } }),
+    },
+    booking: {
+      count: async () => 6,
+    },
+    contract: {
+      findMany: async () => [
+        { monthlyRent: 2300000 },
+        { monthlyRent: 1350000 },
+      ],
+    },
+  };
+
+  const result = await adminRentalStats(prisma);
+
+  assert.equal(result.status, 200);
+  assert.equal(result.payload.totalRevenue, 1800000);
+  assert.equal(result.payload.completedBookings, 6);
+  assert.equal(result.payload.projectedMonthlyRevenue, 3650000);
+  assert.equal(result.payload.activeContracts, 2);
+});
 
 test("createBooking rejects full rooms before writing a booking", async () => {
   let createCalled = false;
@@ -202,4 +234,33 @@ test("hostBookingStats returns host booking counters and projected revenue", asy
   assert.equal(result.payload.pending, 2);
   assert.equal(result.payload.projectedRevenue, 3500000);
   assert.equal(result.payload.occupancyPercentage, 25);
+});
+
+test("roomRentalStats exposes confirmed reservations for room detail composition", async () => {
+  const prisma = {
+    booking: {
+      findMany: async () => [
+        { status: "CONFIRMED", invoice: null },
+        { status: "PENDING", invoice: null },
+      ],
+      count: async () => 1,
+    },
+    occupancy: { count: async () => 1 },
+    rentalRoomSnapshot: {
+      findUnique: async () => ({
+        roomId: "room-1",
+        ownerId: "host-1",
+        status: "AVAILABLE",
+        currentOccupants: 1,
+        maxOccupants: 3,
+      }),
+    },
+  };
+
+  const result = await roomRentalStats(prisma, "room-1");
+
+  assert.equal(result.status, 200);
+  assert.equal(result.payload.currentOccupants, 1);
+  assert.equal(result.payload.confirmedReservations, 1);
+  assert.equal(result.payload.availablePlaces, 1);
 });

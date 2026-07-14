@@ -484,10 +484,13 @@ async function hostBookingStats(prisma, identity) {
 }
 
 async function roomRentalStats(prisma, roomId) {
-  const bookings = await prisma.booking.findMany({
-    where: { roomId },
-    include: { invoice: true },
-  });
+  const [bookings, capacity] = await Promise.all([
+    prisma.booking.findMany({
+      where: { roomId },
+      include: { invoice: true },
+    }),
+    getRoomCapacity(prisma, roomId),
+  ]);
   const totalBookings = bookings.length;
   const confirmedBookings = bookings.filter((booking) => booking.status === "CONFIRMED").length;
   const pendingBookings = bookings.filter((booking) => booking.status === "PENDING").length;
@@ -497,23 +500,43 @@ async function roomRentalStats(prisma, roomId) {
   );
   return {
     status: 200,
-    payload: { totalBookings, confirmedBookings, pendingBookings, totalRevenue },
+    payload: {
+      totalBookings,
+      confirmedBookings,
+      pendingBookings,
+      totalRevenue,
+      currentOccupants: capacity?.currentOccupants ?? 0,
+      confirmedReservations: capacity?.confirmedReservations ?? 0,
+      maxOccupants: capacity?.maxOccupants ?? 0,
+      availablePlaces: capacity?.availablePlaces ?? 0,
+      isFull: capacity?.isFull ?? false,
+    },
   };
 }
 
 async function adminRentalStats(prisma) {
-  const completed = await prisma.booking.findMany({
-    where: { status: "COMPLETED" },
-    include: { invoice: true },
-  });
+  const [paidPayments, completedBookings, activeContracts] = await Promise.all([
+    prisma.payment.aggregate({
+      where: { status: "PAID" },
+      _sum: { amount: true },
+    }),
+    prisma.booking.count({ where: { status: "COMPLETED" } }),
+    prisma.contract.findMany({
+      where: { status: "ACTIVE" },
+      select: { monthlyRent: true },
+    }),
+  ]);
+
   return {
     status: 200,
     payload: {
-      totalRevenue: completed.reduce(
-        (sum, booking) => sum + Number(booking.invoice?.totalAmount || 0),
+      totalRevenue: Number(paidPayments._sum.amount || 0),
+      completedBookings,
+      projectedMonthlyRevenue: activeContracts.reduce(
+        (sum, contract) => sum + Number(contract.monthlyRent || 0),
         0,
       ),
-      completedBookings: completed.length,
+      activeContracts: activeContracts.length,
     },
   };
 }
