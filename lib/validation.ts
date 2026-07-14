@@ -42,6 +42,17 @@ export const roomFilterSchema = z.object({
   maxPrice: z.number().optional(),
   search: z.string().optional(),
   ownerId: z.string().optional(),
+  location: z.string().optional(),
+  originLat: z.number().min(-90).max(90).optional(),
+  originLng: z.number().min(-180).max(180).optional(),
+  maxDistanceKm: z.number().positive().max(100).optional(),
+  minAvailableSlots: z.number().int().min(1).max(10).optional(),
+  allowPets: z.boolean().optional(),
+  allowSmoking: z.boolean().optional(),
+  cleanlinessRequired: z.enum(["low", "medium", "high"]).optional(),
+  noiseTolerance: z.enum(["quiet", "moderate", "active"]).optional(),
+  guestPolicy: z.enum(["no_guests", "occasionally", "frequently"]).optional(),
+  preferredSleepHabit: z.enum(["early", "normal", "late"]).optional(),
 });
 
 // Booking Schemas

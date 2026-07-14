@@ -1,6 +1,11 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { findRoomById, listRooms, normalizeRoom } = require("./rooms.cjs");
+const {
+  distanceInKilometers,
+  findRoomById,
+  listRooms,
+  normalizeRoom,
+} = require("./rooms.cjs");
 const clients = { userMap: async () => new Map() };
 
 test("normalizeRoom preserves the public room contract", () => {
@@ -64,6 +69,57 @@ test("listRooms applies pagination and returns the gateway payload", async () =>
   assert.equal(result.limit, 12);
   assert.equal(result.total, 1);
   assert.equal(result.rooms[0].price, 3000000);
+});
+
+test("distanceInKilometers calculates a stable geographic distance", () => {
+  const distance = distanceInKilometers(10.7769, 106.7009, 10.802, 106.738);
+  assert.ok(distance > 4 && distance < 6);
+});
+
+test("listRooms filters by available slots and travel radius before pagination", async () => {
+  const rows = [
+    {
+      id: "near-open",
+      latitude: 10.78,
+      longitude: 106.71,
+      currentOccupants: 1,
+      maxOccupants: 3,
+      images: [],
+    },
+    {
+      id: "near-full",
+      latitude: 10.781,
+      longitude: 106.711,
+      currentOccupants: 2,
+      maxOccupants: 2,
+      images: [],
+    },
+    {
+      id: "far-open",
+      latitude: 11.2,
+      longitude: 107.2,
+      currentOccupants: 0,
+      maxOccupants: 4,
+      images: [],
+    },
+  ];
+  const prisma = {
+    room: { findMany: async () => rows },
+  };
+
+  const result = await listRooms(prisma, {
+    page: "1",
+    limit: "12",
+    originLat: "10.7769",
+    originLng: "106.7009",
+    maxDistanceKm: "5",
+    minAvailableSlots: "2",
+    sortBy: "distance",
+  }, clients);
+
+  assert.equal(result.total, 1);
+  assert.equal(result.rooms[0].id, "near-open");
+  assert.ok(result.rooms[0].distanceKm < 5);
 });
 
 test("findRoomById hides non-public rooms except from owner or admin", async () => {

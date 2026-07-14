@@ -60,6 +60,31 @@ function optionalNumber(value) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function optionalBoolean(value) {
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return undefined;
+}
+
+function distanceInKilometers(originLat, originLng, destinationLat, destinationLng) {
+  if (![originLat, originLng, destinationLat, destinationLng].every(Number.isFinite)) {
+    return null;
+  }
+
+  const toRadians = (degrees) => degrees * (Math.PI / 180);
+  const earthRadiusKm = 6371;
+  const latitudeDelta = toRadians(destinationLat - originLat);
+  const longitudeDelta = toRadians(destinationLng - originLng);
+  const startLatitude = toRadians(originLat);
+  const endLatitude = toRadians(destinationLat);
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(startLatitude) * Math.cos(endLatitude) *
+    Math.sin(longitudeDelta / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
 async function listRooms(prisma, query, clients = identityClient) {
   const page = Math.max(1, Math.trunc(optionalNumber(query.page) || 1));
   const limit = Math.min(
@@ -69,27 +94,68 @@ async function listRooms(prisma, query, clients = identityClient) {
   const minPrice = optionalNumber(query.minPrice);
   const maxPrice = optionalNumber(query.maxPrice);
   const search = String(query.search || "").trim();
+  const location = String(query.location || "").trim();
   const neighborhoods = queryArray(query.neighborhoods);
   const amenities = queryArray(query.amenities);
   const roomTypes = queryArray(query.roomTypes);
+  const originLat = optionalNumber(query.originLat);
+  const originLng = optionalNumber(query.originLng);
+  const maxDistanceKm = optionalNumber(query.maxDistanceKm);
+  const minAvailableSlots = Math.max(0, Math.trunc(optionalNumber(query.minAvailableSlots) || 0));
+  const allowPets = optionalBoolean(query.allowPets);
+  const allowSmoking = optionalBoolean(query.allowSmoking);
+  const cleanlinessRequired = String(query.cleanlinessRequired || "").trim();
+  const noiseTolerance = String(query.noiseTolerance || "").trim();
+  const guestPolicy = String(query.guestPolicy || "").trim();
+  const preferredSleepHabit = String(query.preferredSleepHabit || "").trim();
+  const hasDistanceFilter =
+    originLat !== undefined && originLng !== undefined && maxDistanceKm !== undefined;
+  const needsPostFilter = hasDistanceFilter || minAvailableSlots > 0;
 
-  const where = {
-    status: "AVAILABLE",
-    ...(minPrice !== undefined && { priceValue: { gte: minPrice } }),
-    ...(maxPrice !== undefined && { priceValue: { lte: maxPrice } }),
-    ...(search && {
+  const andConditions = [];
+  if (search) {
+    andConditions.push({
       OR: [
         { title: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
         { address: { contains: search, mode: "insensitive" } },
       ],
-    }),
-    ...(neighborhoods.length > 0 && {
+    });
+  }
+  if (location) {
+    andConditions.push({
+      OR: [
+        { address: { contains: location, mode: "insensitive" } },
+        { city: { contains: location, mode: "insensitive" } },
+        { district: { contains: location, mode: "insensitive" } },
+        { ward: { contains: location, mode: "insensitive" } },
+      ],
+    });
+  }
+  if (neighborhoods.length > 0) {
+    andConditions.push({
       OR: neighborhoods.flatMap((neighborhood) => [
         { district: { contains: neighborhood, mode: "insensitive" } },
         { address: { contains: neighborhood, mode: "insensitive" } },
       ]),
+    });
+  }
+
+  const where = {
+    status: "AVAILABLE",
+    ...(minPrice !== undefined && { priceValue: { gte: minPrice } }),
+    ...(maxPrice !== undefined && { priceValue: { lte: maxPrice } }),
+    ...(allowPets !== undefined && { allowPets }),
+    ...(allowSmoking !== undefined && { allowSmoking }),
+    ...(cleanlinessRequired && { cleanlinessRequired }),
+    ...(noiseTolerance && { noiseTolerance }),
+    ...(guestPolicy && { guestPolicy }),
+    ...(preferredSleepHabit && { preferredSleepHabit }),
+    ...(hasDistanceFilter && {
+      latitude: { not: null },
+      longitude: { not: null },
     }),
+    ...(andConditions.length > 0 && { AND: andConditions }),
     ...(amenities.length > 0 && {
       amenities: {
         some: {
@@ -106,6 +172,37 @@ async function listRooms(prisma, query, clients = identityClient) {
   if (query.sortBy === "price-low") orderBy = { priceValue: "asc" };
   if (query.sortBy === "price-high") orderBy = { priceValue: "desc" };
   if (query.sortBy === "area-large") orderBy = { areaValue: "desc" };
+
+  if (needsPostFilter) {
+    const candidates = await prisma.room.findMany({
+      where,
+      include: roomListInclude,
+      orderBy,
+    });
+    const filtered = candidates
+      .map((room) => {
+        const normalized = normalizeRoom(room);
+        const distanceKm = hasDistanceFilter
+          ? distanceInKilometers(originLat, originLng, room.latitude, room.longitude)
+          : null;
+        return { ...normalized, distanceKm };
+      })
+      .filter((room) => {
+        if (minAvailableSlots > 0 && room.availableOccupantSlots < minAvailableSlots) {
+          return false;
+        }
+        return !hasDistanceFilter || (room.distanceKm !== null && room.distanceKm <= maxDistanceKm);
+      });
+
+    if (query.sortBy === "distance" && hasDistanceFilter) {
+      filtered.sort((left, right) => left.distanceKm - right.distanceKm);
+    }
+
+    const total = filtered.length;
+    const pagedRooms = filtered.slice((page - 1) * limit, page * limit);
+    const hydrated = await withOwners(pagedRooms, clients);
+    return { rooms: hydrated, total, page, limit };
+  }
 
   const [total, rooms] = await prisma.$transaction([
     prisma.room.count({ where }),
@@ -176,5 +273,6 @@ module.exports = {
   findRoomsByIds,
   listRooms,
   normalizeRoom,
+  distanceInKilometers,
   roomDetailInclude,
 };

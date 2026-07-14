@@ -32,12 +32,34 @@ export async function GET(request: NextRequest) {
     const amenities = searchParams.getAll("amenities");
     const roomTypes = searchParams.getAll("roomTypes");
     const sortBy = searchParams.get("sortBy");
+    const location = searchParams.get("location");
+    const originLat = searchParams.get("originLat");
+    const originLng = searchParams.get("originLng");
+    const maxDistanceKm = searchParams.get("maxDistanceKm");
+    const minAvailableSlots = searchParams.get("minAvailableSlots");
+    const allowPets = searchParams.get("allowPets");
+    const allowSmoking = searchParams.get("allowSmoking");
+    const cleanlinessRequired = searchParams.get("cleanlinessRequired");
+    const noiseTolerance = searchParams.get("noiseTolerance");
+    const guestPolicy = searchParams.get("guestPolicy");
+    const preferredSleepHabit = searchParams.get("preferredSleepHabit");
 
     const filters = roomFilterSchema.parse({
       status: status || undefined,
       minPrice: minPrice ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
       search: search || undefined,
+      location: location || undefined,
+      originLat: originLat ? parseFloat(originLat) : undefined,
+      originLng: originLng ? parseFloat(originLng) : undefined,
+      maxDistanceKm: maxDistanceKm ? parseFloat(maxDistanceKm) : undefined,
+      minAvailableSlots: minAvailableSlots ? parseInt(minAvailableSlots, 10) : undefined,
+      allowPets: allowPets === null ? undefined : allowPets === "true",
+      allowSmoking: allowSmoking === null ? undefined : allowSmoking === "true",
+      cleanlinessRequired: cleanlinessRequired || undefined,
+      noiseTolerance: noiseTolerance || undefined,
+      guestPolicy: guestPolicy || undefined,
+      preferredSleepHabit: preferredSleepHabit || undefined,
     });
 
     const propertyServiceUrl = getServiceUrl("PROPERTY");
