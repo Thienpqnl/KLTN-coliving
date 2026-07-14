@@ -1,12 +1,71 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  createUser,
   getAdminLogs,
   getUserById,
   getUserStats,
   listUsers,
   updateUserAction,
 } = require("./admin-users.cjs");
+
+test("createUser creates a non-admin account and writes an admin log", async () => {
+  const calls = [];
+  const prisma = {
+    user: {
+      findUnique: async () => null,
+      create: async ({ data }) => {
+        calls.push({ kind: "user.create", data });
+        return {
+          id: "user-1",
+          email: data.email,
+          name: data.name,
+          fullName: data.fullName,
+          phone: data.phone,
+          role: data.role,
+          status: data.status,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      },
+    },
+    adminLog: {
+      create: async ({ data }) => calls.push({ kind: "adminLog.create", data }),
+    },
+  };
+
+  const result = await createUser(
+    prisma,
+    { userId: "admin-1", role: "ADMIN" },
+    {
+      email: "New.User@example.com",
+      password: "password123",
+      fullName: "Nguyễn Văn Mới",
+      phone: "090 123 4567",
+      role: "CUSTOMER",
+    },
+  );
+
+  assert.equal(result.status, 201);
+  assert.equal(calls[0].data.email, "new.user@example.com");
+  assert.notEqual(calls[0].data.password, "password123");
+  assert.equal(calls[1].data.action, "create_user");
+});
+
+test("createUser rejects creating an admin through user management", async () => {
+  const result = await createUser(
+    {},
+    { userId: "admin-1", role: "ADMIN" },
+    {
+      email: "other-admin@example.com",
+      password: "password123",
+      fullName: "Other Admin",
+      role: "ADMIN",
+    },
+  );
+
+  assert.equal(result.status, 400);
+});
 
 test("listUsers is admin-only and returns pagination", async () => {
   const denied = await listUsers({}, { userId: "user-1", role: "HOST" });

@@ -1,3 +1,4 @@
+
 'use client';
 
 export function Footer() {
@@ -5,7 +6,7 @@ export function Footer() {
     <footer className="bg-slate-50 border-t border-outline-variant/10 pt-16 pb-8">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-12 max-w-7xl mx-auto">
         <div className="col-span-1 md:col-span-1">
-          <span className="text-lg font-black text-slate-900 font-headline mb-6 block">The Curated Hearth</span>
+          <span className="text-lg font-black text-slate-900 font-headline mb-6 block">NhàHợp</span>
           <p className="text-slate-500 text-sm leading-relaxed font-body">Nâng tầm nghệ thuật sống cộng đồng cho những chuyên gia đô thị hiện đại.</p>
         </div>
         <div>
@@ -37,8 +38,9 @@ export function Footer() {
         </div>
       </div>
       <div className="mt-16 border-t border-slate-200 pt-8 text-center px-8">
-        <p className="text-slate-400 text-xs font-body">© 2024 The Curated Hearth.</p>
+        <p className="text-slate-400 text-xs font-body">© 2026 NhàHợp.</p>
       </div>
     </footer>
   );
 }
+

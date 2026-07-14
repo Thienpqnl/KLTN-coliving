@@ -58,17 +58,17 @@ export function Navigation() {
 
   return (
     <nav className="fixed top-0 z-50 flex h-20 w-full items-center bg-white/75 shadow-sm backdrop-blur-xl">
-      <div className="mx-auto grid w-full max-w-screen-2xl grid-cols-3 items-center px-8">
+      <div className="mx-auto grid w-full max-w-screen-2xl grid-cols-[minmax(0,1fr)_auto] items-center px-4 md:grid-cols-3 md:px-8">
         <div className="flex items-center">
           <Link
             href="/"
-            className="whitespace-nowrap font-headline text-2xl font-bold tracking-tighter text-orange-900"
+            className="whitespace-nowrap font-headline text-xl font-bold tracking-tighter text-orange-900 md:text-2xl"
           >
-            The Curated Hearth
+            NhàHợp
           </Link>
         </div>
 
-        <div className="flex items-center justify-center gap-8 font-headline tracking-tight">
+        <div className="hidden items-center justify-center gap-8 font-headline tracking-tight md:flex">
           <Link
             href="/"
             className={`border-b-2 font-semibold transition-colors ${
@@ -89,15 +89,9 @@ export function Navigation() {
           >
             Danh sách phòng
           </Link>
-          <Link
-            href="/#community"
-            className="font-medium text-slate-600 transition-colors hover:text-orange-600"
-          >
-            Cộng đồng
-          </Link>
         </div>
 
-        <div className="flex items-center justify-end gap-4">
+        <div className="flex min-w-0 items-center justify-end gap-2 md:gap-4">
           {isLoading ? (
             <div className="h-10 w-36 animate-pulse rounded-full bg-slate-100" />
           ) : user ? (
@@ -105,7 +99,7 @@ export function Navigation() {
               <button
                 type="button"
                 onClick={() => setIsAccountMenuOpen((current) => !current)}
-                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1.5 pr-4 text-left shadow-sm transition hover:border-orange-200 hover:bg-orange-50/60 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1.5 text-left shadow-sm transition hover:border-orange-200 hover:bg-orange-50/60 focus:outline-none focus:ring-2 focus:ring-orange-200 sm:gap-3 sm:pr-4"
                 aria-expanded={isAccountMenuOpen}
                 aria-haspopup="menu"
               >
@@ -121,11 +115,11 @@ export function Navigation() {
                     initials || <UserRound className="h-4 w-4" />
                   )}
                 </span>
-                <span className="max-w-44 truncate text-sm font-bold text-slate-800">
+                <span className="hidden max-w-44 truncate text-sm font-bold text-slate-800 sm:block">
                   {accountName}
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${
+                  className={`hidden h-4 w-4 shrink-0 text-slate-500 transition-transform sm:block ${
                     isAccountMenuOpen ? 'rotate-180' : ''
                   }`}
                 />
@@ -211,13 +205,13 @@ export function Navigation() {
             <>
               <Link
                 href="/login"
-                className="rounded-full px-6 py-2 text-xs font-bold uppercase tracking-wider text-orange-800 transition-colors hover:bg-orange-50"
+                className="rounded-full px-3 py-2 text-xs font-bold uppercase tracking-wider text-orange-800 transition-colors hover:bg-orange-50 md:px-6"
               >
                 Đăng nhập
               </Link>
               <Link
                 href="/register"
-                className="rounded-full bg-gradient-to-r from-orange-900 to-orange-500 px-6 py-2 text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                className="hidden rounded-full bg-gradient-to-r from-orange-900 to-orange-500 px-6 py-2 text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90 sm:inline-flex"
               >
                 Đăng ký
               </Link>

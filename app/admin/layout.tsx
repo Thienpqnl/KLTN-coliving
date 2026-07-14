@@ -6,7 +6,7 @@ import { AdminSidebar } from "./admin-sidebar"
 import { AdminMobileHeader } from "./admin-mobile-header"
 
 const pageTitles: Record<string, string> = {
-  "/admin": "Dashboard",
+  "/admin": "Tổng quan hệ thống",
   "/admin/users": "Quản lý người dùng",
   "/admin/community-managers": "Phân vùng Community Manager",
   "/admin/rooms": "Xác minh và duyệt phòng",

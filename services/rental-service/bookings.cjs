@@ -18,6 +18,10 @@ const bookingUpdateSchema = z.object({
   status: z.string().refine((value) => bookingStatuses.has(value), "Invalid booking status").optional(),
 });
 
+const bookingCancellationSchema = z.object({
+  reason: z.string().trim().min(5, "Lý do hủy phải có ít nhất 5 ký tự").max(500, "Lý do hủy không được vượt quá 500 ký tự"),
+});
+
 const bookingInclude = { invoice: true };
 
 const hostBookingInclude = {
@@ -298,6 +302,16 @@ async function updateBooking(prisma, identity, id, input, clients = identityClie
   if (booking.status === "CANCELLED" || booking.status === "COMPLETED") {
     return failure(409, "Booking đã kết thúc và không thể đổi trạng thái");
   }
+  if (status === "CANCELLED") {
+    const isAdmin = identity.role === "ADMIN";
+    const isHost = room?.ownerId === identity.userId;
+    if (!isAdmin && !isHost) {
+      return failure(400, "Người thuê phải sử dụng chức năng hủy booking và cung cấp lý do");
+    }
+    if (booking.status !== "PENDING") {
+      return failure(409, "Chủ nhà chỉ có thể từ chối booking đang chờ xác nhận");
+    }
+  }
 
   const updated = await prisma.booking.update({
     where: { id },
@@ -308,20 +322,100 @@ async function updateBooking(prisma, identity, id, input, clients = identityClie
   return { status: 200, payload: sanitizeForJson(hydrated) };
 }
 
-async function cancelBooking(prisma, identity, id, clients = identityClient) {
-  const bookingResult = await getBookingById(prisma, identity, id, clients);
-  if (bookingResult.status !== 200) return bookingResult;
-  const booking = bookingResult.payload;
-  if (booking.status === "COMPLETED" || booking.status === "CANCELLED") {
-    return failure(400, "Booking này không thể hủy");
-  }
+async function cancelBooking(prisma, identity, id, input = {}, clients = identityClient) {
+  const denied = requireAuthenticated(identity);
+  if (denied) return denied;
+  const parsed = validate(bookingCancellationSchema, input);
+  if (!parsed.ok) return parsed;
 
-  const updated = await prisma.booking.update({
-    where: { id },
-    data: { status: "CANCELLED" },
-    include: bookingInclude,
+  const result = await runSerializableTransaction(prisma, async (tx) => {
+    const booking = await tx.booking.findUnique({
+      where: { id },
+      include: {
+        invoice: true,
+        contract: {
+          select: { id: true, status: true, depositStatus: true },
+        },
+      },
+    });
+    if (!booking) return failure(404, "Không tìm thấy booking");
+
+    const room = await tx.rentalRoomSnapshot.findUnique({
+      where: { roomId: booking.roomId },
+    });
+    const isAdmin = identity.role === "ADMIN";
+    const isHost = room?.ownerId === identity.userId;
+    const isRenter = booking.userId === identity.userId;
+    if (!isAdmin && !isHost && !isRenter) {
+      return failure(403, "Bạn không có quyền hủy booking này");
+    }
+    if (booking.status === "COMPLETED" || booking.status === "CANCELLED") {
+      return failure(409, "Booking đã kết thúc và không thể hủy");
+    }
+
+    const contract = booking.contract;
+    const protectedContractStatuses = new Set([
+      "PENDING_DEPOSIT",
+      "PENDING_HANDOVER",
+      "ACTIVE",
+      "EXPIRED",
+      "TERMINATED",
+      "DISPUTED",
+    ]);
+    if (contract && protectedContractStatuses.has(contract.status)) {
+      return {
+        status: 409,
+        payload: {
+          message: contract.status === "ACTIVE"
+            ? "Hợp đồng đã có hiệu lực. Vui lòng sử dụng chức năng rời phòng hoặc chấm dứt hợp đồng."
+            : "Booking đang ở giai đoạn thực hiện hợp đồng và không thể hủy trực tiếp.",
+          code: contract.status === "ACTIVE" ? "ACTIVE_CONTRACT" : "CONTRACT_IN_PROGRESS",
+          contractId: contract.id,
+        },
+      };
+    }
+
+    const now = new Date();
+    const actor = isAdmin ? "ADMIN" : isHost ? "HOST" : "RENTER";
+    const updated = await tx.booking.update({
+      where: { id },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: now,
+        cancelledById: identity.userId,
+        cancellationActor: actor,
+        cancellationReason: parsed.data.reason,
+      },
+      include: bookingInclude,
+    });
+
+    if (contract && contract.status !== "CANCELLED") {
+      await tx.contract.update({
+        where: { id: contract.id },
+        data: {
+          status: "CANCELLED",
+          terminatedAt: now,
+          terminationReason: parsed.data.reason,
+        },
+      });
+      await tx.contractEvent.create({
+        data: {
+          contractId: contract.id,
+          actorId: identity.userId,
+          type: "BOOKING_CANCELLED",
+          fromStatus: contract.status,
+          toStatus: "CANCELLED",
+          note: parsed.data.reason,
+          metadata: { bookingId: booking.id, actor },
+        },
+      });
+    }
+
+    return { status: 200, payload: updated };
   });
-  const hydrated = await attachBookingUsers(updated, clients);
+
+  if (result.status !== 200) return result;
+  const hydrated = await attachBookingUsers(result.payload, clients);
   return { status: 200, payload: sanitizeForJson(await attachRoom(prisma, hydrated)) };
 }
 
@@ -390,10 +484,13 @@ async function hostBookingStats(prisma, identity) {
 }
 
 async function roomRentalStats(prisma, roomId) {
-  const bookings = await prisma.booking.findMany({
-    where: { roomId },
-    include: { invoice: true },
-  });
+  const [bookings, capacity] = await Promise.all([
+    prisma.booking.findMany({
+      where: { roomId },
+      include: { invoice: true },
+    }),
+    getRoomCapacity(prisma, roomId),
+  ]);
   const totalBookings = bookings.length;
   const confirmedBookings = bookings.filter((booking) => booking.status === "CONFIRMED").length;
   const pendingBookings = bookings.filter((booking) => booking.status === "PENDING").length;
@@ -403,23 +500,43 @@ async function roomRentalStats(prisma, roomId) {
   );
   return {
     status: 200,
-    payload: { totalBookings, confirmedBookings, pendingBookings, totalRevenue },
+    payload: {
+      totalBookings,
+      confirmedBookings,
+      pendingBookings,
+      totalRevenue,
+      currentOccupants: capacity?.currentOccupants ?? 0,
+      confirmedReservations: capacity?.confirmedReservations ?? 0,
+      maxOccupants: capacity?.maxOccupants ?? 0,
+      availablePlaces: capacity?.availablePlaces ?? 0,
+      isFull: capacity?.isFull ?? false,
+    },
   };
 }
 
 async function adminRentalStats(prisma) {
-  const completed = await prisma.booking.findMany({
-    where: { status: "COMPLETED" },
-    include: { invoice: true },
-  });
+  const [paidPayments, completedBookings, activeContracts] = await Promise.all([
+    prisma.payment.aggregate({
+      where: { status: "PAID" },
+      _sum: { amount: true },
+    }),
+    prisma.booking.count({ where: { status: "COMPLETED" } }),
+    prisma.contract.findMany({
+      where: { status: "ACTIVE" },
+      select: { monthlyRent: true },
+    }),
+  ]);
+
   return {
     status: 200,
     payload: {
-      totalRevenue: completed.reduce(
-        (sum, booking) => sum + Number(booking.invoice?.totalAmount || 0),
+      totalRevenue: Number(paidPayments._sum.amount || 0),
+      completedBookings,
+      projectedMonthlyRevenue: activeContracts.reduce(
+        (sum, contract) => sum + Number(contract.monthlyRent || 0),
         0,
       ),
-      completedBookings: completed.length,
+      activeContracts: activeContracts.length,
     },
   };
 }

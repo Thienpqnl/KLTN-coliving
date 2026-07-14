@@ -6,12 +6,10 @@ import Link from "next/link"
 import {
   BarChart3,
   FileText,
-  HelpCircle,
   LayoutDashboard,
   LogOut,
   MapPinned,
   MessageSquareText,
-  Settings,
   Users,
   Building2,
 } from "lucide-react"
@@ -25,7 +23,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, href: "/admin" },
+  { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, href: "/admin" },
   { label: "Quản lý người dùng", icon: <Users className="h-4 w-4" />, href: "/admin/users" },
   { label: "Phân vùng CM", icon: <MapPinned className="h-4 w-4" />, href: "/admin/community-managers" },
   { label: "Duyệt phòng", icon: <Building2 className="h-4 w-4" />, href: "/admin/rooms" },
@@ -50,11 +48,11 @@ export function AdminSidebar() {
       <div className="border-b border-border p-4">
         <Link href="/admin" className="flex items-center gap-3 transition-opacity hover:opacity-80">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600">
-            <span className="text-lg font-bold text-white">A</span>
+            <span className="text-lg font-bold text-white">N</span>
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-foreground">Bảng quản trị</h1>
-            <p className="text-xs text-muted-foreground">Hệ thống</p>
+            <h1 className="text-sm font-semibold text-foreground">NhàHợp</h1>
+            <p className="text-xs text-muted-foreground">Bảng quản trị</p>
           </div>
         </Link>
       </div>
@@ -83,17 +81,6 @@ export function AdminSidebar() {
           })}
         </ul>
       </nav>
-
-      <div className="px-3 pb-2">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-          <Settings className="h-4 w-4" />
-          Cài đặt
-        </button>
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-          <HelpCircle className="h-4 w-4" />
-          Hỗ trợ
-        </button>
-      </div>
 
       <div className="border-t border-border p-3">
         <button

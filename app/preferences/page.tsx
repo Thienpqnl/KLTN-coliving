@@ -2,7 +2,7 @@ import PreferenceQuestionnaire from "@/app/components/PreferenceQuestionnaire";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 export const metadata = {
-  title: "Tìm Phòng Phù Hợp - KLTN Coliving",
+  title: "Cập nhật sở thích",
   description: "Điền thông tin sở thích và tìm phòng phù hợp với bạn",
 };
 

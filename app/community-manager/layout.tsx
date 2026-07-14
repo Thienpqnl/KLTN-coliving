@@ -14,7 +14,7 @@ export default function CommunityManagerLayout({ children }: { children: React.R
       <div className="min-h-screen bg-slate-50 text-slate-950">
         <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-slate-200 bg-white p-6 lg:block">
           <Link href="/community-manager" className="font-headline text-xl font-black text-orange-900">
-            The Curated Hearth
+            NhàHợp
           </Link>
           <div className="mt-8 rounded-2xl bg-orange-50 p-4">
             <p className="text-xs font-bold uppercase tracking-wider text-orange-700">Nhân viên cộng đồng</p>

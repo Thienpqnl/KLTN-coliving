@@ -28,7 +28,12 @@ test("getRoomStats returns room counters and revenue", async () => {
   const result = await getRoomStats(
     prisma,
     { userId: "admin-1", role: "ADMIN" },
-    { totalRevenue: 1250000, completedBookings: 3 },
+    {
+      totalRevenue: 1250000,
+      completedBookings: 3,
+      projectedMonthlyRevenue: 4000000,
+      activeContracts: 2,
+    },
   );
 
   assert.equal(result.status, 200);
@@ -36,6 +41,8 @@ test("getRoomStats returns room counters and revenue", async () => {
   assert.equal(result.payload.available, 2);
   assert.equal(result.payload.revenue.total, 1250000);
   assert.equal(result.payload.revenue.completedBookings, 3);
+  assert.equal(result.payload.revenue.projectedMonthly, 4000000);
+  assert.equal(result.payload.revenue.activeContracts, 2);
 });
 
 test("getRoomPublicStats summarizes bookings reviews and revenue", async () => {

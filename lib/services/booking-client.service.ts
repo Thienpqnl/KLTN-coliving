@@ -29,6 +29,10 @@ export interface Booking {
   } | null
   createdAt: string
   updatedAt: string
+  cancelledAt?: string | null
+  cancelledById?: string | null
+  cancellationActor?: string | null
+  cancellationReason?: string | null
 }
 
 export interface CreateBookingPayload {
@@ -67,8 +71,8 @@ export const bookingClientService = {
   },
 
   // Delete/Cancel booking
-  cancel: async (id: string): Promise<void> => {
-    await apiClient.delete(`/bookings/${id}`)
+  cancel: async (id: string, reason: string): Promise<Booking> => {
+    return apiClient.delete<Booking>(`/bookings/${id}`, { reason })
   },
 
   // Get booking stats

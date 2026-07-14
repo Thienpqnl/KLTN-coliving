@@ -42,7 +42,7 @@ function HostDashboardContent() {
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2 max-w-lg">
                   Cộng đồng co-living của bạn đang được cập nhật theo dữ liệu thực. Đây là tóm tắt hiệu suất và các hoạt động mới nhất của{" "}
-                  <span className="font-medium text-foreground">The Curated Hearth</span>.
+                  <span className="font-medium text-foreground">NhàHợp</span>.
                 </p>
               </div>
               <div className="rounded-2xl border border-orange-100 bg-orange-50 px-4 py-3 text-left sm:text-right">

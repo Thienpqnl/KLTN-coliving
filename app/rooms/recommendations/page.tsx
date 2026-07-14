@@ -3,7 +3,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Phòng Đề Xuất - KLTN Coliving",
+  title: "Phòng đề xuất",
   description: "Danh sách phòng được đề xuất dựa trên sở thích của bạn",
 };
 
@@ -20,7 +20,7 @@ export default function RecommendationsPage() {
             >
               ← Chỉnh sửa tiêu chí
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">KLTN Coliving</h1>
+            <h1 className="text-2xl font-bold text-gray-900">NhàHợp</h1>
             <div className="w-24"></div>
           </div>
         </div>

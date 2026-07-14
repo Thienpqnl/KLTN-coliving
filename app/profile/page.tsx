@@ -4,10 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  AlertTriangle,
   CalendarDays,
+  CalendarX2,
   Camera,
   CreditCard,
   Home,
+  Heart,
   KeyRound,
   Loader2,
   LogOut,
@@ -17,6 +20,7 @@ import {
   Phone,
   Save,
   ShieldCheck,
+  Sparkles,
   Trash2,
   UserRound,
   X,
@@ -46,6 +50,9 @@ interface Booking {
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   startDate: string;
   endDate: string;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancellationActor?: string | null;
   contract?: {
     id: string;
     status: string;
@@ -77,16 +84,38 @@ interface UserOccupancy {
   }[];
 }
 
-type UserPreferences = {
-  budgetMinVnd?: number | string | null;
-  budgetMaxVnd?: number | string | null;
+interface UserPreferences {
+  id?: string;
+  budgetMinVnd?: string | number | null;
+  budgetMaxVnd?: string | number | null;
   preferredDistrict?: string | null;
   lifestyleArchetype?: string | null;
   priorityCleanliness?: number | null;
   prioritySocialEnvironment?: number | null;
   acceptSmokingRoommates?: boolean | null;
   acceptPets?: boolean | null;
+}
+
+const bookingStatusLabels: Record<Booking['status'], string> = {
+  PENDING: 'Đang chờ xác nhận',
+  CONFIRMED: 'Đã xác nhận',
+  CANCELLED: 'Đã hủy',
+  COMPLETED: 'Đã hoàn tất',
 };
+
+function bookingStatusClass(status: Booking['status']) {
+  if (status === 'PENDING') return 'bg-amber-50 text-amber-800 ring-amber-200';
+  if (status === 'CONFIRMED') return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+  if (status === 'COMPLETED') return 'bg-blue-50 text-blue-800 ring-blue-200';
+  return 'bg-slate-100 text-slate-600 ring-slate-200';
+}
+
+function canCancelBooking(booking: Booking) {
+  if (booking.status !== 'PENDING' && booking.status !== 'CONFIRMED') return false;
+  if (!booking.contract) return true;
+  return ['DRAFT', 'PENDING_HOST_SIGNATURE', 'PENDING_RENTER_SIGNATURE', 'CANCELLED']
+    .includes(booking.contract.status);
+}
 
 type FormData = Pick<UserProfile, 'fullName' | 'phone' | 'gender' | 'address'> & {
   birthDate: string;
@@ -144,8 +173,8 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [occupancy, setOccupancy] = useState<UserOccupancy | null>(null);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -163,6 +192,10 @@ export default function ProfilePage() {
   const [otpMessage, setOtpMessage] = useState('');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancellationError, setCancellationError] = useState('');
+  const [isCancellingBooking, setIsCancellingBooking] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -180,7 +213,7 @@ export default function ProfilePage() {
       setError('');
 
       try {
-        const [profileRes, bookingsRes, preferencesRes, occupancyRes] = await Promise.all([
+        const [profileRes, bookingsRes, occupancyRes, preferencesRes] = await Promise.all([
           fetch('/api/user/profile', {
             credentials: 'include',
             signal: controller.signal,
@@ -189,11 +222,11 @@ export default function ProfilePage() {
             credentials: 'include',
             signal: controller.signal,
           }),
-          fetch('/api/preferences', {
+          fetch('/api/user/occupancy', {
             credentials: 'include',
             signal: controller.signal,
           }),
-          fetch('/api/user/occupancy', {
+          fetch('/api/preferences', {
             credentials: 'include',
             signal: controller.signal,
           }),
@@ -217,14 +250,14 @@ export default function ProfilePage() {
           setBookings(bookingsData);
         }
 
-        if (preferencesRes.ok) {
-          const preferencesData = await preferencesRes.json();
-          setPreferences(preferencesData);
-        }
-
         if (occupancyRes.ok) {
           const occupancyData = await occupancyRes.json();
           setOccupancy(occupancyData);
+        }
+
+        if (preferencesRes.ok) {
+          const preferencesData = (await preferencesRes.json()) as UserPreferences;
+          setPreferences(preferencesData.id ? preferencesData : null);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -510,6 +543,65 @@ export default function ProfilePage() {
     }
   };
 
+  const openCancellationDialog = (booking: Booking) => {
+    setBookingToCancel(booking);
+    setCancellationReason('');
+    setCancellationError('');
+  };
+
+  const closeCancellationDialog = () => {
+    if (isCancellingBooking) return;
+    setBookingToCancel(null);
+    setCancellationReason('');
+    setCancellationError('');
+  };
+
+  const handleCancelBooking = async () => {
+    if (!bookingToCancel) return;
+    const reason = cancellationReason.trim();
+    if (reason.length < 5) {
+      setCancellationError('Vui lòng nhập lý do hủy có ít nhất 5 ký tự.');
+      return;
+    }
+
+    setIsCancellingBooking(true);
+    setCancellationError('');
+    try {
+      const response = await fetch(`/api/bookings/${bookingToCancel.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ reason }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.message || payload?.error || 'Không thể hủy đặt phòng.');
+      }
+
+      const updated = (payload?.data || payload) as Booking;
+      setBookings((current) => current.map((booking) => (
+        booking.id === bookingToCancel.id
+          ? {
+              ...booking,
+              ...updated,
+              status: 'CANCELLED',
+              cancelledAt: updated?.cancelledAt || new Date().toISOString(),
+              cancellationReason: updated?.cancellationReason || reason,
+            }
+          : booking
+      )));
+      setSuccess('Đã hủy đặt phòng thành công.');
+      setBookingToCancel(null);
+      setCancellationReason('');
+    } catch (reasonError) {
+      setCancellationError(
+        reasonError instanceof Error ? reasonError.message : 'Không thể hủy đặt phòng.'
+      );
+    } finally {
+      setIsCancellingBooking(false);
+    }
+  };
+
   if (authLoading || isLoading) {
     return (
       <>
@@ -667,7 +759,7 @@ export default function ProfilePage() {
                   href="#preferences"
                   className="flex items-center gap-3 rounded-md px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
                 >
-                  <span className="material-symbols-outlined text-base">favorite</span>
+                  <Heart className="h-4 w-4" />
                   Sở thích phòng
                 </a>
                 <a
@@ -972,6 +1064,120 @@ export default function ProfilePage() {
                 )}
               </section>
 
+              <section
+                id="booking-history"
+                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
+                      Đặt phòng
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold text-slate-950">Lịch sử đặt phòng</h2>
+                  </div>
+                  <span className="text-sm font-semibold text-slate-500">
+                    {bookings.length} yêu cầu
+                  </span>
+                </div>
+
+                {bookings.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <CalendarDays className="mx-auto h-10 w-10 text-slate-300" />
+                    <p className="mt-3 font-bold text-slate-900">Bạn chưa có yêu cầu đặt phòng</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {bookings.map((booking) => {
+                      const canCancel = canCancelBooking(booking);
+                      const hasActiveContract = booking.contract?.status === 'ACTIVE';
+                      const contractInProgress = booking.contract && [
+                        'PENDING_DEPOSIT',
+                        'PENDING_HANDOVER',
+                        'ACTIVE',
+                        'DISPUTED',
+                      ].includes(booking.contract.status);
+
+                      return (
+                        <article
+                          key={booking.id}
+                          className="grid gap-5 rounded-lg border border-slate-200 p-4 transition-colors hover:border-orange-200 md:grid-cols-[128px_minmax(0,1fr)_auto] md:items-center"
+                        >
+                          <div className="aspect-[4/3] overflow-hidden rounded-lg bg-slate-100">
+                            {booking.room.image?.[0] ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={booking.room.image[0]}
+                                alt={booking.room.title}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-slate-300">
+                                <Home className="h-8 w-8" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`rounded-full px-3 py-1 text-xs font-bold ring-1 ${bookingStatusClass(booking.status)}`}>
+                                {bookingStatusLabels[booking.status]}
+                              </span>
+                              {booking.contract && (
+                                <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700 ring-1 ring-violet-200">
+                                  Có hợp đồng
+                                </span>
+                              )}
+                            </div>
+                            <Link
+                              href={`/rooms/${booking.room.id}`}
+                              className="mt-3 block truncate text-lg font-bold text-slate-950 hover:text-orange-700"
+                            >
+                              {booking.room.title}
+                            </Link>
+                            <p className="mt-1 truncate text-sm text-slate-500">{booking.room.address}</p>
+                            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-slate-600">
+                              <span className="flex items-center gap-1.5">
+                                <CalendarDays className="h-4 w-4 text-orange-600" />
+                                {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
+                              </span>
+                              {booking.cancelledAt && (
+                                <span>Hủy ngày {formatDate(booking.cancelledAt)}</span>
+                              )}
+                            </div>
+                            {booking.status === 'CANCELLED' && booking.cancellationReason && (
+                              <p className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                                <span className="font-bold">Lý do:</span> {booking.cancellationReason}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 md:w-36 md:flex-col">
+                            {canCancel && (
+                              <button
+                                type="button"
+                                onClick={() => openCancellationDialog(booking)}
+                                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-bold text-red-700 transition-colors hover:bg-red-50"
+                              >
+                                <CalendarX2 className="h-4 w-4" />
+                                Hủy đặt phòng
+                              </button>
+                            )}
+                            {contractInProgress && (
+                              <Link
+                                href="/contracts"
+                                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-center text-sm font-bold text-white transition-colors hover:bg-slate-800"
+                              >
+                                {hasActiveContract ? 'Rời phòng' : 'Xem hợp đồng'}
+                              </Link>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
               {/* Host Managed Rooms Section */}
               {occupancy?.ownedRooms && occupancy.ownedRooms.length > 0 && (
                 <section
@@ -1009,112 +1215,85 @@ export default function ProfilePage() {
 
               <section
                 id="preferences"
-                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+                className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
               >
-                <div className="mb-5">
-                  <p className="text-xs font-bold uppercase tracking-widest text-purple-700">
-                    Sở thích
-                  </p>
-                  <h2 className="mt-1 text-2xl font-bold text-slate-950">Sở thích phòng ở</h2>
+                <div className="mb-6 flex items-start justify-between gap-6">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
+                      Cá nhân hóa gợi ý
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold text-slate-950">Sở thích phòng ở</h2>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Những tiêu chí hệ thống đang sử dụng để tìm phòng phù hợp với bạn.
+                    </p>
+                  </div>
+                  <Sparkles className="h-6 w-6 shrink-0 text-orange-600" />
                 </div>
 
-                <p className="text-sm text-slate-600 mb-6">
-                  Thông tin này giúp chúng tôi gợi ý những phòng phù hợp nhất với bạn.
-                </p>
-
                 {preferences ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 p-6 border border-blue-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-blue-700 mb-2">Ngân sách</p>
-                        <p className="text-lg font-bold text-slate-900">
-                          {preferences.budgetMinVnd && preferences.budgetMaxVnd 
-                            ? `${Number(preferences.budgetMinVnd).toLocaleString('vi-VN')} - ${Number(preferences.budgetMaxVnd).toLocaleString('vi-VN')} VND`
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-lg border border-orange-100 bg-orange-50 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-orange-700">Ngân sách mỗi tháng</p>
+                        <p className="mt-2 text-lg font-bold text-slate-950">
+                          {preferences.budgetMinVnd && preferences.budgetMaxVnd
+                            ? `${Number(preferences.budgetMinVnd).toLocaleString('vi-VN')} - ${Number(preferences.budgetMaxVnd).toLocaleString('vi-VN')} đ`
                             : 'Chưa cập nhật'}
                         </p>
-                        <p className="text-xs text-blue-600 mt-2">mỗi tháng</p>
                       </div>
-
-                      <div className="rounded-lg bg-gradient-to-br from-green-50 to-green-100 p-6 border border-green-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-green-700 mb-2">Khu vực ưa thích</p>
-                        <p className="text-lg font-bold text-slate-900">{preferences.preferredDistrict || 'Không ưu tiên'}</p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 p-6 border border-purple-200">
-                      <p className="text-xs font-bold uppercase tracking-widest text-purple-700 mb-2">Lối sống</p>
-                      <p className="text-lg font-bold text-slate-900">{preferences.lifestyleArchetype || 'Chưa chọn'}</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 p-6 border border-amber-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-amber-700 mb-3">Độ sạch sẽ</p>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-amber-500 to-amber-600" style={{width: `${(preferences.priorityCleanliness || 0) * 20}%`}}></div>
-                            </div>
-                          </div>
-                          <span className="text-lg font-bold text-slate-900">{preferences.priorityCleanliness || 0}/5</span>
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg bg-gradient-to-br from-pink-50 to-pink-100 p-6 border border-pink-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-pink-700 mb-3">Môi trường xã hội</p>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <div className="h-2 bg-pink-200 rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-pink-500 to-pink-600" style={{width: `${(preferences.prioritySocialEnvironment || 0) * 20}%`}}></div>
-                            </div>
-                          </div>
-                          <span className="text-lg font-bold text-slate-900">{preferences.prioritySocialEnvironment || 0}/5</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 p-6 border border-slate-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-2">Roommate hút thuốc</p>
-                        <p className="text-base font-semibold text-slate-900">
-                          {preferences.acceptSmokingRoommates ? 'Chấp nhận' : 'Không chấp nhận'}
+                      <div className="rounded-lg border border-blue-100 bg-blue-50 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Khu vực mong muốn</p>
+                        <p className="mt-2 text-lg font-bold text-slate-950">
+                          {preferences.preferredDistrict || 'Không ưu tiên khu vực'}
                         </p>
                       </div>
+                    </div>
 
-                      <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 p-6 border border-slate-200">
-                        <p className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-2">Roommate có thú cưng</p>
-                        <p className="text-base font-semibold text-slate-900">
-                          {preferences.acceptPets ? 'Chấp nhận' : 'Không chấp nhận'}
-                        </p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="rounded-lg border border-slate-200 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Phong cách sống</p>
+                        <p className="mt-2 font-bold text-slate-950">{preferences.lifestyleArchetype || 'Chưa chọn'}</p>
                       </div>
+                      <div className="rounded-lg border border-slate-200 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Ưu tiên sạch sẽ</p>
+                        <p className="mt-2 text-xl font-bold text-emerald-700">{preferences.priorityCleanliness || 3}/5</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Mức độ giao lưu</p>
+                        <p className="mt-2 text-xl font-bold text-blue-700">{preferences.prioritySocialEnvironment || 3}/5</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                      <span className={`rounded-full px-3 py-1.5 ${preferences.acceptSmokingRoommates ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                        {preferences.acceptSmokingRoommates ? 'Chấp nhận người hút thuốc' : 'Không ở cùng người hút thuốc'}
+                      </span>
+                      <span className={`rounded-full px-3 py-1.5 ${preferences.acceptPets ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {preferences.acceptPets ? 'Chấp nhận thú cưng' : 'Không ưu tiên thú cưng'}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-3 border-t border-slate-200 pt-5">
+                      <Link href="/preferences" className="rounded-full bg-orange-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-700">
+                        Cập nhật sở thích
+                      </Link>
+                      <Link href="/rooms/recommendations" className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50">
+                        Xem phòng phù hợp
+                      </Link>
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-                    <p className="text-slate-600 mb-4">Chưa cập nhật sở thích của bạn</p>
-                    <Link
-                      href="/preferences"
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-purple-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-purple-700"
-                    >
-                      Cập nhật ngay
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+                    <Heart className="mx-auto h-7 w-7 text-orange-600" />
+                    <h3 className="mt-3 font-bold text-slate-950">Bạn chưa thiết lập sở thích phòng ở</h3>
+                    <p className="mt-1 text-sm text-slate-500">Hoàn thành vài câu hỏi để nhận danh sách phòng phù hợp hơn.</p>
+                    <Link href="/preferences" className="mt-5 inline-flex rounded-full bg-orange-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-700">
+                      Thiết lập sở thích
                     </Link>
                   </div>
                 )}
-
-                <div className="mt-6 flex gap-3">
-                  <Link
-                    href="/preferences"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-purple-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-purple-700"
-                  >
-                    Cập nhật sở thích
-                  </Link>
-                  <Link
-                    href="/rooms/recommendations"
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-purple-300 px-5 py-2.5 text-sm font-bold text-purple-700 transition-colors hover:bg-purple-50"
-                  >
-                    Xem gợi ý
-                  </Link>
-                </div>
               </section>
+
 
               <section
                 id="security"
@@ -1241,6 +1420,91 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
+      {bookingToCancel && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-booking-title"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) closeCancellationDialog();
+          }}
+        >
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-700">
+                  <AlertTriangle className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 id="cancel-booking-title" className="text-xl font-bold text-slate-950">
+                    Hủy đặt phòng
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">{bookingToCancel.room.title}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeCancellationDialog}
+                disabled={isCancellingBooking}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                aria-label="Đóng"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+              Booking đã xác nhận sẽ giải phóng chỗ đang giữ. Hợp đồng ở giai đoạn nháp hoặc chờ ký cũng sẽ được hủy cùng yêu cầu này.
+            </div>
+
+            <label className="mt-5 block">
+              <span className="text-sm font-bold text-slate-800">Lý do hủy</span>
+              <textarea
+                value={cancellationReason}
+                onChange={(event) => {
+                  setCancellationReason(event.target.value);
+                  setCancellationError('');
+                }}
+                rows={4}
+                maxLength={500}
+                disabled={isCancellingBooking}
+                placeholder="Ví dụ: Tôi thay đổi kế hoạch chuyển đến..."
+                className="mt-2 w-full resize-none rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50"
+              />
+              <span className="mt-1 block text-right text-xs text-slate-400">
+                {cancellationReason.length}/500
+              </span>
+            </label>
+
+            {cancellationError && (
+              <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {cancellationError}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeCancellationDialog}
+                disabled={isCancellingBooking}
+                className="min-h-11 rounded-lg border border-slate-300 px-5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Giữ đặt phòng
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelBooking}
+                disabled={isCancellingBooking || cancellationReason.trim().length < 5}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-5 text-sm font-bold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isCancellingBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarX2 className="h-4 w-4" />}
+                Xác nhận hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <Footer />
     </>
   );

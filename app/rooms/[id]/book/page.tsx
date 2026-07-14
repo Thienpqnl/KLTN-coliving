@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation';
 import { Footer } from '@/components/Footer';
 import { Navigation } from '@/components/Navigation';
-import { roomService } from '@/lib/services/room.service';
+import {
+  getPublicRoomById,
+  type PublicRoomDetail,
+} from '@/lib/services/property-gateway.server';
 import { BookingRequestForm } from './BookingRequestForm';
 
-type RoomDetail = Awaited<ReturnType<typeof roomService.getById>>;
+type RoomDetail = PublicRoomDetail;
 type RoomAmenityItem = {
   amenity?: {
     name?: string | null;
@@ -145,14 +148,16 @@ export default async function RoomBookingPage({
 
   try {
     const { id } = await params;
-    room = await roomService.getById(id);
+    room = await getPublicRoomById(id);
   } catch {
     notFound();
   }
 
   const maxOccupants = Math.max(1, Number(room.maxOccupants ?? 1));
   const currentOccupants = Math.max(0, Number(room.currentOccupants ?? 0));
-  const isRoomFull = room.status === 'OCCUPIED' || currentOccupants >= maxOccupants;
+  const confirmedReservations = Math.max(0, Number(room.confirmedReservations ?? 0));
+  const isRoomFull = room.status === 'OCCUPIED' ||
+    currentOccupants + confirmedReservations >= maxOccupants;
 
   return (
     <>

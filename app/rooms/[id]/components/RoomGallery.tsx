@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
 export type GalleryOccupancyInfo = {
   current: number
@@ -19,11 +19,13 @@ export function RoomGallery({
   title,
   postedDate,
   occupancy,
+  hostPanel,
 }: {
   images: string[]
   title: string
   postedDate?: string | null
   occupancy?: GalleryOccupancyInfo | null
+  hostPanel?: ReactNode
 }) {
   const galleryImages = useMemo(() => (images.length > 0 ? images : [fallbackImage]), [images])
   const featuredImage = galleryImages[0]
@@ -89,7 +91,9 @@ export function RoomGallery({
 
   return (
     <section className="mx-auto mb-10 max-w-7xl px-8">
-      <div className={sideImages.length > 0 ? 'grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)]' : 'grid'}>
+      <div className={hostPanel ? 'grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]' : ''}>
+        <div className="min-w-0">
+          <div className={sideImages.length > 0 ? 'grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(240px,0.75fr)]' : 'grid'}>
         <button
           type="button"
           onClick={() => setSelectedIndex(0)}
@@ -144,72 +148,80 @@ export function RoomGallery({
             })}
           </div>
         )}
-      </div>
+          </div>
 
-      {thumbnailImages.length > 1 && (
-        <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
-          {thumbnailImages.map((image, index) => (
-            <button
-              type="button"
-              key={`thumb-${image}-${index}`}
-              onClick={() => setSelectedIndex(index)}
-              className="relative h-16 w-24 flex-none cursor-zoom-in overflow-hidden rounded-xl bg-slate-200 ring-1 ring-black/5 transition hover:ring-orange-500 md:h-20 md:w-32"
-              aria-label={`Xem ảnh ${index + 1}`}
-            >
-              <img
-                className="h-full w-full object-cover"
-                src={image}
-                alt={`${title} - thumbnail ${index + 1}`}
-              />
-              {index === thumbnailImages.length - 1 && galleryImages.length > thumbnailImages.length && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                  <span className="text-xs font-black text-white">+{galleryImages.length - thumbnailImages.length}</span>
+          {thumbnailImages.length > 1 && (
+            <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+              {thumbnailImages.map((image, index) => (
+                <button
+                  type="button"
+                  key={`thumb-${image}-${index}`}
+                  onClick={() => setSelectedIndex(index)}
+                  className="relative h-16 w-24 flex-none cursor-zoom-in overflow-hidden rounded-xl bg-slate-200 ring-1 ring-black/5 transition hover:ring-orange-500 md:h-20 md:w-32"
+                  aria-label={`Xem ảnh ${index + 1}`}
+                >
+                  <img
+                    className="h-full w-full object-cover"
+                    src={image}
+                    alt={`${title} - thumbnail ${index + 1}`}
+                  />
+                  {index === thumbnailImages.length - 1 && galleryImages.length > thumbnailImages.length && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <span className="text-xs font-black text-white">+{galleryImages.length - thumbnailImages.length}</span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(postedDate || occupancy) && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm font-semibold text-slate-500">
+              {postedDate && (
+                <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                  <span className="material-symbols-outlined text-lg text-orange-700">calendar_month</span>
+                  <span>Ngày đăng: {postedDate}</span>
                 </div>
               )}
-            </button>
-          ))}
-        </div>
-      )}
 
-      {(postedDate || occupancy) && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm font-semibold text-slate-500">
-          {postedDate && (
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
-              <span className="material-symbols-outlined text-lg text-orange-700">calendar_month</span>
-              <span>Ngày đăng: {postedDate}</span>
-            </div>
-          )}
-
-          {occupancy && (
-            <div className={`flex min-w-[260px] items-center gap-3 rounded-full border px-4 py-2 shadow-sm ${occupancyTone.badge}`}>
-              <span className={`flex h-9 w-9 items-center justify-center rounded-full ${occupancyTone.icon}`}>
-                <span className="material-symbols-outlined block translate-y-px text-xl leading-none">
-                  groups
-                </span>
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="truncate font-black">{occupancy.label}</span>
-                  <span className="shrink-0 text-xs font-bold opacity-80">
-                    {occupancy.current}/{occupancy.max} người
+              {occupancy && (
+                <div className={`flex min-w-[260px] items-center gap-3 rounded-full border px-4 py-2 shadow-sm ${occupancyTone.badge}`}>
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-full ${occupancyTone.icon}`}>
+                    <span className="material-symbols-outlined block translate-y-px text-xl leading-none">
+                      groups
+                    </span>
                   </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="truncate font-black">{occupancy.label}</span>
+                      <span className="shrink-0 text-xs font-bold opacity-80">
+                        {occupancy.current}/{occupancy.max} người
+                      </span>
+                    </div>
+                    {occupancy.reserved > 0 && (
+                      <p className="mt-0.5 text-[11px] font-bold opacity-80">
+                        {occupancy.reserved} chỗ đã được xác nhận, chờ nhận phòng
+                      </p>
+                    )}
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/80">
+                      <div
+                        className={`h-full rounded-full ${occupancyTone.bar}`}
+                        style={{ width: `${occupancy.percentage}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
-                {occupancy.reserved > 0 && (
-                  <p className="mt-0.5 text-[11px] font-bold opacity-80">
-                    {occupancy.reserved} chỗ đã được xác nhận, chờ nhận phòng
-                  </p>
-                )}
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/80">
-                  <div
-                    className={`h-full rounded-full ${occupancyTone.bar}`}
-                    style={{ width: `${occupancy.percentage}%` }}
-                  />
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>
-      )}
+
+        {hostPanel && (
+          <aside className="min-w-0 lg:sticky lg:top-28">
+            {hostPanel}
+          </aside>
+        )}
+      </div>
 
       {selectedImage && (
         <div

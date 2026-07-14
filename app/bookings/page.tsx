@@ -29,7 +29,7 @@ export default function BookingsPage() {
                   </h1>
                   <p className="text-sm text-muted-foreground mt-2 max-w-lg">
                     Theo dõi, xác nhận và xử lý các yêu cầu đặt phòng mới cho{" "}
-                    <span className="font-medium text-foreground">The Curated Hearth</span>.
+                    <span className="font-medium text-foreground">NhàHợp</span>.
                   </p>
                 </div>
               </div>

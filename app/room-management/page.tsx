@@ -29,7 +29,7 @@ export default function RoomManagementPage() {
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2 max-w-lg">
                   Tạo mới và quản lý tất cả phòng trong không gian co-living của{" "}
-                  <span className="font-medium text-foreground">The Curated Hearth</span>.
+                  <span className="font-medium text-foreground">NhàHợp</span>.
                 </p>
               </div>
                      <Link href="/room-management/add-room">

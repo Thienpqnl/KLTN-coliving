@@ -10,6 +10,11 @@ const roomInclude = {
       name: true,
       fullName: true,
       email: true,
+      phone: true,
+      avatarUrl: true,
+      phoneVerified: true,
+      createdAt: true,
+      role: true,
     },
   },
   amenities: {
@@ -33,6 +38,11 @@ const roomListInclude = {
       name: true,
       fullName: true,
       email: true,
+      phone: true,
+      avatarUrl: true,
+      phoneVerified: true,
+      createdAt: true,
+      role: true,
     },
   },
   amenities: {
@@ -103,6 +113,25 @@ const normalizeRoom = <TRoom extends NormalizableRoom>(room: TRoom) => {
     confirmedReservations,
     availableOccupantSlots: Math.max(0, maxOccupants - currentOccupants),
   };
+};
+
+const distanceInKilometers = (
+  originLat: number,
+  originLng: number,
+  destinationLat: number,
+  destinationLng: number,
+) => {
+  const toRadians = (degrees: number) => degrees * (Math.PI / 180);
+  const latitudeDelta = toRadians(destinationLat - originLat);
+  const longitudeDelta = toRadians(destinationLng - originLng);
+  const startLatitude = toRadians(originLat);
+  const endLatitude = toRadians(destinationLat);
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(startLatitude) * Math.cos(endLatitude) *
+    Math.sin(longitudeDelta / 2) ** 2;
+
+  return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 };
 
 export const roomService = {
@@ -259,24 +288,53 @@ getAllByOwnerId: async (ownerId: string) => {
     roomTypes?: string[],
     sortBy?: string
   ) => {
-    const where: Prisma.RoomWhereInput = {
-      status: "AVAILABLE",
-      ...(filters?.minPrice && { priceValue: { gte: filters.minPrice } }),
-      ...(filters?.maxPrice && { priceValue: { lte: filters.maxPrice } }),
-      ...(filters?.ownerId && { ownerId: filters.ownerId }),
-      ...(filters?.search && {
+    const andConditions: Prisma.RoomWhereInput[] = [];
+    if (filters.search) {
+      andConditions.push({
         OR: [
           { title: { contains: filters.search, mode: Prisma.QueryMode.insensitive } },
           { description: { contains: filters.search, mode: Prisma.QueryMode.insensitive } },
           { address: { contains: filters.search, mode: Prisma.QueryMode.insensitive } },
         ],
-      }),
-      ...(neighborhoods && neighborhoods.length > 0 && {
+      });
+    }
+    if (filters.location) {
+      andConditions.push({
+        OR: [
+          { address: { contains: filters.location, mode: Prisma.QueryMode.insensitive } },
+          { city: { contains: filters.location, mode: Prisma.QueryMode.insensitive } },
+          { district: { contains: filters.location, mode: Prisma.QueryMode.insensitive } },
+          { ward: { contains: filters.location, mode: Prisma.QueryMode.insensitive } },
+        ],
+      });
+    }
+    if (neighborhoods && neighborhoods.length > 0) {
+      andConditions.push({
         OR: neighborhoods.flatMap((neighborhood) => [
           { district: { contains: neighborhood, mode: Prisma.QueryMode.insensitive } },
           { address: { contains: neighborhood, mode: Prisma.QueryMode.insensitive } },
         ]),
-      }),
+      });
+    }
+
+    const hasDistanceFilter =
+      filters.originLat !== undefined &&
+      filters.originLng !== undefined &&
+      filters.maxDistanceKm !== undefined;
+    const needsPostFilter = hasDistanceFilter || Boolean(filters.minAvailableSlots);
+    const where: Prisma.RoomWhereInput = {
+      status: "AVAILABLE",
+      ...(filters?.minPrice && { priceValue: { gte: filters.minPrice } }),
+      ...(filters?.maxPrice && { priceValue: { lte: filters.maxPrice } }),
+      ...(filters?.ownerId && { ownerId: filters.ownerId }),
+      ...(filters.allowPets !== undefined && { allowPets: filters.allowPets }),
+      ...(filters.allowSmoking !== undefined && { allowSmoking: filters.allowSmoking }),
+      ...(filters.cleanlinessRequired && { cleanlinessRequired: filters.cleanlinessRequired }),
+      ...(filters.noiseTolerance && { noiseTolerance: filters.noiseTolerance }),
+      ...(filters.guestPolicy && { guestPolicy: filters.guestPolicy }),
+      ...(filters.preferredSleepHabit && { preferredSleepHabit: filters.preferredSleepHabit }),
+      ...(hasDistanceFilter && { latitude: { not: null }, longitude: { not: null } }),
+      ...(andConditions.length > 0 && { AND: andConditions }),
       ...(amenities && amenities.length > 0 && {
         amenities: {
           some: {
@@ -297,8 +355,6 @@ getAllByOwnerId: async (ownerId: string) => {
       }),
     };
 
-    const total = await prisma.room.count({ where });
-    
     // Determine ordering based on sortBy
     let orderBy: Prisma.RoomOrderByWithRelationInput = { createdAt: "desc" };
     if (sortBy === "price-low") {
@@ -309,6 +365,46 @@ getAllByOwnerId: async (ownerId: string) => {
       orderBy = { areaValue: "desc" };
     }
 
+    if (needsPostFilter) {
+      const candidates = await prisma.room.findMany({
+        where,
+        include: roomListInclude,
+        orderBy,
+      });
+      const filteredRooms = candidates
+        .map((room) => {
+          const normalized = normalizeRoom(room);
+          const distanceKm = hasDistanceFilter
+            ? distanceInKilometers(
+                filters.originLat!,
+                filters.originLng!,
+                Number(room.latitude),
+                Number(room.longitude),
+              )
+            : null;
+          return { ...normalized, distanceKm };
+        })
+        .filter((room) => {
+          if (
+            filters.minAvailableSlots &&
+            room.availableOccupantSlots < filters.minAvailableSlots
+          ) {
+            return false;
+          }
+          return !hasDistanceFilter || (room.distanceKm !== null && room.distanceKm <= filters.maxDistanceKm!);
+        });
+
+      if (sortBy === "distance" && hasDistanceFilter) {
+        filteredRooms.sort((left, right) => (left.distanceKm ?? 0) - (right.distanceKm ?? 0));
+      }
+
+      return {
+        rooms: filteredRooms.slice((page - 1) * limit, page * limit),
+        total: filteredRooms.length,
+      };
+    }
+
+    const total = await prisma.room.count({ where });
     const rooms = await prisma.room.findMany({
       where,
       include: roomListInclude,

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Manrope, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/context/AuthContext";
+import { PageTitle } from "@/components/PageTitle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,8 +27,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "The Curated Hearth | Editorial Co-Living",
-  description: "Experience a lifestyle defined by community, flexible luxury, and spaces designed to inspire your best work and life.",
+  title: {
+    default: "NhàHợp | Không gian sống chung phù hợp",
+    template: "%s | NhàHợp",
+  },
+  description: "Nền tảng tìm kiếm, kết nối và quản lý không gian sống chung phù hợp tại Việt Nam.",
 };
 
 export default function RootLayout({
@@ -37,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="vi"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${inter.variable} h-full antialiased`}
     >
@@ -49,6 +53,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-white">
         <AuthProvider>
+          <PageTitle />
           {children}
         </AuthProvider>
       </body>

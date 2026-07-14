@@ -9,6 +9,7 @@ const { startOutboxWorker } = require("./outbox.cjs");
 const { handleAdminAuditEvent } = require("./audit-events.cjs");
 const {
   createAdmin,
+  createUser,
   getAdminLogs,
   getUserById,
   getUserStats,
@@ -86,6 +87,20 @@ app.get("/v1/admin/users", async (request, response) => {
     return response.status(result.status).json(result.payload);
   } catch (error) {
     console.error("[identity-service] GET /v1/admin/users failed", error);
+    return response.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/v1/admin/users", async (request, response) => {
+  try {
+    const result = await createUser(
+      prisma,
+      requestIdentity(request),
+      request.body || {},
+    );
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] POST /v1/admin/users failed", error);
     return response.status(500).json({ error: "Internal server error" });
   }
 });

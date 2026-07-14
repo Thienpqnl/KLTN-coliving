@@ -223,7 +223,7 @@ export default function SharedSpacePage({ params }: PageProps) {
       <aside className="w-64 bg-white border-r border-slate-100 p-6 flex flex-col justify-between shrink-0 hidden md:flex">
         <div className="space-y-7">
           <div>
-            <h2 className="text-xl font-black tracking-tight text-[#783E1A]">The Curated Hearth</h2>
+            <h2 className="text-xl font-black tracking-tight text-[#783E1A]">NhàHợp</h2>
             <p className="text-[11px] text-slate-400 font-medium tracking-wide uppercase mt-0.5">Editorial Living</p>
           </div>
           <nav className="space-y-1">
