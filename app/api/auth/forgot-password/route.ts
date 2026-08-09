@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     path: "/v1/auth/password-reset/request",
     method: "POST",
     body,
-    fallbackMessage: "Không thể gửi mã đặt lại mật khẩu",
+    fallbackMessage: "Không thể gửi liên kết đặt lại mật khẩu",
   });
 
   return proxied ?? serviceUnavailableResponse(

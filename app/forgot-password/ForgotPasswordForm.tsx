@@ -2,25 +2,23 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { AuthHeader } from "@/components/AuthHeader";
 
-type RequestResult = { message?: string; error?: string; devOtp?: string };
+type RequestResult = { message?: string; error?: string; devResetUrl?: string };
 
 export default function ForgotPasswordForm() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [devOtp, setDevOtp] = useState("");
+  const [devResetUrl, setDevResetUrl] = useState("");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setMessage("");
-    setDevOtp("");
+    setDevResetUrl("");
     setIsLoading(true);
 
     try {
@@ -31,21 +29,17 @@ export default function ForgotPasswordForm() {
       });
       const payload = (await response.json().catch(() => ({}))) as RequestResult;
       if (!response.ok) {
-        setError(payload.message || payload.error || "Không thể gửi mã xác nhận.");
+        setError(payload.message || payload.error || "Không thể gửi liên kết đặt lại mật khẩu.");
         return;
       }
 
-      setMessage(payload.message || "Hãy kiểm tra hộp thư để lấy mã xác nhận.");
-      setDevOtp(payload.devOtp || "");
+      setMessage(payload.message || "Hãy kiểm tra hộp thư để mở liên kết đặt lại mật khẩu.");
+      setDevResetUrl(payload.devResetUrl || "");
     } catch {
       setError("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
-  }
-
-  function continueToReset() {
-    router.push(`/reset-password?email=${encodeURIComponent(email.trim())}`);
   }
 
   return (
@@ -60,12 +54,12 @@ export default function ForgotPasswordForm() {
               </div>
               <h1 className="mt-8 text-4xl font-extrabold leading-tight">Khôi phục quyền truy cập</h1>
               <p className="mt-4 leading-relaxed text-slate-300">
-                NhàHợp sẽ gửi mã xác nhận một lần đến email đã đăng ký của bạn.
+                NhàHợp sẽ gửi một liên kết bảo mật đến email đã đăng ký của bạn.
               </p>
             </div>
             <div className="mt-16 flex items-start gap-3 border-t border-slate-700 pt-6 text-sm text-slate-300">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
-              <p>Mã chỉ có hiệu lực trong 10 phút và không thể sử dụng lại.</p>
+              <p>Liên kết chỉ có hiệu lực trong 10 phút và không thể sử dụng lại.</p>
             </div>
           </section>
 
@@ -88,7 +82,7 @@ export default function ForgotPasswordForm() {
                     required
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    disabled={isLoading || Boolean(message)}
+                    disabled={isLoading}
                     placeholder="ban@example.com"
                     className="h-14 w-full rounded-lg border border-slate-200 bg-slate-50 pl-14 pr-5 outline-none transition focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
                   />
@@ -99,21 +93,19 @@ export default function ForgotPasswordForm() {
               {message && (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
                   <p className="font-semibold">{message}</p>
-                  {devOtp && <p className="mt-2">Mã OTP môi trường phát triển: <strong className="tracking-widest">{devOtp}</strong></p>}
+                  <p className="mt-2">Bạn cũng nên kiểm tra thư mục Spam hoặc Thư rác.</p>
+                  {devResetUrl && (
+                    <Link href={devResetUrl} className="mt-3 inline-flex font-bold text-orange-700 underline underline-offset-4">
+                      Mở liên kết thử nghiệm
+                    </Link>
+                  )}
                 </div>
               )}
 
-              {!message ? (
-                <button type="submit" disabled={isLoading} className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-orange-600 font-bold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60">
-                  {isLoading ? "Đang gửi mã..." : "Gửi mã xác nhận"}
-                  {!isLoading && <ArrowRight className="h-5 w-5" />}
-                </button>
-              ) : (
-                <button type="button" onClick={continueToReset} className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-slate-950 font-bold text-white transition hover:bg-slate-800">
-                  Nhập mã và mật khẩu mới
-                  <ArrowRight className="h-5 w-5" />
-                </button>
-              )}
+              <button type="submit" disabled={isLoading} className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-orange-600 font-bold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60">
+                {isLoading ? "Đang gửi..." : message ? "Gửi lại liên kết" : "Gửi liên kết đặt lại mật khẩu"}
+                {!isLoading && <ArrowRight className="h-5 w-5" />}
+              </button>
             </form>
           </section>
         </div>

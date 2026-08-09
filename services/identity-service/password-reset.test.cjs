@@ -4,9 +4,11 @@ const bcrypt = require("bcrypt");
 const {
   GENERIC_REQUEST_MESSAGE,
   confirmPasswordReset,
-  hashPasswordResetOtp,
+  hashPasswordResetToken,
   requestPasswordReset,
 } = require("./password-reset.cjs");
+
+const TEST_TOKEN = "a".repeat(43);
 
 function withEnvironment(run) {
   const previousSecret = process.env.JWT_SECRET;
@@ -27,103 +29,60 @@ test("password reset request does not reveal whether an account exists", () =>
     const result = await requestPasswordReset(prisma, { email: "missing@example.com" });
     assert.equal(result.status, 200);
     assert.equal(result.payload.message, GENERIC_REQUEST_MESSAGE);
-    assert.equal(result.payload.devOtp, undefined);
+    assert.equal(result.payload.devResetUrl, undefined);
   }));
 
-test("password reset request stores only a hashed OTP and sends the raw code", () =>
+test("password reset request stores only a token hash and emails the reset link", () =>
   withEnvironment(async () => {
     let createdData;
     let sentPayload;
+    const resetUrl = `http://localhost:3000/reset-password?token=${TEST_TOKEN}`;
     const prisma = {
-      user: {
-        findUnique: async () => ({ id: "user-1", email: "user@example.com", status: "ACTIVE" }),
-      },
+      user: { findUnique: async () => ({ id: "user-1", email: "user@example.com", status: "ACTIVE" }) },
       passwordResetOtp: {
         findFirst: async () => null,
         updateMany: async () => ({}),
         create: async ({ data }) => {
           createdData = data;
-          return { id: "otp-1", ...data };
+          return { id: "reset-1", ...data };
         },
         delete: async () => ({}),
       },
     };
-    const result = await requestPasswordReset(
-      prisma,
-      { email: "USER@example.com" },
-      {
-        code: "123456",
-        sendOtp: async (payload) => {
-          sentPayload = payload;
-        },
-      },
-    );
+    const result = await requestPasswordReset(prisma, { email: "USER@example.com" }, {
+      token: TEST_TOKEN,
+      resetUrl,
+      sendLink: async (payload) => { sentPayload = payload; },
+    });
 
     assert.equal(result.status, 200);
-    assert.equal(result.payload.devOtp, "123456");
-    assert.equal(createdData.codeHash, hashPasswordResetOtp("123456"));
-    assert.notEqual(createdData.codeHash, "123456");
-    assert.deepEqual(sentPayload, { to: "user@example.com", code: "123456" });
+    assert.equal(result.payload.devResetUrl, resetUrl);
+    assert.equal(createdData.codeHash, hashPasswordResetToken(TEST_TOKEN));
+    assert.notEqual(createdData.codeHash, TEST_TOKEN);
+    assert.deepEqual(sentPayload, { to: "user@example.com", resetUrl });
   }));
 
-test("password reset confirm increments attempts for an incorrect OTP", () =>
+test("password reset confirm rejects an unknown or expired token", () =>
   withEnvironment(async () => {
-    let updated;
-    const prisma = {
-      user: {
-        findUnique: async () => ({
-          id: "user-1",
-          password: await bcrypt.hash("OldPassword1", 4),
-          status: "ACTIVE",
-        }),
-      },
-      passwordResetOtp: {
-        findFirst: async () => ({
-          id: "otp-1",
-          codeHash: hashPasswordResetOtp("123456"),
-          attemptCount: 0,
-        }),
-        update: async (args) => {
-          updated = args;
-        },
-      },
-    };
-    const result = await confirmPasswordReset(prisma, {
-      email: "user@example.com",
-      code: "000000",
-      newPassword: "NewPassword1",
-    });
+    const prisma = { passwordResetOtp: { findFirst: async () => null } };
+    const result = await confirmPasswordReset(prisma, { token: TEST_TOKEN, newPassword: "NewPassword1" });
     assert.equal(result.status, 400);
-    assert.deepEqual(updated.data.attemptCount, { increment: 1 });
   }));
 
-test("password reset confirm changes the password and consumes all active OTPs", () =>
+test("password reset confirm changes the password and consumes all active links", () =>
   withEnvironment(async () => {
     const operations = [];
     const oldHash = await bcrypt.hash("OldPassword1", 4);
     const prisma = {
-      user: {
-        findUnique: async () => ({ id: "user-1", password: oldHash, status: "ACTIVE" }),
-        update: (args) => Promise.resolve({ type: "user", args }),
-      },
+      user: { update: (args) => Promise.resolve({ type: "user", args }) },
       passwordResetOtp: {
-        findFirst: async () => ({
-          id: "otp-1",
-          codeHash: hashPasswordResetOtp("123456"),
-          attemptCount: 0,
-        }),
-        update: (args) => Promise.resolve({ type: "otp", args }),
-        updateMany: (args) => Promise.resolve({ type: "other-otps", args }),
+        findFirst: async () => ({ id: "reset-1", userId: "user-1", user: { password: oldHash, status: "ACTIVE" } }),
+        update: (args) => Promise.resolve({ type: "reset", args }),
+        updateMany: (args) => Promise.resolve({ type: "other-links", args }),
       },
-      $transaction: async (items) => {
-        operations.push(...(await Promise.all(items)));
-      },
+      $transaction: async (items) => { operations.push(...(await Promise.all(items))); },
     };
-    const result = await confirmPasswordReset(prisma, {
-      email: "user@example.com",
-      code: "123456",
-      newPassword: "NewPassword1",
-    });
+    const result = await confirmPasswordReset(prisma, { token: TEST_TOKEN, newPassword: "NewPassword1" });
     assert.equal(result.status, 200);
     assert.equal(operations.length, 3);
     assert.equal(await bcrypt.compare("NewPassword1", operations[0].args.data.password), true);

@@ -3,15 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, Link2Off, LockKeyhole } from "lucide-react";
 import { AuthHeader } from "@/components/AuthHeader";
 
 type ResetResult = { message?: string; error?: string };
 
 export default function ResetPasswordForm() {
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState(searchParams.get("email") || "");
-  const [code, setCode] = useState("");
+  const token = searchParams.get("token") || "";
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +35,7 @@ export default function ResetPasswordForm() {
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), code: code.trim(), newPassword }),
+        body: JSON.stringify({ token, newPassword }),
       });
       const payload = (await response.json().catch(() => ({}))) as ResetResult;
       if (!response.ok) {
@@ -58,7 +57,7 @@ export default function ResetPasswordForm() {
         <div className="mx-auto max-w-2xl rounded-lg border border-slate-200 bg-white p-10 shadow-xl shadow-slate-900/5">
           <Link href="/forgot-password" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-orange-700">
             <ArrowLeft className="h-4 w-4" />
-            Yêu cầu mã khác
+            Yêu cầu liên kết khác
           </Link>
 
           {success ? (
@@ -70,23 +69,24 @@ export default function ResetPasswordForm() {
                 Đăng nhập ngay
               </Link>
             </div>
+          ) : !token ? (
+            <div className="py-12 text-center">
+              <Link2Off className="mx-auto h-14 w-14 text-red-500" />
+              <h1 className="mt-5 text-3xl font-extrabold text-slate-950">Liên kết không hợp lệ</h1>
+              <p className="mx-auto mt-3 max-w-lg text-slate-600">Liên kết đặt lại mật khẩu đang thiếu token xác thực.</p>
+              <Link href="/forgot-password" className="mt-8 inline-flex h-12 items-center rounded-full bg-orange-600 px-7 font-bold text-white hover:bg-orange-700">
+                Yêu cầu liên kết mới
+              </Link>
+            </div>
           ) : (
             <>
               <div className="mt-7 flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100 text-orange-700">
                 <LockKeyhole className="h-6 w-6" />
               </div>
               <h1 className="mt-5 text-3xl font-extrabold text-slate-950">Tạo mật khẩu mới</h1>
-              <p className="mt-2 text-slate-600">Nhập mã 6 số trong email và chọn mật khẩu mới cho tài khoản.</p>
+              <p className="mt-2 text-slate-600">Chọn mật khẩu mới an toàn cho tài khoản NhàHợp.</p>
 
               <form className="mt-8 grid grid-cols-2 gap-5" onSubmit={handleSubmit}>
-                <label className="col-span-2 block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-600">Địa chỉ email</span>
-                  <input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="h-13 w-full rounded-lg border border-slate-200 bg-slate-50 px-5 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
-                </label>
-                <label className="col-span-2 block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-600">Mã xác nhận</span>
-                  <input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} placeholder="000000" className="h-13 w-full rounded-lg border border-slate-200 bg-slate-50 px-5 text-center text-xl font-bold tracking-[0.35em] outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
-                </label>
                 <label className="block">
                   <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-600">Mật khẩu mới</span>
                   <div className="relative">

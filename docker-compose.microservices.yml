@@ -30,6 +30,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
+      APP_URL: ${APP_URL:-http://localhost:3000}
       PASSWORD_RESET_DEV_MODE: ${PASSWORD_RESET_DEV_MODE:-false}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
       PROPERTY_SERVICE_URL: http://property-service:4002
