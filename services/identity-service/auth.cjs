@@ -1,5 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { issueVerificationLink } = require("./email-verification.cjs");
+const { passwordResetDevMode } = require("./email-sender.cjs");
 
 const userProfileSelect = {
   id: true,
@@ -70,6 +72,16 @@ async function login(prisma, email, password) {
   if (!(await bcrypt.compare(password, user.password))) {
     return { status: 400, payload: { message: "Mật khẩu không chính xác" } };
   }
+  if (user.status === "PENDING_VERIFICATION") {
+    return {
+      status: 403,
+      payload: {
+        code: "EMAIL_NOT_VERIFIED",
+        message: "Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email.",
+        email: user.email,
+      },
+    };
+  }
 
   const token = jwt.sign(
     { userId: user.id, role: user.role },
@@ -85,8 +97,8 @@ async function login(prisma, email, password) {
   };
 }
 
-async function register(prisma, input) {
-  const email = String(input.email || "").trim();
+async function register(prisma, input, options = {}) {
+  const email = String(input.email || "").trim().toLowerCase();
   const password = input.password;
   const fullName = String(input.fullName || "").trim();
   const allowedRoles = ["HOST", "CUSTOMER", "COMMUNITY_MANAGER"];
@@ -98,9 +110,44 @@ async function register(prisma, input) {
     };
   }
 
-  if (await prisma.user.findUnique({ where: { email } })) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { status: 400, payload: { message: "Địa chỉ email không hợp lệ" } };
+  }
+  if (
+    typeof password !== "string" ||
+    password.length < 8 ||
+    password.length > 72 ||
+    !/[A-Za-z]/.test(password) ||
+    !/\d/.test(password)
+  ) {
     return {
       status: 400,
+      payload: { message: "Mật khẩu phải có từ 8 đến 72 ký tự, gồm chữ và số" },
+    };
+  }
+
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser?.status === "PENDING_VERIFICATION") {
+    const issued = await (options.issueVerificationLink || issueVerificationLink)(
+      prisma,
+      { id: existingUser.id, email: existingUser.email },
+      options.verificationOptions,
+    );
+    return {
+      status: 200,
+      payload: {
+        message: "Tài khoản đang chờ kích hoạt. Hãy kiểm tra email của bạn.",
+        email,
+        requiresEmailVerification: true,
+        ...(passwordResetDevMode() && issued.verificationUrl
+          ? { devVerificationUrl: issued.verificationUrl }
+          : {}),
+      },
+    };
+  }
+  if (existingUser) {
+    return {
+      status: 409,
       payload: { message: "Email này đã được sử dụng" },
     };
   }
@@ -112,24 +159,24 @@ async function register(prisma, input) {
       name: fullName,
       fullName,
       role: allowedRoles.includes(input.role) ? input.role : "CUSTOMER",
+      status: "PENDING_VERIFICATION",
     },
   });
-  const token = jwt.sign(
-    { userId: user.id, role: user.role },
-    requireJwtSecret(),
-    { expiresIn: "1d" },
+  const issued = await (options.issueVerificationLink || issueVerificationLink)(
+    prisma,
+    { id: user.id, email: user.email },
+    { ...options.verificationOptions, ignoreCooldown: true },
   );
 
   return {
-    status: 200,
+    status: 201,
     payload: {
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-      },
-      token,
+      message: "Đăng ký thành công. Hãy kiểm tra email để kích hoạt tài khoản.",
+      email: user.email,
+      requiresEmailVerification: true,
+      ...(passwordResetDevMode() && issued.verificationUrl
+        ? { devVerificationUrl: issued.verificationUrl }
+        : {}),
     },
   };
 }

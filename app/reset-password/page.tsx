@@ -4,7 +4,7 @@ import ResetPasswordForm from "./ResetPasswordForm";
 
 export const metadata: Metadata = {
   title: "Đặt lại mật khẩu",
-  description: "Xác nhận OTP và tạo mật khẩu mới cho tài khoản NhàHợp.",
+  description: "Tạo mật khẩu mới từ liên kết bảo mật của NhàHợp.",
 };
 
 export default function ResetPasswordPage() {

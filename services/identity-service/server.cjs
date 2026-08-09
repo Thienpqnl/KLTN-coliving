@@ -30,6 +30,10 @@ const {
   confirmPasswordReset,
   requestPasswordReset,
 } = require("./password-reset.cjs");
+const {
+  confirmEmailVerification,
+  requestEmailVerification,
+} = require("./email-verification.cjs");
 const { getDomainUser, getDomainUsers, searchDomainUsers } = require("./domain-users.cjs");
 const {
   deleteLegacyAccount,
@@ -211,6 +215,30 @@ app.post("/v1/auth/register", async (request, response) => {
     console.error("[identity-service] POST /v1/auth/register failed", error);
     return response.status(error.statusCode || 500).json({
       message: "Hệ thống đang gặp sự cố. Vui lòng thử lại sau.",
+    });
+  }
+});
+
+app.post("/v1/auth/email-verification/confirm", async (request, response) => {
+  try {
+    const result = await confirmEmailVerification(prisma, request.body || {});
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] POST email verification confirm failed", error);
+    return response.status(500).json({
+      message: "Không thể kích hoạt tài khoản. Vui lòng thử lại sau.",
+    });
+  }
+});
+
+app.post("/v1/auth/email-verification/resend", async (request, response) => {
+  try {
+    const result = await requestEmailVerification(prisma, request.body || {});
+    return response.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error("[identity-service] POST email verification resend failed", error);
+    return response.status(503).json({
+      message: "Hiện không thể gửi email kích hoạt. Vui lòng thử lại sau.",
     });
   }
 });

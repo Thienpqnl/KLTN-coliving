@@ -4,6 +4,7 @@ const test = require("node:test");
 const expectedModels = {
   identity: [
     "AdminLog",
+    "EmailVerificationToken",
     "IdentityInboxEvent",
     "IdentityOutboxEvent",
     "PasswordResetOtp",

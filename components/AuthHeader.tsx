@@ -1,10 +1,20 @@
 import Link from 'next/link';
 
-type AuthPage = 'login' | 'register' | 'forgot-password' | 'reset-password';
+type AuthPage =
+  | 'login'
+  | 'register'
+  | 'forgot-password'
+  | 'reset-password'
+  | 'check-email'
+  | 'verify-email';
 
 export function AuthHeader({ page }: { page: AuthPage }) {
   const isLoginPage = page === 'login';
-  const isRecoveryPage = page === 'forgot-password' || page === 'reset-password';
+  const isRecoveryPage =
+    page === 'forgot-password' ||
+    page === 'reset-password' ||
+    page === 'check-email' ||
+    page === 'verify-email';
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">

@@ -11,14 +11,14 @@ export async function POST(request: Request) {
   }
 
   const proxied = await tryProxyIdentityServiceRaw({
-    path: "/v1/auth/password-reset/request",
+    path: "/v1/auth/email-verification/resend",
     method: "POST",
     body,
-    fallbackMessage: "Không thể gửi liên kết đặt lại mật khẩu",
+    fallbackMessage: "Không thể gửi lại email kích hoạt",
   });
 
   return proxied ?? serviceUnavailableResponse(
     "Identity Service",
-    "Luồng đặt lại mật khẩu chỉ được xử lý bởi Identity Service",
+    "Gửi lại email kích hoạt chỉ được xử lý bởi Identity Service",
   );
 }
