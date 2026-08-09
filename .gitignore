@@ -57,3 +57,15 @@ next-env.d.ts
 
 .tmp/
 docs/
+
+# Thesis working files
+/thesis-extracted/
+/docx_render/
+/.tmp_doc_arch/
+/current-thesis*.docx
+/current-thesis*.zip
+/KLTN_Coliving*.docx
+
+# Generated thesis output
+/docs/thesis/render-*/
+/docs/thesis/*-structure.json
