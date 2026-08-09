@@ -272,12 +272,13 @@ async function getUserStats(prisma, identity) {
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [total, tenants, landlords, communityManagers, locked, deleted, newThisMonth] =
+  const [total, tenants, landlords, communityManagers, pendingVerification, locked, deleted, newThisMonth] =
     await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { role: "CUSTOMER", status: "ACTIVE" } }),
       prisma.user.count({ where: { role: "HOST", status: "ACTIVE" } }),
       prisma.user.count({ where: { role: "COMMUNITY_MANAGER", status: "ACTIVE" } }),
+      prisma.user.count({ where: { status: "PENDING_VERIFICATION" } }),
       prisma.user.count({ where: { status: "LOCKED" } }),
       prisma.user.count({ where: { status: "DELETED" } }),
       prisma.user.count({ where: { createdAt: { gte: startOfMonth } } }),
@@ -301,6 +302,7 @@ async function getUserStats(prisma, identity) {
       tenants,
       landlords,
       communityManagers,
+      pendingVerification,
       locked,
       deleted,
       newThisMonth,

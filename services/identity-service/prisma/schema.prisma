@@ -31,6 +31,7 @@ model User {
   affectedLogs    AdminLog[]  @relation("AffectedUser")
   phoneOtps       PhoneOtp[]
   passwordResetOtps PasswordResetOtp[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@map("User")
 }
@@ -63,6 +64,20 @@ model PasswordResetOtp {
 
   @@index([userId, createdAt])
   @@index([codeHash])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId, createdAt])
   @@index([expiresAt])
 }
 
@@ -123,6 +138,7 @@ enum Role {
 }
 
 enum UserStatus {
+  PENDING_VERIFICATION
   ACTIVE
   LOCKED
   DELETED

@@ -22,7 +22,7 @@ import {
 import { useAuth } from "@/lib/hooks/useAuth"
 
 type Role = "CUSTOMER" | "HOST" | "ADMIN" | "COMMUNITY_MANAGER"
-type UserStatus = "ACTIVE" | "LOCKED" | "DELETED"
+type UserStatus = "PENDING_VERIFICATION" | "ACTIVE" | "LOCKED" | "DELETED"
 type ActionType = "lock" | "unlock" | "delete" | "update_role"
 type CreateUserRole = Exclude<Role, "ADMIN">
 
@@ -65,6 +65,7 @@ interface UserStats {
   tenants: number
   landlords: number
   communityManagers: number
+  pendingVerification: number
   locked: number
   deleted: number
   newThisMonth: number
@@ -78,6 +79,7 @@ const roleLabels: Record<Role, string> = {
 }
 
 const statusLabels: Record<UserStatus, string> = {
+  PENDING_VERIFICATION: "Chờ kích hoạt",
   ACTIVE: "Đang hoạt động",
   LOCKED: "Đã khóa",
   DELETED: "Đã xóa",
@@ -291,7 +293,7 @@ export default function UserManagement() {
 
   const activeFilters = Boolean(search || roleFilter || statusFilter)
   const activeUsers = stats
-    ? Math.max(0, stats.total - stats.locked - stats.deleted)
+    ? Math.max(0, stats.total - stats.pendingVerification - stats.locked - stats.deleted)
     : 0
 
   return (
@@ -326,6 +328,7 @@ export default function UserManagement() {
             </FilterSelect>
             <FilterSelect label="Trạng thái" value={statusFilter} onChange={setStatusFilter}>
               <option value="">Tất cả trạng thái</option>
+              <option value="PENDING_VERIFICATION">Chờ kích hoạt</option>
               <option value="ACTIVE">Đang hoạt động</option>
               <option value="LOCKED">Đã khóa</option>
               <option value="DELETED">Đã xóa</option>
@@ -518,6 +521,7 @@ function RoleBadge({ role }: { role: Role }) {
 
 function StatusBadge({ status }: { status: UserStatus }) {
   const classes: Record<UserStatus, string> = {
+    PENDING_VERIFICATION: "bg-blue-50 text-blue-700",
     ACTIVE: "bg-emerald-50 text-emerald-700",
     LOCKED: "bg-amber-50 text-amber-700",
     DELETED: "bg-slate-100 text-slate-600",

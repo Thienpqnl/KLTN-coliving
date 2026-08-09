@@ -7,18 +7,18 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ message: "Dữ liệu đăng ký không hợp lệ." }, { status: 400 });
+    return NextResponse.json({ message: "Dữ liệu xác minh không hợp lệ." }, { status: 400 });
   }
 
   const proxied = await tryProxyIdentityServiceRaw({
-    path: "/v1/auth/register",
+    path: "/v1/auth/email-verification/confirm",
     method: "POST",
     body,
-    fallbackMessage: "Không thể đăng ký tài khoản",
+    fallbackMessage: "Không thể kích hoạt tài khoản",
   });
 
   return proxied ?? serviceUnavailableResponse(
     "Identity Service",
-    "Đăng ký tài khoản chỉ được xử lý bởi Identity Service",
+    "Kích hoạt tài khoản chỉ được xử lý bởi Identity Service",
   );
 }

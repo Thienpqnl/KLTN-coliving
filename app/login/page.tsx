@@ -14,11 +14,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError('');
+    setNeedsEmailVerification(false);
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -34,6 +36,7 @@ export default function LoginPage() {
         : null;
 
       if (!response.ok) {
+        setNeedsEmailVerification(payload?.code === 'EMAIL_NOT_VERIFIED');
         setError(
           payload?.message ||
             `Không thể đăng nhập. Máy chủ trả về mã lỗi ${response.status}.`
@@ -172,7 +175,15 @@ export default function LoginPage() {
 
               {error && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                  {error}
+                  <p>{error}</p>
+                  {needsEmailVerification && (
+                    <Link
+                      href={`/check-email?email=${encodeURIComponent(email.trim())}`}
+                      className="mt-2 inline-flex font-bold text-orange-700 underline underline-offset-4"
+                    >
+                      Gửi lại email kích hoạt
+                    </Link>
+                  )}
                 </div>
               )}
 

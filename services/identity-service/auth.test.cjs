@@ -37,6 +37,25 @@ test("login rejects locked and deleted accounts before password verification", a
   assert.equal(deleted.status, 403);
 });
 
+test("login rejects a pending account after validating its password", async () => {
+  const passwordHash = await bcrypt.hash("password123", 4);
+  const result = await login(
+    {
+      user: {
+        findUnique: async () => ({
+          email: "pending@example.com",
+          password: passwordHash,
+          status: "PENDING_VERIFICATION",
+        }),
+      },
+    },
+    "pending@example.com",
+    "password123",
+  );
+  assert.equal(result.status, 403);
+  assert.equal(result.payload.code, "EMAIL_NOT_VERIFIED");
+});
+
 test("login returns a compatible JWT and user payload", async () => {
   const previousSecret = process.env.JWT_SECRET;
   process.env.JWT_SECRET = "identity-service-test-secret";
@@ -106,7 +125,7 @@ test("getCurrentUser verifies the bearer token before querying the profile", asy
   }
 });
 
-test("register restricts public roles and returns a compatible session", async () => {
+test("register restricts public roles and requires email verification", async () => {
   const previousSecret = process.env.JWT_SECRET;
   process.env.JWT_SECRET = "identity-service-test-secret";
   let createdData;
@@ -121,16 +140,27 @@ test("register restricts public roles and returns a compatible session", async (
   };
 
   try {
-    const result = await register(prisma, {
-      email: "new@example.com",
-      password: "password123",
-      fullName: "Nguyen Van A",
-      role: "ADMIN",
-    });
-    assert.equal(result.status, 200);
+    const result = await register(
+      prisma,
+      {
+        email: "new@example.com",
+        password: "password123",
+        fullName: "Nguyen Van A",
+        role: "ADMIN",
+      },
+      {
+        issueVerificationLink: async () => ({
+          sent: true,
+          verificationUrl: "http://localhost:3000/verify-email?token=test",
+        }),
+      },
+    );
+    assert.equal(result.status, 201);
     assert.equal(createdData.role, "CUSTOMER");
-    assert.equal(result.payload.user.fullName, "Nguyen Van A");
-    assert.ok(result.payload.token);
+    assert.equal(createdData.status, "PENDING_VERIFICATION");
+    assert.equal(result.payload.email, "new@example.com");
+    assert.equal(result.payload.requiresEmailVerification, true);
+    assert.equal(result.payload.token, undefined);
   } finally {
     if (previousSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = previousSecret;
