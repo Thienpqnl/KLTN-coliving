@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Sparkles, Users } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/useAuth';
 import { AuthHeader } from '@/components/AuthHeader';
 
 type RegisterForm = {
@@ -27,7 +26,6 @@ const initialForm: RegisterForm = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
   const [formData, setFormData] = useState<RegisterForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -61,8 +59,12 @@ export default function RegisterPage() {
     }
     if (!formData.password) {
       nextErrors.password = 'Vui lòng nhập mật khẩu.';
-    } else if (formData.password.length < 8) {
-      nextErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự.';
+    } else if (
+      formData.password.length < 8 ||
+      !/[A-Za-z]/.test(formData.password) ||
+      !/\d/.test(formData.password)
+    ) {
+      nextErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ và số.';
     }
     if (!formData.confirmPassword) {
       nextErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu.';
@@ -114,19 +116,17 @@ export default function RegisterPage() {
         return;
       }
 
-      if (!payload?.token) {
-        setErrors({ submit: 'Máy chủ không trả về phiên đăng nhập hợp lệ.' });
+      if (!payload?.requiresEmailVerification) {
+        setErrors({ submit: 'Máy chủ không trả về yêu cầu xác minh email hợp lệ.' });
         return;
       }
 
-      await login(payload.token);
-      router.replace(
-        formData.role === 'HOST'
-          ? '/host'
-          : formData.role === 'COMMUNITY_MANAGER'
-            ? '/community-manager'
-            : '/'
-      );
+      if (payload.devVerificationUrl) {
+        sessionStorage.setItem('verificationDevUrl', payload.devVerificationUrl);
+      } else {
+        sessionStorage.removeItem('verificationDevUrl');
+      }
+      router.replace(`/check-email?email=${encodeURIComponent(payload.email || formData.email.trim())}`);
     } catch {
       setErrors({ submit: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại server.' });
     } finally {

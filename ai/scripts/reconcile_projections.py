@@ -1,7 +1,11 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
+from dotenv import load_dotenv
+
+AI_ROOT = Path(__file__).parents[1]
+sys.path.insert(0, str(AI_ROOT))
+load_dotenv(AI_ROOT / ".env")
 
 from services.projection_reconciliation import reconcile_projections
 
