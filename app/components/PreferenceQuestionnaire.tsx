@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AlertCircle, CheckCircle2, LoaderCircle, X } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+
+type FormNotice = {
+  type: "success" | "error" | "info";
+  title: string;
+  message: string;
+};
 
 export default function PreferenceQuestionnaire() {
   const router = useRouter();
@@ -24,6 +31,7 @@ export default function PreferenceQuestionnaire() {
   });
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+  const [notice, setNotice] = useState<FormNotice | null>(null);
 
   // Load preferences khi component mount
   useEffect(() => {
@@ -84,28 +92,45 @@ export default function PreferenceQuestionnaire() {
     }
 
     if (isLoading) {
-      alert("Đang tải dữ liệu, vui lòng chờ...");
+      setNotice({
+        type: "info",
+        title: "Đang tải sở thích",
+        message: "Vui lòng chờ trong giây lát trước khi tìm phòng.",
+      });
       return;
     }
 
+    setNotice(null);
     setLoading(true);
 
     try {
       // Validate
       if (!form.budgetMinVnd || !form.budgetMaxVnd) {
-        alert("Vui lòng nhập ngân sách");
+        setNotice({
+          type: "error",
+          title: "Chưa đủ thông tin",
+          message: "Vui lòng nhập khoảng ngân sách mong muốn.",
+        });
         setLoading(false);
         return;
       }
 
       if (!form.lifestyleArchetype) {
-        alert("Vui lòng chọn kiểu lối sống");
+        setNotice({
+          type: "error",
+          title: "Chưa chọn lối sống",
+          message: "Hãy chọn kiểu lối sống phù hợp nhất với bạn.",
+        });
         setLoading(false);
         return;
       }
 
       if (Number(form.budgetMinVnd) > Number(form.budgetMaxVnd)) {
-        alert("Ngân sách tối đa phải lớn hơn hoặc bằng ngân sách tối thiểu");
+        setNotice({
+          type: "error",
+          title: "Khoảng ngân sách chưa hợp lệ",
+          message: "Ngân sách tối đa phải lớn hơn hoặc bằng ngân sách tối thiểu.",
+        });
         setLoading(false);
         return;
       }
@@ -143,11 +168,20 @@ export default function PreferenceQuestionnaire() {
       }
 
       await response.json();
-      alert("Lưu thành công! Đang tìm phòng phù hợp cho bạn...");
+      setNotice({
+        type: "success",
+        title: "Đã lưu sở thích",
+        message: "AI đang phân tích để tìm những phòng phù hợp nhất với bạn.",
+      });
+      await new Promise((resolve) => window.setTimeout(resolve, 900));
       router.push("/rooms/recommendations");
     } catch (error: unknown) {
       if (!(error instanceof Error)) throw error;
-      alert(`❌ Lỗi: ${error.message}`);
+      setNotice({
+        type: "error",
+        title: "Không thể lưu sở thích",
+        message: error.message,
+      });
       console.warn("Không thể lưu sở thích:", error.message);
     } finally {
       setLoading(false);
@@ -176,6 +210,56 @@ export default function PreferenceQuestionnaire() {
   return (
     <>
       <Navigation />
+      {notice && (
+        <div
+          className="fixed left-4 right-4 top-24 z-[100] w-auto overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-900/15 sm:left-auto sm:right-8 sm:w-[380px]"
+          role={notice.type === "error" ? "alert" : "status"}
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-4 p-5">
+            <div
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${
+                notice.type === "success"
+                  ? "bg-emerald-50 text-emerald-600"
+                  : notice.type === "error"
+                    ? "bg-red-50 text-red-600"
+                    : "bg-blue-50 text-blue-600"
+              }`}
+            >
+              {notice.type === "success" ? (
+                <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+              ) : notice.type === "error" ? (
+                <AlertCircle className="h-6 w-6" aria-hidden="true" />
+              ) : (
+                <LoaderCircle className="h-6 w-6 animate-spin" aria-hidden="true" />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1 pt-0.5">
+              <p className="font-bold text-slate-950">{notice.title}</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">{notice.message}</p>
+            </div>
+
+            {notice.type !== "success" && (
+              <button
+                type="button"
+                onClick={() => setNotice(null)}
+                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Đóng thông báo"
+                title="Đóng"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+
+          {notice.type === "success" && (
+            <div className="h-1 w-full overflow-hidden bg-emerald-100">
+              <div className="h-full w-full origin-left animate-pulse bg-emerald-500" />
+            </div>
+          )}
+        </div>
+      )}
       {isLoading && (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50 pt-32 pb-20 flex items-center justify-center">
           <div className="text-center">
@@ -739,7 +823,10 @@ export default function PreferenceQuestionnaire() {
                     disabled={loading}
                     className="flex-1 px-6 py-4 rounded-xl font-bold uppercase tracking-wide text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-emerald-500/30"
                   >
-                    {loading ? " Đang lưu..." : " Tìm phòng ngay"}
+                    <span className="flex items-center justify-center gap-2">
+                      {loading && <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />}
+                      {loading ? "Đang tìm phòng phù hợp..." : "Tìm phòng ngay"}
+                    </span>
                   </button>
                 )}
               </div>

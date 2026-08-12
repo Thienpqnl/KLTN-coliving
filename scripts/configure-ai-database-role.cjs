@@ -90,7 +90,7 @@ async function main() {
         "id", "userId", "roomId", "interactionType", "interactionValue", "createdAt"
       ) ON preference."RoomInteraction" TO ${ROLE};
       GRANT SELECT (
-        "id", "title", "address", "district", "districtId", "priceValue", "ownerId",
+        "id", "title", "address", "district", "districtId", "latitude", "longitude", "priceValue", "ownerId",
         "status", "cleanlinessRequired", "noiseTolerance", "guestPolicy",
         "preferredSleepHabit", "maxOccupants", "currentOccupants", "allowSmoking",
         "allowPets", "updatedAt"
