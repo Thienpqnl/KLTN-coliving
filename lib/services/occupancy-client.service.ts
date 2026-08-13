@@ -2,11 +2,18 @@ import { apiClient } from '@/lib/api/client'
 
 export interface Occupant {
   id: string;
+  roomId: string;
+  userId: string;
   status: string;
   joinedAt: string;
   terminatedAt?: string;
   terminationReason?: string;
   notes?: string;
+  contract?: {
+    id: string;
+    status: string;
+    endDate: string;
+  } | null;
   user: {
     id: string;
     email: string;
@@ -17,7 +24,7 @@ export interface Occupant {
     gender?: string;
     birthDate?: string;
     address?: string;
-  };
+  } | null;
 }
 
 export interface OccupantDetails extends Occupant {
@@ -36,7 +43,34 @@ export interface OccupancyStats {
   occupancyRate: number;
 }
 
+export interface HostOccupancyRoom {
+  id: string;
+  title?: string;
+  address?: string;
+  imageUrl?: string;
+  images?: Array<string | { url?: string }>;
+  status: string;
+  maxOccupants: number;
+  currentOccupants: number;
+  availableSlots: number;
+  formerCount: number;
+  members: Occupant[];
+}
+
+export interface HostOccupancyOverview {
+  summary: {
+    totalRooms: number;
+    activeMembers: number;
+    formerMembers: number;
+    availableSlots: number;
+  };
+  rooms: HostOccupancyRoom[];
+}
+
 export const occupancyClient = {
+  getHostOverview: async (): Promise<HostOccupancyOverview> => {
+    return apiClient.get('/host/occupancy/overview');
+  },
   // Get all occupants of a room
   getRoomOccupants: async (roomId: string): Promise<Occupant[]> => {
     return apiClient.get(`/host/occupancy/rooms/${roomId}`);

@@ -1,129 +1,41 @@
 'use client';
 
 import { useState } from 'react';
+import { AlertTriangle, CheckCircle2, Loader2, X } from 'lucide-react';
 import { occupancyClient } from '@/lib/services/occupancy-client.service';
-import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-interface TerminateTenantModalProps {
-  occupancyId: string;
-  tenantName: string;
-  onClose: () => void;
-  onSuccess?: () => void;
-}
+interface Props { occupancyId: string; tenantName: string; onClose: () => void; onSuccess?: () => void; }
 
-export function TerminateTenantModal({
-  occupancyId,
-  tenantName,
-  onClose,
-  onSuccess,
-}: TerminateTenantModalProps) {
+export function TerminateTenantModal({ occupancyId, tenantName, onClose, onSuccess }: Props) {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const handleTerminate = async () => {
-    if (!reason.trim()) {
-      setError('Vui lòng nhập lý do chấm dứt thuê');
-      return;
-    }
-
+  const submit = async () => {
+    if (reason.trim().length < 5) return setError('Vui lòng nhập lý do có ít nhất 5 ký tự.');
+    setLoading(true); setError('');
     try {
-      setLoading(true);
-      setError(null);
-      await occupancyClient.terminateOccupancy(occupancyId, reason);
+      await occupancyClient.terminateOccupancy(occupancyId, reason.trim());
       setSuccess(true);
-      setTimeout(() => {
-        onSuccess?.();
-        onClose();
-      }, 1500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to terminate occupancy');
-    } finally {
-      setLoading(false);
-    }
+      window.setTimeout(() => { onSuccess?.(); onClose(); }, 900);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Không thể kết thúc cư trú');
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-md mx-4 shadow-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
-          <h2 className="text-lg font-bold">Chấm dứt hợp đồng thuê</h2>
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="p-1 hover:bg-slate-100 rounded transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && !loading && onClose()}>
+      <div className="w-full max-w-lg overflow-hidden rounded-lg bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5"><div><p className="text-xs font-bold uppercase tracking-wider text-red-600">Quản lý cư trú</p><h2 className="mt-1 text-xl font-black text-slate-950">Xác nhận thành viên rời phòng</h2></div><button onClick={onClose} disabled={loading} className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+        <div className="space-y-5 p-6">
+          {success ? <div className="py-8 text-center"><CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" /><p className="mt-3 font-bold text-slate-900">Đã cập nhật trạng thái cư trú</p></div> : <>
+            <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><p className="text-sm leading-6 text-amber-900">Thành viên <strong>{tenantName}</strong> sẽ được chuyển sang lịch sử. Nếu có hợp đồng đang hiệu lực, hợp đồng cũng được chấm dứt và chỗ trống của phòng được cập nhật trong cùng giao dịch.</p></div>
+            <div><label htmlFor="termination-reason" className="mb-2 block text-sm font-bold text-slate-800">Lý do kết thúc cư trú</label><textarea id="termination-reason" value={reason} onChange={(event) => { setReason(event.target.value); setError(''); }} rows={4} placeholder="Ví dụ: Hai bên đã thống nhất kết thúc hợp đồng thuê..." className="w-full resize-none rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" /></div>
+            {error && <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">{error}</p>}
+          </>}
         </div>
-
-        {/* Content */}
-        <div className="p-6">
-          {success ? (
-            <div className="text-center space-y-3">
-              <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto" />
-              <p className="text-sm text-slate-700">
-                Đã chấm dứt hợp đồng thuê cho <strong>{tenantName}</strong>
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex gap-3">
-                <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-orange-900">
-                  Bạn sắp chấm dứt hợp đồng thuê cho <strong>{tenantName}</strong>. Hành động này không
-                  thể hoàn tác.
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
-                  Lý do chấm dứt <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={reason}
-                  onChange={(e) => {
-                    setReason(e.target.value);
-                    setError(null);
-                  }}
-                  placeholder="Ví dụ: Người thuê đã hoàn tất hợp đồng, hết thời gian thuê..."
-                  rows={4}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                  disabled={loading}
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        {!success && (
-          <div className="flex gap-3 p-6 border-t border-slate-200">
-            <button
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
-            >
-              Hủy
-            </button>
-            <button
-              onClick={handleTerminate}
-              disabled={loading || !reason.trim()}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-            >
-              {loading ? 'Đang xử lý...' : 'Xác nhận chấm dứt'}
-            </button>
-          </div>
-        )}
+        {!success && <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4"><button onClick={onClose} disabled={loading} className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700">Hủy</button><button onClick={() => void submit()} disabled={loading || reason.trim().length < 5} className="inline-flex h-10 items-center gap-2 rounded-lg bg-red-600 px-5 text-sm font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">{loading && <Loader2 className="h-4 w-4 animate-spin" />}Xác nhận rời phòng</button></div>}
       </div>
     </div>
   );

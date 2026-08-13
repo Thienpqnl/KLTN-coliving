@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { occupancyClient, type OccupantDetails } from '@/lib/services/occupancy-client.service';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { Mail, Phone, MapPin, Calendar, Building2, AlertCircle, Loader } from 'lucide-react';
+import { Phone, MapPin, Calendar, Building2, AlertCircle, Loader } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { X } from 'lucide-react';
 
@@ -66,7 +66,13 @@ export function TenantDetailsModal({ occupancyId, onClose }: TenantDetailsModalP
     );
   }
 
-  const displayName = tenant.user.fullName || tenant.user.name;
+  const user = tenant.user ?? {
+    id: tenant.userId,
+    email: '',
+    name: '',
+    fullName: '',
+  };
+  const displayName = user.fullName || user.name || user.email || 'Thành viên';
   const initials = displayName
     ?.split(' ')
     .slice(-2)
@@ -96,56 +102,56 @@ export function TenantDetailsModal({ occupancyId, onClose }: TenantDetailsModalP
           {/* User Info */}
           <div className="text-center">
             <Avatar className="h-16 w-16 mx-auto mb-3">
-              {tenant.user.avatarUrl && (
-                <AvatarImage src={tenant.user.avatarUrl} alt={displayName} />
+              {user.avatarUrl && (
+                <AvatarImage src={user.avatarUrl} alt={displayName} />
               )}
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <p className="text-lg font-bold text-slate-900">{displayName || 'Người dùng ẩn danh'}</p>
-            <p className="text-sm text-slate-500 mt-1">{tenant.user.email}</p>
+            <p className="text-sm text-slate-500 mt-1">{user.email || 'Chưa có email'}</p>
           </div>
 
           {/* Contact Info */}
           <div className="space-y-3 border-t border-slate-200 pt-6">
             <h3 className="text-sm font-semibold text-slate-900 mb-3">Thông tin liên hệ</h3>
 
-            {tenant.user.phone && (
+            {user.phone && (
               <div className="flex items-start gap-3">
                 <Phone className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium text-slate-600">Số điện thoại</p>
-                  <p className="text-sm text-slate-900">{tenant.user.phone}</p>
+                  <p className="text-sm text-slate-900">{user.phone}</p>
                 </div>
               </div>
             )}
 
-            {tenant.user.address && (
+            {user.address && (
               <div className="flex items-start gap-3">
                 <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium text-slate-600">Địa chỉ</p>
-                  <p className="text-sm text-slate-900">{tenant.user.address}</p>
+                  <p className="text-sm text-slate-900">{user.address}</p>
                 </div>
               </div>
             )}
 
-            {tenant.user.birthDate && (
+            {user.birthDate && (
               <div className="flex items-start gap-3">
                 <Calendar className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium text-slate-600">Ngày sinh</p>
                   <p className="text-sm text-slate-900">
-                    {new Date(tenant.user.birthDate).toLocaleDateString('vi-VN')}
+                    {new Date(user.birthDate).toLocaleDateString('vi-VN')}
                   </p>
                 </div>
               </div>
             )}
 
-            {tenant.user.gender && (
+            {user.gender && (
               <div>
                 <p className="text-xs font-medium text-slate-600 mb-1">Giới tính</p>
                 <p className="text-sm text-slate-900">
-                  {tenant.user.gender === 'MALE' ? 'Nam' : tenant.user.gender === 'FEMALE' ? 'Nữ' : 'Khác'}
+                  {user.gender === 'MALE' ? 'Nam' : user.gender === 'FEMALE' ? 'Nữ' : 'Khác'}
                 </p>
               </div>
             )}

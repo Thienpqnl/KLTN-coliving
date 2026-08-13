@@ -108,6 +108,7 @@ test("replaceManagerAreas validates manager role and replaces areas transactiona
   assert.equal(invalid.status, 400);
 
   let createdAreas;
+  let clearedAssignments;
   const tx = {
     communityManagerArea: {
       deleteMany: async () => {},
@@ -115,6 +116,21 @@ test("replaceManagerAreas validates manager role and replaces areas transactiona
         createdAreas = data;
       },
       findMany: async () => createdAreas,
+    },
+    roomVerification: {
+      findMany: async () => [
+        {
+          id: "verification-matching",
+          room: { city: "Ho Chi Minh City", address: "Thao Dien, Ho Chi Minh City" },
+        },
+        {
+          id: "verification-stale",
+          room: { city: "Ha Noi", address: "Ba Dinh, Ha Noi" },
+        },
+      ],
+      updateMany: async ({ where }) => {
+        clearedAssignments = where.id.in;
+      },
     },
   };
   const prisma = {
@@ -133,4 +149,5 @@ test("replaceManagerAreas validates manager role and replaces areas transactiona
   assert.equal(createdAreas[0].managerId, "cm-1");
   assert.equal(createdAreas[0].city, "Ho Chi Minh");
   assert.equal(result.payload.communityManagerAreas[0].region, "SOUTH");
+  assert.deepEqual(clearedAssignments, ["verification-stale"]);
 });

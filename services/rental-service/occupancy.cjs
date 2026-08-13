@@ -15,7 +15,7 @@ const addOccupantSchema = z.object({
 });
 
 const terminateSchema = z.object({
-  reason: z.string().min(1, "Termination reason is required"),
+  reason: z.string().trim().min(5, "Lý do phải có ít nhất 5 ký tự"),
 });
 
 function failure(status, message, errors) {
@@ -36,6 +36,90 @@ function validate(schema, input) {
 
 function requireAuthenticated(identity) {
   return identity?.userId ? null : failure(401, "Unauthorized");
+}
+
+function requireHost(identity) {
+  const denied = requireAuthenticated(identity);
+  if (denied) return denied;
+  return identity.role === "HOST" || identity.role === "ADMIN"
+    ? null
+    : failure(403, "Chỉ chủ nhà mới được quản lý thành viên trong phòng");
+}
+
+async function hostOccupancyOverview(prisma, identity, clients = identityClient) {
+  const denied = requireHost(identity);
+  if (denied) return denied;
+
+  const rooms = await prisma.rentalRoomSnapshot.findMany({
+    where: identity.role === "ADMIN" ? {} : { ownerId: identity.userId },
+    orderBy: { updatedAt: "desc" },
+  });
+  const roomIds = rooms.map((room) => room.roomId);
+
+  if (roomIds.length === 0) {
+    return {
+      status: 200,
+      payload: {
+        summary: { totalRooms: 0, activeMembers: 0, formerMembers: 0, availableSlots: 0 },
+        rooms: [],
+      },
+    };
+  }
+
+  const [occupancies, activeContracts] = await Promise.all([
+    prisma.occupancy.findMany({
+      where: { roomId: { in: roomIds } },
+      orderBy: [{ status: "asc" }, { joinedAt: "desc" }],
+    }),
+    prisma.contract.findMany({
+      where: { roomId: { in: roomIds }, status: "ACTIVE" },
+      select: { id: true, roomId: true, renterId: true, status: true, endDate: true },
+    }),
+  ]);
+  const hydrated = await attachOccupancyUsers(occupancies, clients);
+  const contractByMember = new Map(
+    activeContracts.map((contract) => [`${contract.roomId}:${contract.renterId}`, contract]),
+  );
+  const membersByRoom = new Map();
+
+  for (const occupancy of hydrated) {
+    const members = membersByRoom.get(occupancy.roomId) || [];
+    members.push({
+      ...occupancy,
+      contract: contractByMember.get(`${occupancy.roomId}:${occupancy.userId}`) || null,
+    });
+    membersByRoom.set(occupancy.roomId, members);
+  }
+
+  const overviewRooms = rooms.map((room) => {
+    const members = membersByRoom.get(room.roomId) || [];
+    const activeCount = members.filter((member) => member.status === "ACTIVE").length;
+    return {
+      id: room.roomId,
+      title: room.title,
+      address: room.address,
+      imageUrl: room.imageUrl,
+      images: room.images,
+      status: room.status,
+      maxOccupants: room.maxOccupants,
+      currentOccupants: activeCount,
+      availableSlots: Math.max(0, room.maxOccupants - activeCount),
+      formerCount: members.length - activeCount,
+      members,
+    };
+  });
+
+  const activeMembers = overviewRooms.reduce((total, room) => total + room.currentOccupants, 0);
+  const formerMembers = overviewRooms.reduce((total, room) => total + room.formerCount, 0);
+  const availableSlots = overviewRooms.reduce((total, room) => total + room.availableSlots, 0);
+
+  return {
+    status: 200,
+    payload: sanitizeForJson({
+      summary: { totalRooms: rooms.length, activeMembers, formerMembers, availableSlots },
+      rooms: overviewRooms,
+    }),
+  };
 }
 
 async function assertHostOwnsRoom(prisma, roomId, hostId) {
@@ -156,11 +240,38 @@ async function terminateOccupancy(prisma, identity, occupancyId, input, clients 
     }
     if (occupancy.status !== "ACTIVE") return failure(409, "Người thuê không còn ở trong phòng");
 
+    const activeContract = await tx.contract.findFirst({
+      where: { roomId: occupancy.roomId, renterId: occupancy.userId, status: "ACTIVE" },
+      select: { id: true },
+    });
+    const now = new Date();
+
+    if (activeContract) {
+      await tx.contract.update({
+        where: { id: activeContract.id },
+        data: {
+          status: "TERMINATED",
+          terminatedAt: now,
+          terminationReason: parsed.data.reason,
+        },
+      });
+      await tx.contractEvent.create({
+        data: {
+          contractId: activeContract.id,
+          actorId: identity.userId,
+          type: identity.role === "CUSTOMER" ? "RENTER_LEFT_ROOM" : "CONTRACT_TERMINATED",
+          fromStatus: "ACTIVE",
+          toStatus: "TERMINATED",
+          note: parsed.data.reason,
+        },
+      });
+    }
+
     const updated = await tx.occupancy.update({
       where: { id: occupancyId },
       data: {
         status: "INACTIVE",
-        terminatedAt: new Date(),
+        terminatedAt: now,
         terminationReason: parsed.data.reason,
       },
     });
@@ -264,6 +375,7 @@ async function linkBookingToOccupancy(prisma, identity, bookingId, clients = ide
 module.exports = {
   addOccupant,
   getOccupantDetails,
+  hostOccupancyOverview,
   linkBookingToOccupancy,
   listRoomOccupants,
   occupancyHistory,

@@ -38,6 +38,7 @@ const {
 const {
   addOccupant,
   getOccupantDetails,
+  hostOccupancyOverview,
   listRoomOccupants,
   occupancyHistory,
   occupancyStats,
@@ -320,6 +321,15 @@ app.get("/v1/host/occupancy", async (request, response) => {
   } catch (error) {
     console.error("[rental-service] GET /v1/host/occupancy failed", error);
     return response.status(500).json({ message: "Cannot load occupancy stats" });
+  }
+});
+
+app.get("/v1/host/occupancy/overview", async (request, response) => {
+  try {
+    return sendResult(response, await hostOccupancyOverview(prisma, requestIdentity(request)));
+  } catch (error) {
+    console.error("[rental-service] GET /v1/host/occupancy/overview failed", error);
+    return response.status(500).json({ message: "Cannot load host occupancy overview" });
   }
 });
 

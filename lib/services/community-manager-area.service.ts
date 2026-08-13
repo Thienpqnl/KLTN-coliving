@@ -325,7 +325,7 @@ export const communityManagerAreaService = {
         });
       }
 
-      return tx.user.findUnique({
+      const updatedManager = await tx.user.findUnique({
         where: { id: managerId },
         select: {
           id: true,
@@ -339,6 +339,40 @@ export const communityManagerAreaService = {
           },
         },
       });
+
+      const updatedAreas = updatedManager?.communityManagerAreas || [];
+      const pendingAssignments = await tx.roomVerification.findMany({
+        where: {
+          assignedManagerId: managerId,
+          room: { status: RoomStatus.PENDING },
+        },
+        select: {
+          id: true,
+          room: {
+            select: {
+              city: true,
+              provinceCode: true,
+              ward: true,
+              wardCode: true,
+              district: true,
+              districtId: true,
+              address: true,
+            },
+          },
+        },
+      });
+      const staleAssignmentIds = pendingAssignments
+        .filter(({ room }) => !updatedAreas.some((area) => area.isActive && areaMatchesRoom(area, room)))
+        .map(({ id }) => id);
+
+      if (staleAssignmentIds.length > 0) {
+        await tx.roomVerification.updateMany({
+          where: { id: { in: staleAssignmentIds } },
+          data: { assignedManagerId: null, managerAssignedAt: null },
+        });
+      }
+
+      return updatedManager;
     });
   },
 

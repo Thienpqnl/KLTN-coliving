@@ -274,10 +274,8 @@ async function getAccessiblePendingRoom(prisma, roomId, managerId) {
   if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== managerId) {
     return failure(403, "Hồ sơ này đã được phân công cho nhân viên khác");
   }
-  if (!room.verification?.assignedManagerId) {
-    const canAccess = await managerCanAccessRoom(prisma, managerId, buildRoomLocation(room));
-    if (!canAccess) return failure(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
-  }
+  const canAccess = await managerCanAccessRoom(prisma, managerId, buildRoomLocation(room));
+  if (!canAccess) return failure(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
   return { room };
 }
 
@@ -531,8 +529,7 @@ async function listForCommunityManager(prisma, identity, query, clients = identi
   });
 
   const accessibleRooms = rooms.filter((room) => {
-    if (room.verification?.assignedManagerId === identity.userId) return true;
-    if (room.verification?.assignedManagerId) return false;
+    if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== identity.userId) return false;
     return areas.some((area) => areaMatchesRoom(area, buildRoomLocation(room)));
   });
   const total = accessibleRooms.length;
