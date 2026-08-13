@@ -26,7 +26,7 @@ const exactTitles: Record<string, string> = {
   "/room-management": "Quản lý phòng",
   "/room-management/add-room": "Thêm phòng mới",
   "/room-management/edit-room": "Chỉnh sửa phòng",
-  "/room-management/tenants": "Quản lý người thuê",
+  "/room-management/tenants": "Quản lý thành viên",
   "/community-manager": "Xác minh cộng đồng",
   "/admin": "Tổng quan hệ thống",
   "/admin/users": "Quản lý người dùng",

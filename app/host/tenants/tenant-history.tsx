@@ -72,7 +72,8 @@ export function TenantHistory({ roomId }: TenantHistoryProps) {
 }
 
 function HistoryItem({ record }: { record: Occupant }) {
-  const displayName = record.user.fullName || record.user.name;
+  const user = record.user ?? { email: '', name: '', fullName: '' };
+  const displayName = user.fullName || user.name || user.email || 'Thành viên';
   const isActive = record.status === 'ACTIVE';
 
   const joinedDate = new Date(record.joinedAt);
@@ -100,7 +101,7 @@ function HistoryItem({ record }: { record: Occupant }) {
             </span>
           </div>
 
-          <p className="text-xs text-slate-600 mb-2">{record.user.email}</p>
+          <p className="text-xs text-slate-600 mb-2">{user.email || 'Không có email'}</p>
 
           <div className="space-y-1 text-xs text-slate-600">
             <p>

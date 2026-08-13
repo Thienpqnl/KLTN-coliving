@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Upload, Loader2 } from 'lucide-react'
+import { AlertCircle, Clock3, X, Upload, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { apiClient } from '@/lib/api/client'
+import { ApiError, apiClient } from '@/lib/api/client'
 import { uploadImage } from "@/lib/upload"
 import { MapPicker } from '@/app/components/MapPicker'
 import { RoomVerificationPanel } from '@/app/host/room-verification-panel'
@@ -70,6 +70,7 @@ export function RoomForm() {
   const [images, setImages] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([])
 const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   // Load amenities
@@ -183,6 +184,13 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSaveError('')
+
+    if (editMode && formData.status === 'PENDING') {
+      setSaveError('Phòng đang được xét duyệt. Bạn chỉ có thể chỉnh sửa sau khi hồ sơ được yêu cầu bổ sung hoặc trả về.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -228,7 +236,11 @@ if (images.length > 0) {
       }
     } catch (error) {
       console.error('Không thể lưu phòng:', error)
-      alert('Không thể lưu phòng. Vui lòng thử lại.')
+      setSaveError(
+        error instanceof ApiError
+          ? error.message
+          : 'Không thể lưu phòng. Vui lòng kiểm tra lại thông tin và thử lại.'
+      )
     } finally {
       setLoading(false)
     }
@@ -249,6 +261,30 @@ if (images.length > 0) {
             Mỗi phòng là một phần quan trọng trong trải nghiệm lưu trú. Hãy cập nhật thông tin, giá, tiện ích và hình ảnh để khách dễ dàng lựa chọn.
           </p>
         </div>
+
+        {editMode && formData.status === 'PENDING' && (
+          <div className="mb-6 flex items-start gap-4 rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950 shadow-sm">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+              <Clock3 className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="font-bold">Phòng đang chờ xét duyệt</p>
+              <p className="mt-1 text-sm leading-6 text-amber-800">
+                Thông tin được tạm khóa để Community Manager kiểm tra đúng phiên bản đã gửi. Bạn có thể chỉnh sửa khi hồ sơ chuyển sang trạng thái Cần bổ sung hoặc Bị từ chối.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {saveError && (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800" role="alert">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-bold">Không thể lưu thay đổi</p>
+              <p className="mt-1 text-sm">{saveError}</p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-8">
           {/* Form Section - Left */}
@@ -570,10 +606,15 @@ if (images.length > 0) {
             <div className="flex gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-xl shadow-slate-200/60 backdrop-blur">
               <Button 
                 type="submit" 
-                disabled={loading}
+                disabled={loading || (editMode && formData.status === 'PENDING')}
                 className="bg-gradient-to-r from-orange-600 to-amber-500 text-white hover:from-orange-500 hover:to-amber-400"
               >
-                {loading ? (
+                {editMode && formData.status === 'PENDING' ? (
+                  <>
+                    <Clock3 className="mr-2 h-4 w-4" />
+                    ĐANG CHỜ DUYỆT
+                  </>
+                ) : loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     {editMode ? 'Đang cập nhật...' : 'Đang tạo...'}
