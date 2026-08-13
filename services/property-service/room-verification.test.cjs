@@ -1,6 +1,43 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { reviewByAdmin } = require("./room-verification.cjs");
+const { listForCommunityManager, reviewByAdmin } = require("./room-verification.cjs");
+
+test("community manager list rechecks the current area for previously assigned rooms", async () => {
+  const rooms = [
+    {
+      id: "room-hcm",
+      ownerId: "host-1",
+      status: "PENDING",
+      city: "Ho Chi Minh City",
+      address: "Thao Dien, Ho Chi Minh City",
+      verification: { assignedManagerId: "cm-1", submittedAt: new Date() },
+    },
+    {
+      id: "room-ha-noi",
+      ownerId: "host-2",
+      status: "PENDING",
+      city: "Ha Noi",
+      address: "Ba Dinh, Ha Noi",
+      verification: { assignedManagerId: "cm-1", submittedAt: new Date() },
+    },
+  ];
+  const prisma = {
+    communityManagerArea: {
+      findMany: async () => [{ region: "NORTH", city: "Ha Noi" }],
+    },
+    room: { findMany: async () => rooms },
+  };
+
+  const result = await listForCommunityManager(
+    prisma,
+    { userId: "cm-1", role: "COMMUNITY_MANAGER" },
+    {},
+    { searchUsers: async () => [], userMap: async () => new Map() },
+  );
+
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.payload.rooms.map((room) => room.id), ["room-ha-noi"]);
+});
 
 test("room approval stores an audit intent in the Property outbox transaction", async () => {
   let outboxData;

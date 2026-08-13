@@ -397,10 +397,43 @@ async function replaceManagerAreas(prisma, identity, managerId, areas, clients =
       });
     }
 
-    return tx.communityManagerArea.findMany({
+    const updatedAreas = await tx.communityManagerArea.findMany({
       where: { managerId },
       orderBy: [{ region: "asc" }, { city: "asc" }, { ward: "asc" }, { district: "asc" }],
     });
+
+    const pendingAssignments = await tx.roomVerification.findMany({
+      where: {
+        assignedManagerId: managerId,
+        room: { status: "PENDING" },
+      },
+      select: {
+        id: true,
+        room: {
+          select: {
+            city: true,
+            provinceCode: true,
+            ward: true,
+            wardCode: true,
+            district: true,
+            districtId: true,
+            address: true,
+          },
+        },
+      },
+    });
+    const staleAssignmentIds = pendingAssignments
+      .filter(({ room }) => !updatedAreas.some((area) => area.isActive && areaMatchesRoom(area, room)))
+      .map(({ id }) => id);
+
+    if (staleAssignmentIds.length > 0) {
+      await tx.roomVerification.updateMany({
+        where: { id: { in: staleAssignmentIds } },
+        data: { assignedManagerId: null, managerAssignedAt: null },
+      });
+    }
+
+    return updatedAreas;
   });
 
   return { status: 200, payload: { ...manager, communityManagerAreas: managerAreas } };

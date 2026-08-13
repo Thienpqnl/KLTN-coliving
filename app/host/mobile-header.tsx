@@ -18,6 +18,7 @@ import {
   ChevronDown,
   LogOut,
   UserRound,
+  UsersRound,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,7 @@ import { useAuth } from "@/lib/hooks/useAuth"
 const navItems = [
   { label: "Tổng quan", icon: <LayoutDashboard className="h-4 w-4" />, href: "/host" },
   { label: "Quản lý phòng", icon: <BedDouble className="h-4 w-4" />, href: "/room-management" },
+  { label: "Thành viên", icon: <UsersRound className="h-4 w-4" />, href: "/room-management/tenants" },
   { label: "Hợp đồng", icon: <CalendarCheck className="h-4 w-4" />, href: "/host/contracts" },
   { label: "Đặt phòng", icon: <CalendarCheck className="h-4 w-4" />, href: "/bookings" },
   { label: "Đánh giá", icon: <Star className="h-4 w-4" />, href: "/host/reviews" },
@@ -97,7 +99,11 @@ export function MobileHeader() {
             <nav className="relative flex-1 p-3">
               <ul className="space-y-1">
                 {navItems.map((item) => {
-                  const isActive = pathname === item.href
+                  const isActive = pathname === item.href || (
+                    item.href !== "/host" &&
+                    pathname.startsWith(`${item.href}/`) &&
+                    !(item.href === "/room-management" && pathname.startsWith("/room-management/tenants"))
+                  )
                   return (
                     <li key={item.label}>
                       <Link

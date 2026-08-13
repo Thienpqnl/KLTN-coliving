@@ -201,19 +201,17 @@ async function assertCommunityManagerCanAccessRoom(roomId: string, managerId: st
   if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== managerId) {
     throw new ApiError(403, "Hồ sơ này đã được phân công cho nhân viên khác");
   }
-  if (!room.verification?.assignedManagerId) {
-    const canAccess = await communityManagerAreaService.managerCanAccessRoom(managerId, {
-      city: room.city,
-      provinceCode: room.provinceCode,
-      ward: room.ward,
-      wardCode: room.wardCode,
-      district: room.district,
-      districtId: room.districtId,
-      address: room.address,
-    });
-    if (!canAccess) {
-      throw new ApiError(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
-    }
+  const canAccess = await communityManagerAreaService.managerCanAccessRoom(managerId, {
+    city: room.city,
+    provinceCode: room.provinceCode,
+    ward: room.ward,
+    wardCode: room.wardCode,
+    district: room.district,
+    districtId: room.districtId,
+    address: room.address,
+  });
+  if (!canAccess) {
+    throw new ApiError(403, "Hồ sơ này không thuộc khu vực phụ trách của bạn");
   }
 
   return room;
@@ -472,8 +470,7 @@ export const roomVerificationService = {
     });
 
     const accessibleRooms = rooms.filter((room) => {
-      if (room.verification?.assignedManagerId === filters.managerId) return true;
-      if (room.verification?.assignedManagerId) return false;
+      if (room.verification?.assignedManagerId && room.verification.assignedManagerId !== filters.managerId) return false;
 
       return areas.some((area) =>
         areaMatchesRoom(area, {
