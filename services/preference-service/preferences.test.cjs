@@ -16,8 +16,20 @@ test("normalizePreferenceInput handles empty numeric values and defaults", () =>
   assert.equal(result.ok, true);
   assert.equal(result.data.budgetMinVnd, null);
   assert.equal(result.data.budgetMaxVnd, 5000000);
+  assert.equal(result.data.preferredCity, null);
   assert.equal(result.data.priorityCleanliness, 3);
   assert.equal(result.data.acceptPets, false);
+});
+
+test("normalizePreferenceInput preserves city independently from district", () => {
+  const result = normalizePreferenceInput({
+    preferredCity: "DA_NANG",
+    preferredDistrict: "AN_HAI",
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.data.preferredCity, "DA_NANG");
+  assert.equal(result.data.preferredDistrict, "AN_HAI");
 });
 
 test("getPreference requires authentication and returns empty object when missing", async () => {

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { X, AlertTriangle, CheckCircle, AlertCircle, Loader2, Info, Users, ShieldAlert } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { X, CheckCircle, AlertCircle, Loader2, Info, Users, ShieldAlert } from 'lucide-react'
 
 interface EvaluationData {
   booking: {
@@ -80,20 +80,7 @@ export function LandlordEvaluationModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isOpen && bookingId) {
-      handleOpen()
-    }
-  }, [isOpen, bookingId])
-
-  useEffect(() => {
-    if (!isOpen) {
-      setData(null)
-      setError(null)
-    }
-  }, [isOpen])
-
-  const handleOpen = async () => {
+  const handleOpen = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -106,7 +93,7 @@ export function LandlordEvaluationModal({
       let result
       try {
         result = JSON.parse(rawText)
-      } catch (e) {
+      } catch {
         throw new Error("API hệ thống không trả về JSON hợp lệ")
       }
 
@@ -122,7 +109,20 @@ export function LandlordEvaluationModal({
       setLoading(false)
       onLoading?.(false)
     }
-  }
+  }, [bookingId, onLoading])
+
+  useEffect(() => {
+    if (isOpen && bookingId) {
+      handleOpen()
+    }
+  }, [isOpen, bookingId, handleOpen])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setData(null)
+      setError(null)
+    }
+  }, [isOpen])
 
   // Khách quan hóa màu sắc theo mức độ tương thích kỹ thuật
   const getScoreColor = (score: number) => {

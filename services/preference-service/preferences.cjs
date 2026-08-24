@@ -23,11 +23,17 @@ function normalizePreferenceInput(input = {}) {
     return { ok: false, message: "Ngan sach khong hop le" };
   }
 
+  const preferredCity = input.preferredCity || null;
+  if (preferredCity && !["HO_CHI_MINH", "HA_NOI", "DA_NANG"].includes(preferredCity)) {
+    return { ok: false, message: "Thanh pho uu tien khong hop le" };
+  }
+
   return {
     ok: true,
     data: {
       budgetMinVnd,
       budgetMaxVnd,
+      preferredCity,
       preferredDistrict: input.preferredDistrict || null,
       lifestyleArchetype: input.lifestyleArchetype || null,
       priorityCleanliness: input.priorityCleanliness ?? 3,
@@ -45,6 +51,7 @@ async function findPreferenceByUserId(prisma, userId) {
       "userId",
       "budgetMinVnd",
       "budgetMaxVnd",
+      "preferredCity",
       "preferredDistrict",
       "lifestyleArchetype",
       "priorityCleanliness",
@@ -83,6 +90,7 @@ async function upsertPreference(prisma, identity, input) {
       "userId",
       "budgetMinVnd",
       "budgetMaxVnd",
+      "preferredCity",
       "preferredDistrict",
       "lifestyleArchetype",
       "priorityCleanliness",
@@ -97,6 +105,7 @@ async function upsertPreference(prisma, identity, input) {
       ${identity.userId},
       ${data.budgetMinVnd},
       ${data.budgetMaxVnd},
+      ${data.preferredCity},
       ${data.preferredDistrict},
       ${data.lifestyleArchetype},
       ${data.priorityCleanliness},
@@ -109,6 +118,7 @@ async function upsertPreference(prisma, identity, input) {
     ON CONFLICT ("userId") DO UPDATE SET
       "budgetMinVnd" = EXCLUDED."budgetMinVnd",
       "budgetMaxVnd" = EXCLUDED."budgetMaxVnd",
+      "preferredCity" = EXCLUDED."preferredCity",
       "preferredDistrict" = EXCLUDED."preferredDistrict",
       "lifestyleArchetype" = EXCLUDED."lifestyleArchetype",
       "priorityCleanliness" = EXCLUDED."priorityCleanliness",
@@ -121,6 +131,7 @@ async function upsertPreference(prisma, identity, input) {
       "userId",
       "budgetMinVnd",
       "budgetMaxVnd",
+      "preferredCity",
       "preferredDistrict",
       "lifestyleArchetype",
       "priorityCleanliness",

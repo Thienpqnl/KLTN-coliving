@@ -64,7 +64,7 @@ interface Booking {
     address: string;
     image: string[];
     price: number;
-  };
+  } | null;
 }
 
 interface UserOccupancy {
@@ -292,6 +292,7 @@ export default function ProfilePage() {
       ),
     [bookings]
   );
+  const activeRoom = activeBooking?.room ?? null;
 
   const memberSince = profile
     ? new Date(profile.createdAt).toLocaleString('vi-VN', {
@@ -976,14 +977,14 @@ export default function ProfilePage() {
                   <h2 className="mt-1 text-2xl font-bold text-slate-950">Phòng đang ở</h2>
                 </div>
 
-                {activeBooking ? (
+                {activeBooking && activeRoom ? (
                   <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <div className="relative aspect-video overflow-hidden rounded-lg bg-slate-100">
-                      {activeBooking.room.image?.[0] ? (
+                      {activeRoom.image?.[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={activeBooking.room.image[0]}
-                          alt={activeBooking.room.title}
+                          src={activeRoom.image[0]}
+                          alt={activeRoom.title}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -996,11 +997,11 @@ export default function ProfilePage() {
                     <div className="flex flex-col justify-between gap-6">
                       <div>
                         <h3 className="text-2xl font-bold text-slate-950">
-                          {activeBooking.room.title}
+                          {activeRoom.title}
                         </h3>
                         <p className="mt-2 flex items-start gap-2 text-slate-600">
                           <MapPin className="mt-0.5 h-4 w-4 text-orange-600" />
-                          {activeBooking.room.address}
+                          {activeRoom.address}
                         </p>
                       </div>
 
@@ -1029,14 +1030,14 @@ export default function ProfilePage() {
                             Giá thuê
                           </p>
                           <p className="mt-1 font-bold text-orange-700">
-                            {activeBooking.room.price.toLocaleString('vi-VN')} đ/tháng
+                            {activeRoom.price.toLocaleString('vi-VN')} đ/tháng
                           </p>
                         </div>
                       </div>
 
                       {occupancy?.occupancy && (
                         <Link
-                          href={`/rooms/${activeBooking.room.id}/shared-space`}
+                          href={`/rooms/${activeRoom.id}/shared-space`}
                           className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-600 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-orange-700"
                         >
                           <span className="material-symbols-outlined text-base">apartment</span>
@@ -1088,6 +1089,7 @@ export default function ProfilePage() {
                 ) : (
                   <div className="space-y-4">
                     {bookings.map((booking) => {
+                      const room = booking.room;
                       const canCancel = canCancelBooking(booking);
                       const hasActiveContract = booking.contract?.status === 'ACTIVE';
                       const contractInProgress = booking.contract && [
@@ -1103,11 +1105,11 @@ export default function ProfilePage() {
                           className="grid gap-5 rounded-lg border border-slate-200 p-4 transition-colors hover:border-orange-200 md:grid-cols-[128px_minmax(0,1fr)_auto] md:items-center"
                         >
                           <div className="aspect-[4/3] overflow-hidden rounded-lg bg-slate-100">
-                            {booking.room.image?.[0] ? (
+                            {room?.image?.[0] ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
-                                src={booking.room.image[0]}
-                                alt={booking.room.title}
+                                src={room.image[0]}
+                                alt={room.title}
                                 className="h-full w-full object-cover"
                               />
                             ) : (
@@ -1128,13 +1130,19 @@ export default function ProfilePage() {
                                 </span>
                               )}
                             </div>
-                            <Link
-                              href={`/rooms/${booking.room.id}`}
-                              className="mt-3 block truncate text-lg font-bold text-slate-950 hover:text-orange-700"
-                            >
-                              {booking.room.title}
-                            </Link>
-                            <p className="mt-1 truncate text-sm text-slate-500">{booking.room.address}</p>
+                            {room ? (
+                              <Link
+                                href={`/rooms/${room.id}`}
+                                className="mt-3 block truncate text-lg font-bold text-slate-950 hover:text-orange-700"
+                              >
+                                {room.title}
+                              </Link>
+                            ) : (
+                              <p className="mt-3 text-lg font-bold text-slate-700">Phòng đã được xóa</p>
+                            )}
+                            <p className="mt-1 truncate text-sm text-slate-500">
+                              {room?.address || 'Thông tin phòng không còn khả dụng'}
+                            </p>
                             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-slate-600">
                               <span className="flex items-center gap-1.5">
                                 <CalendarDays className="h-4 w-4 text-orange-600" />
@@ -1440,7 +1448,9 @@ export default function ProfilePage() {
                   <h2 id="cancel-booking-title" className="text-xl font-bold text-slate-950">
                     Hủy đặt phòng
                   </h2>
-                  <p className="mt-1 text-sm text-slate-500">{bookingToCancel.room.title}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {bookingToCancel.room?.title || 'Phòng đã được xóa'}
+                  </p>
                 </div>
               </div>
               <button

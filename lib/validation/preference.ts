@@ -11,6 +11,11 @@ export const userPreferenceSchema = z.object({
     z.literal(""),
     z.null(),
   ]).optional(),
+  preferredCity: z.enum([
+    "HO_CHI_MINH",
+    "HA_NOI",
+    "DA_NANG",
+  ]).nullable().optional(),
   preferredDistrict: z.string().nullable().optional(),
   lifestyleArchetype: z.enum([
     "Privacy Seeker",

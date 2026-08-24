@@ -43,13 +43,14 @@ def _upsert_event(cursor, event):
     elif event_type == "preference.user-preference.changed":
         cursor.execute('''
             INSERT INTO ai.user_profiles (
-              user_id, budget_min_vnd, budget_max_vnd, preferred_district,
+              user_id, budget_min_vnd, budget_max_vnd, preferred_city, preferred_district,
               lifestyle_archetype, priority_cleanliness, priority_social_environment,
               accept_smoking_roommates, accept_pets, source_updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_id) DO UPDATE SET
               budget_min_vnd = EXCLUDED.budget_min_vnd,
               budget_max_vnd = EXCLUDED.budget_max_vnd,
+              preferred_city = EXCLUDED.preferred_city,
               preferred_district = EXCLUDED.preferred_district,
               lifestyle_archetype = EXCLUDED.lifestyle_archetype,
               priority_cleanliness = EXCLUDED.priority_cleanliness,
@@ -58,7 +59,7 @@ def _upsert_event(cursor, event):
               accept_pets = EXCLUDED.accept_pets,
               source_updated_at = EXCLUDED.source_updated_at, projected_at = now()
         ''', (payload.get("userId"), payload.get("budgetMinVnd"), payload.get("budgetMaxVnd"),
-              payload.get("preferredDistrict"), payload.get("lifestyleArchetype"),
+              payload.get("preferredCity"), payload.get("preferredDistrict"), payload.get("lifestyleArchetype"),
               payload.get("priorityCleanliness"), payload.get("prioritySocialEnvironment"),
               payload.get("acceptSmokingRoommates"), payload.get("acceptPets"), payload.get("updatedAt")))
     elif event_type == "property.room.changed":

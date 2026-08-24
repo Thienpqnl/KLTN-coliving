@@ -128,7 +128,7 @@ async function main() {
         const priceNum = parsePrice(room.price);
         const areaStr = parseArea(room.area);
 
-        const newRoom = await prisma.room.create({
+        await prisma.room.create({
           data: {
             title: room.title,
             description: `Phòng trọ tại ${room.address}. Liên hệ: ${room.phone}. \nNguồn: ${room.link}`,

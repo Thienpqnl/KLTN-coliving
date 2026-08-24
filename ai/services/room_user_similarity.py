@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import time
 from .similarity import (
     location_similarity,
     budget_similarity,
@@ -13,8 +14,12 @@ from .similarity import (
 from .scoring import calculate_xgboost_score
 
 from .explain import explain_recommendation
-from utils.loader import model as xgb_model
 from utils.loader_supabase import (
+    users_df as cached_users_df,
+    rooms_df as cached_rooms_df,
+    occupancy_df as cached_occupancy_df,
+    cache_lock,
+    model as xgb_model,
     load_users_from_supabase,
     load_rooms_from_supabase,
     load_occupancy_from_supabase
@@ -57,6 +62,49 @@ def missing_columns(df, required_columns):
     return [column for column in required_columns if column not in df.columns]
 
 
+def apply_preference_override(user, preference_override=None):
+    updated_user = user.copy()
+    if not preference_override:
+        return updated_user
+
+    field_mapping = {
+        "budgetMinVnd": "budget_min_vnd",
+        "budgetMaxVnd": "budget_max_vnd",
+        "preferredCity": "preferred_city",
+        "preferredDistrict": "preferred_location_district_id",
+        "lifestyleArchetype": "lifestyle_archetype",
+        "priorityCleanliness": "priority_cleanliness",
+        "prioritySocialEnvironment": "priority_social_environment",
+        "acceptSmokingRoommates": "accept_smoking_roommates",
+        "acceptPets": "accept_pets",
+    }
+    for source_field, target_field in field_mapping.items():
+        if source_field in preference_override:
+            value = preference_override[source_field]
+            if source_field == "preferredDistrict" and not value:
+                value = "all"
+            updated_user[target_field] = value
+    return updated_user
+
+
+def _runtime_frames():
+    """Read projection-backed frames without round-tripping to PostgreSQL per request."""
+    with cache_lock:
+        users = cached_users_df.copy(deep=True)
+        rooms = cached_rooms_df.copy(deep=True)
+        occupancy = cached_occupancy_df.copy(deep=True)
+
+    # Preserve a recovery path when startup data loading failed. Normal requests
+    # use the in-memory frames maintained by the projection consumer.
+    if users.empty:
+        users = load_users_from_supabase().reset_index(drop=True)
+    if rooms.empty:
+        rooms = load_rooms_from_supabase().reset_index(drop=True)
+    if occupancy.empty:
+        occupancy = load_occupancy_from_supabase().reset_index(drop=True)
+    return users, rooms, occupancy
+
+
 def _derive_preferred_coordinates(preferred_district, rooms_df: pd.DataFrame):
     district = str(preferred_district or "").strip()
     if not district or district.lower() == "all":
@@ -76,15 +124,18 @@ def _derive_preferred_coordinates(preferred_district, rooms_df: pd.DataFrame):
 
     return float(lat_series[valid_mask].median()), float(lng_series[valid_mask].median())
 
-def get_detailed_compatibility(userId: str, roomId: str):
+def get_detailed_compatibility(userId: str, roomId: str, preference_override=None):
+    started_at = time.perf_counter()
     try:
-        # 1. Load Data
-        users_df = load_users_from_supabase().reset_index(drop=True)
-        rooms_df = load_rooms_from_supabase().reset_index(drop=True)
-      
+        # 1. Read the in-memory projection cache. Database calls are only used
+        # as a recovery path when startup initialization did not populate it.
+        users_df, rooms_df, occupancy_df = _runtime_frames()
+        users_df = users_df.reset_index(drop=True)
+        rooms_df = rooms_df.reset_index(drop=True)
+        occupancy_df = occupancy_df.reset_index(drop=True)
+
         users_df = users_df.loc[:, ~users_df.columns.duplicated()]
         rooms_df = rooms_df.loc[:, ~rooms_df.columns.duplicated()]
-        occupancy_df = load_occupancy_from_supabase()
 
         users_df = ensure_column(users_df, "userId", ["id", "user_id", "userID"])
         rooms_df = ensure_column(rooms_df, "roomId", ["id", "room_id", "roomID"])
@@ -118,7 +169,7 @@ def get_detailed_compatibility(userId: str, roomId: str):
         if room_row.empty:
             return {"error": f"Room {roomId} not found"}
         
-        user = user_row.iloc[0]
+        user = apply_preference_override(user_row.iloc[0], preference_override)
         room = room_row.iloc[0]
 
         if room.get('current_occupants', 0) >= room.get('maxOccupants', 999):
@@ -281,6 +332,7 @@ def get_detailed_compatibility(userId: str, roomId: str):
             "preferences": {
                 "budgetMin": user.get('budget_min_vnd'),  
                 "budgetMax": user.get('budget_max_vnd'),       
+                "preferredCity": user.get('preferred_city'),
                 "preferredDistrict": user.get('preferred_location_district_id'), 
                 "lifestyleArchetype": user.get('lifestyle_archetype'),
                 "priorityCleanliness": user.get('priority_cleanliness'),
@@ -316,6 +368,10 @@ def get_detailed_compatibility(userId: str, roomId: str):
             "reasons": reasons,
             "overall_score": round(overall_score, 2),
         }
+        print(
+            "[COMPATIBILITY][TIMING] "
+            f"total={(time.perf_counter() - started_at) * 1000:.1f}ms"
+        )
         return convert_to_native_types(result)
         
     except Exception as e:

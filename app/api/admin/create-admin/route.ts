@@ -59,7 +59,9 @@ export async function POST(request: NextRequest) {
     });
 
 
-    const { password: _, ...userWithoutPassword } = adminUser;
+    const userWithoutPassword = Object.fromEntries(
+      Object.entries(adminUser).filter(([key]) => key !== "password")
+    );
 
     return NextResponse.json(
       {

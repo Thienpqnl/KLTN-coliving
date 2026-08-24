@@ -71,6 +71,7 @@ model user_preferences {
   userId                    String   @unique
   budgetMinVnd              BigInt?
   budgetMaxVnd              BigInt?
+  preferredCity             String?
   preferredDistrict         String?
   lifestyleArchetype        String?
   priorityCleanliness       Int?     @default(3)

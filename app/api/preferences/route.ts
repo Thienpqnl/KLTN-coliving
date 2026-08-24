@@ -11,6 +11,7 @@ type PreferenceRow = {
   userId: string;
   budgetMinVnd: bigint | number | null;
   budgetMaxVnd: bigint | number | null;
+  preferredCity: string | null;
   preferredDistrict: string | null;
   lifestyleArchetype: string | null;
   priorityCleanliness: number | null;
@@ -40,6 +41,7 @@ async function findPreferenceByUserId(userId: string) {
       "userId",
       "budgetMinVnd",
       "budgetMaxVnd",
+      "preferredCity",
       "preferredDistrict",
       "lifestyleArchetype",
       "priorityCleanliness",
@@ -131,6 +133,7 @@ export async function POST(req: NextRequest) {
 
     const budgetMinVnd = nullableNumber(validated.budgetMinVnd);
     const budgetMaxVnd = nullableNumber(validated.budgetMaxVnd);
+    const preferredCity = validated.preferredCity || null;
     const preferredDistrict = validated.preferredDistrict || null;
     const lifestyleArchetype = validated.lifestyleArchetype || null;
     const priorityCleanliness = validated.priorityCleanliness ?? 3;
@@ -145,6 +148,7 @@ export async function POST(req: NextRequest) {
         "userId",
         "budgetMinVnd",
         "budgetMaxVnd",
+        "preferredCity",
         "preferredDistrict",
         "lifestyleArchetype",
         "priorityCleanliness",
@@ -159,6 +163,7 @@ export async function POST(req: NextRequest) {
         ${user.id},
         ${budgetMinVnd},
         ${budgetMaxVnd},
+        ${preferredCity},
         ${preferredDistrict},
         ${lifestyleArchetype},
         ${priorityCleanliness},
@@ -171,6 +176,7 @@ export async function POST(req: NextRequest) {
       ON CONFLICT ("userId") DO UPDATE SET
         "budgetMinVnd" = EXCLUDED."budgetMinVnd",
         "budgetMaxVnd" = EXCLUDED."budgetMaxVnd",
+        "preferredCity" = EXCLUDED."preferredCity",
         "preferredDistrict" = EXCLUDED."preferredDistrict",
         "lifestyleArchetype" = EXCLUDED."lifestyleArchetype",
         "priorityCleanliness" = EXCLUDED."priorityCleanliness",
@@ -183,6 +189,7 @@ export async function POST(req: NextRequest) {
         "userId",
         "budgetMinVnd",
         "budgetMaxVnd",
+        "preferredCity",
         "preferredDistrict",
         "lifestyleArchetype",
         "priorityCleanliness",

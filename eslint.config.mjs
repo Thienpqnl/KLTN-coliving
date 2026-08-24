@@ -6,7 +6,7 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    files: ["check-db.js", "scripts/**/*-cjs.js"],
+    files: ["**/*.cjs", "check-db.js", "importRooms.js", "scripts/**/*.js"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
     },
@@ -15,6 +15,13 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".tmp/**",
+    ".backups/**",
+    "ai/venv*/**",
+    "docx_render/**",
+    "output/**",
+    "services/**/generated/**",
+    "thesis-extracted/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

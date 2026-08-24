@@ -24,7 +24,7 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
       hasRedirectedRef.current = true;
       router.push("/login");
     }
-  }, [isLoading, user?.id, user?.role, router]);
+  }, [isLoading, user, router]);
 
   if (isLoading || !user || user.role !== "ADMIN") {
     return (

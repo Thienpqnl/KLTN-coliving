@@ -68,6 +68,16 @@ async function syncRoomSnapshot(room) {
   );
 }
 
+async function deleteRoomSnapshot(roomId) {
+  return requestRental(
+    `/v1/internal/room-snapshots/${encodeURIComponent(roomId)}`,
+    {
+      method: "DELETE",
+      headers: headers(),
+    },
+  );
+}
+
 async function getAvailability(roomIds, startDate, endDate) {
   return requestRental("/v1/internal/rooms/availability", {
     method: "POST",
@@ -91,6 +101,7 @@ async function getAdminRentalStats() {
 }
 
 module.exports = {
+  deleteRoomSnapshot,
   getAdminRentalStats,
   getAvailability,
   getRoomRentalStats,

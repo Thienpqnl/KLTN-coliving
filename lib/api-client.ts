@@ -14,7 +14,7 @@ const registerUser = async () => {
     })
   });
 
-  const data = await response.json();
+  await response.json();
 
   // ❌ KHÔNG lưu token nữa
   // cookie đã được server set
@@ -32,7 +32,7 @@ const login = async () => {
     })
   });
 
-  const data = await response.json();
+  await response.json();
 
   // ❌ bỏ localStorage
 };

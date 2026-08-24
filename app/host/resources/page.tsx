@@ -1,13 +1,11 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useCallback, useState, useEffect } from "react"
 import { Sidebar } from "@/app/host/sidebar"
 import { MobileHeader } from "@/app/host/mobile-header"
-import { Footer } from "@/app/host/footer"
 import { HostProtectedRoute } from "@/components/HostProtectedRoute"
-import { useAuth } from "@/lib/hooks/useAuth"
 import { sharedSpaceClientService, SharedResource, ResourceBooking } from "@/lib/services/shared-space-client.service"
 import { Button } from "@/components/ui/button"
-import { Package2, Plus, Edit, Trash2, Search, Monitor, Home, Zap, Droplets, CheckCircle, Clock, Image as ImageIcon } from "lucide-react"
+import { Package2, Plus, Edit, Trash2, Search, Monitor, Home, Zap, Droplets, CheckCircle, Image as ImageIcon } from "lucide-react"
 import ApprovalModal from "@/app/rooms/components/ApprovalModal"
 import { getResourceRealTimeStatus } from '@/lib/utils/resource-status';
 import { apiClient } from "@/lib/api/client"
@@ -31,7 +29,6 @@ interface UtilityBill {
 }
 
 function ResourceManagementContent() {
-  const { user } = useAuth()
   const [resources, setResources] = useState<SharedResource[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -79,7 +76,7 @@ function ResourceManagementContent() {
   }
 
   // Fetch utility bills for selected room
-  const fetchUtilityBills = async () => {
+  const fetchUtilityBills = useCallback(async () => {
     if (!selectedRoom) return
     try {
       const contract = await apiClient.get<{ id: string }>(`/rooms/${selectedRoom}/contract`)
@@ -94,13 +91,13 @@ function ResourceManagementContent() {
     } catch (error) {
       console.error("Error fetching utility bills:", error)
     }
-  }
+  }, [selectedRoom])
 
   useEffect(() => {
     if (showUtilityBills && selectedRoom) {
       fetchUtilityBills()
     }
-  }, [showUtilityBills, selectedRoom])
+  }, [showUtilityBills, selectedRoom, fetchUtilityBills])
 
   // Create utility bill
   const handleCreateUtilityBill = async (e: React.FormEvent) => {
@@ -174,15 +171,7 @@ function ResourceManagementContent() {
     fetchRooms()
   }, [])
 
-  // Đồng bộ roomId vào form khi thay đổi bộ lọc phòng bên ngoài để tăng trải nghiệm người dùng
-  useEffect(() => {
-    if (selectedRoom) {
-      setFormData(prev => ({ ...prev, roomId: selectedRoom }))
-    }
-    loadResources()
-  }, [selectedRoom])
-
-  const loadResources = async () => {
+  const loadResources = useCallback(async () => {
     try {
       setLoading(true)
       if (selectedRoom) {
@@ -196,7 +185,15 @@ function ResourceManagementContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedRoom])
+
+  // Đồng bộ roomId vào form khi thay đổi bộ lọc phòng bên ngoài để tăng trải nghiệm người dùng
+  useEffect(() => {
+    if (selectedRoom) {
+      setFormData(prev => ({ ...prev, roomId: selectedRoom }))
+    }
+    loadResources()
+  }, [selectedRoom, loadResources])
 
   // Xử lý Thêm tài nguyên thực tế qua API
   const handleSubmit = async (e: React.FormEvent) => {

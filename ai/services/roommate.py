@@ -2,7 +2,7 @@
 # ROOMMATE MATCHING
 # =====================================================
 import pandas as pd
-from utils.loader import users_df, rooms_df, occupancy_df
+from utils.loader_supabase import users_df, rooms_df, occupancy_df
 
 def match_roommates(userId, roomId):
     
