@@ -52,7 +52,10 @@
     "lint": "eslint",
     "seed:admin": "node scripts/seed-admin.mjs",
     "import:rooms": "ts-node scripts/import-rooms.ts",
-    "import:rooms:cjs": "node scripts/import-rooms-cjs.js"
+    "import:rooms:cjs": "node scripts/import-rooms-cjs.js",
+    "rooms:locations:audit": "node scripts/reconcile-room-locations.cjs",
+    "rooms:locations:apply": "node scripts/reconcile-room-locations.cjs --apply",
+    "rooms:locations:rollback": "node scripts/reconcile-room-locations.cjs"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "2.1.1",
