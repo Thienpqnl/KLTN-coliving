@@ -85,7 +85,15 @@ def reconcile_projections():
             cursor.execute("INSERT INTO ai.projection_reconciliation_runs DEFAULT VALUES RETURNING id")
             run_id = cursor.fetchone()[0]
 
-            details["userPreferencesUpserted"] = sync_user_preference_fields(cursor)
+            cursor.execute("SAVEPOINT preference_fields_sync")
+            try:
+                details["userPreferencesUpserted"] = sync_user_preference_fields(cursor)
+            except Exception as preference_error:
+                cursor.execute("ROLLBACK TO SAVEPOINT preference_fields_sync")
+                details["userPreferencesUpserted"] = 0
+                details["userPreferencesSyncError"] = str(preference_error)[:500]
+            finally:
+                cursor.execute("RELEASE SAVEPOINT preference_fields_sync")
 
             cursor.execute("SAVEPOINT user_full_sync")
             try:

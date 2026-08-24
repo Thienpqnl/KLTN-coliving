@@ -6,8 +6,14 @@ const { PrismaClient } = require('@prisma/client');
 const csv = require('csv-parser');
 const fs = require('fs');
 const path = require('path');
+const {
+  cleanImportedDistrict,
+  loadPreferenceLocationCatalog,
+  normalizeRoomLocation,
+} = require('./lib/room-location-normalizer.cjs');
 
 const prisma = new PrismaClient();
+const locationCatalog = loadPreferenceLocationCatalog();
 const shouldReset = process.argv.includes('--reset');
 const fileArg = process.argv.find((arg) => arg.startsWith('--file='));
 
@@ -89,6 +95,27 @@ async function importRoom(row) {
 
   const amenities = splitPipe(row.amenities);
   const images = getImageUrls(row.images);
+  const address = nullableText(row.address) || '';
+  const latitude = parseFloatValue(row.latitude);
+  const longitude = parseFloatValue(row.longitude);
+  const normalizedLocation = normalizeRoomLocation({
+    address,
+    city: nullableText(row.city),
+    district: nullableText(row.district),
+    districtId: nullableText(row.district_id),
+    latitude,
+    longitude,
+  }, locationCatalog);
+  const administrativeLocation = normalizedLocation.matched
+    ? normalizedLocation.location
+    : {
+        city: nullableText(row.city),
+        provinceCode: nullableText(row.province_code),
+        ward: nullableText(row.ward),
+        wardCode: nullableText(row.ward_code),
+        district: cleanImportedDistrict(row.district),
+        districtId: nullableText(row.district_id),
+      };
   const roomData = {
     title,
     description: nullableText(row.description) || title,
@@ -96,14 +123,18 @@ async function importRoom(row) {
     priceValue: parseBigInt(row.price_value),
     areaText: nullableText(row.area_text),
     areaValue: parseDecimalString(row.area_value),
-    address: nullableText(row.address) || '',
-    district: nullableText(row.district),
-    city: nullableText(row.city),
+    address,
+    city: administrativeLocation.city,
+    provinceCode: administrativeLocation.provinceCode,
+    ward: administrativeLocation.ward,
+    wardCode: administrativeLocation.wardCode,
+    district: administrativeLocation.district,
+    districtId: administrativeLocation.districtId,
     roomId: nullableText(row.post_id),
     posted_date: nullableText(row.posted_date),
     expired_date: nullableText(row.expired_date),
-    latitude: parseFloatValue(row.latitude),
-    longitude: parseFloatValue(row.longitude),
+    latitude,
+    longitude,
     sourceUrl,
   };
 
