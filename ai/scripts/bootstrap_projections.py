@@ -15,13 +15,14 @@ def database_url():
 
 
 def bootstrap():
-    migration = Path(__file__).parents[1] / "migrations" / "0001_ai_projections.sql"
+    migration_dir = Path(__file__).parents[1] / "migrations"
     reset_tables = os.getenv("AI_BOOTSTRAP_RESET_TABLES", "false").lower() == "true"
     sync_room_interactions = os.getenv("AI_SYNC_ROOM_INTERACTIONS", "false").lower() == "true"
     with psycopg.connect(database_url(), connect_timeout=10) as connection:
         with connection.cursor() as cursor:
             if os.getenv("AI_PROVISION_SCHEMA", "false").lower() == "true":
-                cursor.execute(migration.read_text(encoding="utf-8"))
+                for migration in sorted(migration_dir.glob("*.sql")):
+                    cursor.execute(migration.read_text(encoding="utf-8"))
             else:
                 cursor.execute("SELECT to_regclass('ai.user_profiles')")
                 if cursor.fetchone()[0] is None:
@@ -31,6 +32,7 @@ def bootstrap():
 
             cursor.execute('ALTER TABLE ai.room_profiles ADD COLUMN IF NOT EXISTS latitude double precision')
             cursor.execute('ALTER TABLE ai.room_profiles ADD COLUMN IF NOT EXISTS longitude double precision')
+            cursor.execute('ALTER TABLE ai.user_profiles ADD COLUMN IF NOT EXISTS preferred_city text')
 
             if reset_tables:
                 truncate_tables = ["ai.user_profiles", "ai.room_profiles", "ai.occupancy_profiles"]
@@ -40,12 +42,12 @@ def bootstrap():
             cursor.execute('''
                 INSERT INTO ai.user_profiles (
                   user_id, email, full_name, role, budget_min_vnd, budget_max_vnd,
-                  preferred_district, lifestyle_archetype, priority_cleanliness,
+                  preferred_city, preferred_district, lifestyle_archetype, priority_cleanliness,
                   priority_social_environment, accept_smoking_roommates, accept_pets,
                   source_updated_at
                 )
                 SELECT u."id", u."email", u."fullName", u."role"::text,
-                       p."budgetMinVnd", p."budgetMaxVnd", p."preferredDistrict",
+                       p."budgetMinVnd", p."budgetMaxVnd", p."preferredCity", p."preferredDistrict",
                        p."lifestyleArchetype", p."priorityCleanliness",
                        p."prioritySocialEnvironment", p."acceptSmokingRoommates",
                        p."acceptPets", GREATEST(u."updatedAt", p."updatedAt")
@@ -72,16 +74,16 @@ def bootstrap():
                 SELECT "roomId", "userId", "status"::text, COALESCE("terminatedAt", "joinedAt")
                 FROM rental.occupancy
             ''')
-                        if sync_room_interactions:
-                                cursor.execute('''
-                                        INSERT INTO ai.room_interactions (
-                                            interaction_id, user_id, room_id, interaction_type,
-                                            interaction_value, source_created_at
-                                        )
-                                        SELECT "id", "userId", "roomId", "interactionType"::text,
-                                                     "interactionValue", "createdAt"
-                                        FROM preference."RoomInteraction"
-                                ''')
+            if sync_room_interactions:
+                cursor.execute('''
+                    INSERT INTO ai.room_interactions (
+                        interaction_id, user_id, room_id, interaction_type,
+                        interaction_value, source_created_at
+                    )
+                    SELECT "id", "userId", "roomId", "interactionType"::text,
+                           "interactionValue", "createdAt"
+                    FROM preference."RoomInteraction"
+                ''')
 
             counts = {}
             for table in ("user_profiles", "room_profiles", "occupancy_profiles", "room_interactions"):

@@ -26,7 +26,8 @@ async function listFavorites(prisma, identity, clients = domainClients) {
       payload: sanitizeForJson(favorites.flatMap((favorite) => {
         const room = byId.get(favorite.roomId);
         if (!room) return [];
-        const { id: _roomId, ...roomData } = room;
+        const roomData = { ...room };
+        delete roomData.id;
         return [{ ...favorite, ...roomData }];
       })),
     };

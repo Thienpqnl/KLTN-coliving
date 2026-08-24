@@ -1,28 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-let supabaseClient: SupabaseClient<any, 'ai'> | null = null;
-
-function getSupabaseClient() {
-  if (supabaseClient) return supabaseClient;
-
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error(
-      'Supabase interaction logging is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.'
-    );
-  }
-
-  supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-    db: {
-      schema: 'ai',
-    },
-  });
-
-  return supabaseClient;
-}
-
 export type InteractionType = 
   | 'impression'    // Lượt xem: 0.1
   | 'click'         // Lượt nhấn: 0.3
@@ -43,6 +20,58 @@ export interface InteractionData {
   roomId: string;
   interactionType: InteractionType;
   sourceCreatedAt?: Date;
+}
+
+export interface InteractionRecord {
+  [column: string]: unknown;
+  interaction_id: string;
+  user_id: string;
+  room_id: string;
+  interaction_type: InteractionType;
+  interaction_value: number;
+  source_created_at: string | null;
+  projected_at: string;
+}
+
+type InteractionInsert = InteractionRecord;
+type AiDatabase = {
+  ai: {
+    Tables: {
+      room_interactions: {
+        Row: InteractionRecord;
+        Insert: InteractionInsert;
+        Update: Partial<InteractionInsert>;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+};
+
+let supabaseClient: SupabaseClient<AiDatabase, 'ai'> | null = null;
+
+function getSupabaseClient(): SupabaseClient<AiDatabase, 'ai'> {
+  if (supabaseClient) return supabaseClient;
+
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error(
+      'Supabase interaction logging is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.'
+    );
+  }
+
+  supabaseClient = createClient<AiDatabase, 'ai'>(supabaseUrl, supabaseServiceKey, {
+    db: {
+      schema: 'ai',
+    },
+  });
+
+  return supabaseClient;
 }
 
 export class InteractionService {
@@ -93,7 +122,7 @@ export class InteractionService {
   /**
    * Lấy lịch sử tương tác của một người dùng với một phòng
    */
-  async getUserRoomInteractions(userId: string, roomId: string): Promise<any[]> {
+  async getUserRoomInteractions(userId: string, roomId: string): Promise<InteractionRecord[]> {
     const { data, error } = await getSupabaseClient()
       .from('room_interactions')
       .select('*')
@@ -106,13 +135,13 @@ export class InteractionService {
       return [];
     }
 
-    return data || [];
+    return (data || []) as InteractionRecord[];
   }
 
   /**
    * Lấy tất cả tương tác của một người dùng
    */
-  async getUserInteractions(userId: string, limit = 100): Promise<any[]> {
+  async getUserInteractions(userId: string, limit = 100): Promise<InteractionRecord[]> {
     const { data, error } = await getSupabaseClient()
       .from('room_interactions')
       .select('*')
@@ -125,7 +154,7 @@ export class InteractionService {
       return [];
     }
 
-    return data || [];
+    return (data || []) as InteractionRecord[];
   }
 
   /**

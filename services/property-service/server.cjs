@@ -54,6 +54,7 @@ const {
   updateVerificationCheck,
 } = require("./room-verification.cjs");
 const {
+  deleteRoomSnapshot,
   getAdminRentalStats,
   getAvailability,
   getRoomRentalStats,
@@ -95,6 +96,24 @@ app.post("/v1/internal/community/rooms/batch", async (request, response) => {
   } catch (error) {
     console.error("[property-service] community room batch failed", error);
     return response.status(500).json({ message: "Cannot load room profiles" });
+  }
+});
+
+app.post("/v1/internal/rooms/existing-ids", async (request, response) => {
+  try {
+    const ids = Array.isArray(request.body?.ids)
+      ? [...new Set(request.body.ids.map(String).filter(Boolean))]
+      : [];
+    if (ids.length === 0) return response.json({ ids: [] });
+
+    const rooms = await prisma.room.findMany({
+      where: { id: { in: ids } },
+      select: { id: true },
+    });
+    return response.json({ ids: rooms.map((room) => room.id) });
+  } catch (error) {
+    console.error("[property-service] room existence lookup failed", error);
+    return response.status(500).json({ message: "Cannot check existing rooms" });
   }
 });
 
@@ -452,6 +471,11 @@ app.delete("/v1/rooms/:id", async (request, response) => {
       requestIdentity(request),
       request.params.id,
     );
+    if (result.status < 300) {
+      await deleteRoomSnapshot(request.params.id).catch((error) =>
+        console.error("[property-service] room snapshot deletion failed", error.message),
+      );
+    }
     return response.status(result.status).json(result.payload);
   } catch (error) {
     console.error("[property-service] DELETE /v1/rooms/:id failed", error);

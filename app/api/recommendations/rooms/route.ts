@@ -66,8 +66,9 @@ export async function GET(req: NextRequest) {
     const aiResponse = await fetch(
       `${AI_SERVICE_URL}/v1/recommend-room/${authUser.userId}?top_k=${topK}`,
       {
-        method: "GET",
+        method: "POST",
         headers: internalServiceHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ preference }),
         cache: "no-store",
       },
     );

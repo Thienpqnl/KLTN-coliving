@@ -69,3 +69,14 @@ docs/
 # Generated thesis output
 /docs/thesis/render-*/
 /docs/thesis/*-structure.json
+
+# Local thesis reports, slides, and rendered artifacts
+/output/
+/presentation_work/
+/KLTN_Coliving*.pptx
+*.inspect.ndjson
+
+# One-off local chart generators for thesis reports
+/scripts/generate_ai_performance_comparison.py
+/scripts/generate_expanded_test_chart.py
+/scripts/generate_professional_test_summary.py

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
-import { successResponse } from "@/lib/api-error";
+import { handleApiError, successResponse } from "@/lib/api-error";
 import { tryProxyRentalService } from "@/lib/microservices/rental-bff";
 
 export async function GET(request: NextRequest) {
@@ -28,10 +28,6 @@ export async function GET(request: NextRequest) {
 
     return successResponse(bookings);
   } catch (error) {
-    console.error("HOST BOOKINGS ERROR:", error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : String(error) },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

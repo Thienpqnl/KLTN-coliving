@@ -145,15 +145,6 @@ function requireAuthenticated(identity) {
   return identity?.userId ? null : failure(401, "Unauthorized");
 }
 
-function context(identity, body = {}) {
-  return {
-    actorId: identity.userId,
-    role: identity.role,
-    ipAddress: body.ipAddress,
-    userAgent: body.userAgent,
-  };
-}
-
 function buildSnapshot(source) {
   return {
     legalBasis: [
@@ -472,7 +463,7 @@ async function updateContract(prisma, identity, contractId, input) {
   return { status: 200, payload: sanitizeForJson(decorateContract(updated)) };
 }
 
-async function deleteContract(prisma, identity, contractId, input) {
+async function deleteContract(prisma, identity, contractId) {
   const denied = requireAuthenticated(identity);
   if (denied) return denied;
   if (identity.role !== "HOST" && identity.role !== "ADMIN") return failure(403, "Bạn không có quyền xóa hợp đồng");

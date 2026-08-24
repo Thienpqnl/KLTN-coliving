@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useCallback, useState, useEffect, use } from 'react';
 import { sharedSpaceClientService, SharedResource, SharedActivity } from '@/lib/services/shared-space-client.service';
 import { useAuth } from '@/lib/hooks/useAuth';
 import BookingModal from '../../components/BookingModal';
@@ -37,7 +37,6 @@ export default function SharedSpacePage({ params }: PageProps) {
   const [resources, setResources] = useState<SharedResource[]>([]);
   const [activities, setActivities] = useState<SharedActivity[]>([]);
   const [selectedResourceId, setSelectedResourceId] = useState<string>('');
-  const [loading, setLoading] = useState(true);
   const [calendarFilter, setCalendarFilter] = useState<'all' | 'booking'>('all');
   const [weekDays, setWeekDays] = useState<{ dayName: string; dayNum: number; dateStr: string }[]>([]);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -101,31 +100,21 @@ export default function SharedSpacePage({ params }: PageProps) {
     setCurrentWeekStart(startOfWeek);
   };
 
-  const fetchSharedSpaceData = async () => {
+  const fetchSharedSpaceData = useCallback(async () => {
     try {
-      setLoading(true);
       const [resData, actData] = await Promise.all([
         sharedSpaceClientService.getCalendar(roomId),
         sharedSpaceClientService.getActivities(roomId)
       ]);
       setResources(resData);
       setActivities(actData);
-      if (resData.length > 0 && !selectedResourceId) {
-        setSelectedResourceId(resData[0].id);
-      }
+      setSelectedResourceId(current => current || resData[0]?.id || '');
     } catch (err) {
       console.error("Lỗi đồng bộ dữ liệu không gian chung:", err);
-    } finally {
-      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchSharedSpaceData();
-    fetchContractData();
   }, [roomId]);
 
-  const fetchContractData = async () => {
+  const fetchContractData = useCallback(async () => {
     try {
       const response = await fetch(`/api/rooms/${roomId}/contract`);
       if (response.ok) {
@@ -145,7 +134,12 @@ export default function SharedSpacePage({ params }: PageProps) {
     } catch (error) {
       console.error("Error fetching contract:", error);
     }
-  };
+  }, [roomId]);
+
+  useEffect(() => {
+    fetchSharedSpaceData();
+    fetchContractData();
+  }, [fetchContractData, fetchSharedSpaceData]);
 
   const handleBookingSuccess = () => {
     fetchSharedSpaceData();
@@ -198,7 +192,7 @@ export default function SharedSpacePage({ params }: PageProps) {
         const errorData = await response.json().catch(() => ({}));
         setPageFeedback({ type: "error", message: errorData.error || errorData.message || "Lỗi khi gửi minh chứng thanh toán" });
       }
-    } catch (error) {
+    } catch {
       setPageFeedback({ type: "error", message: "Lỗi khi upload ảnh hoặc gửi minh chứng thanh toán" });
     } finally {
       setIsUploading(false);

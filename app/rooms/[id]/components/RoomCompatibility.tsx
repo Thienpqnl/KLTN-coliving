@@ -26,6 +26,7 @@ interface CompatibilityDetail {
     preferences: {
       budgetMin: number;
       budgetMax: number;
+      preferredCity?: string;
       preferredDistrict: string;
       lifestyleArchetype: string;
       priorityCleanliness: number;

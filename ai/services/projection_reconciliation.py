@@ -17,17 +17,18 @@ def sync_user_preference_fields(cursor):
     """Keep preference-derived fields in ai.user_profiles current even if full reconciliation fails."""
     cursor.execute('''
         INSERT INTO ai.user_profiles (
-          user_id, budget_min_vnd, budget_max_vnd, preferred_district,
+          user_id, budget_min_vnd, budget_max_vnd, preferred_city, preferred_district,
           lifestyle_archetype, priority_cleanliness, priority_social_environment,
           accept_smoking_roommates, accept_pets, source_updated_at
         )
-        SELECT p."userId", p."budgetMinVnd", p."budgetMaxVnd", p."preferredDistrict",
+        SELECT p."userId", p."budgetMinVnd", p."budgetMaxVnd", p."preferredCity", p."preferredDistrict",
                p."lifestyleArchetype", p."priorityCleanliness", p."prioritySocialEnvironment",
                p."acceptSmokingRoommates", p."acceptPets", p."updatedAt"
         FROM preference.user_preferences p
         ON CONFLICT (user_id) DO UPDATE SET
           budget_min_vnd = EXCLUDED.budget_min_vnd,
           budget_max_vnd = EXCLUDED.budget_max_vnd,
+          preferred_city = EXCLUDED.preferred_city,
           preferred_district = EXCLUDED.preferred_district,
           lifestyle_archetype = EXCLUDED.lifestyle_archetype,
           priority_cleanliness = EXCLUDED.priority_cleanliness,
@@ -42,6 +43,7 @@ def sync_user_preference_fields(cursor):
         WHERE (
           ai.user_profiles.budget_min_vnd,
           ai.user_profiles.budget_max_vnd,
+          ai.user_profiles.preferred_city,
           ai.user_profiles.preferred_district,
           ai.user_profiles.lifestyle_archetype,
           ai.user_profiles.priority_cleanliness,
@@ -52,6 +54,7 @@ def sync_user_preference_fields(cursor):
         ) IS DISTINCT FROM (
           EXCLUDED.budget_min_vnd,
           EXCLUDED.budget_max_vnd,
+          EXCLUDED.preferred_city,
           EXCLUDED.preferred_district,
           EXCLUDED.lifestyle_archetype,
           EXCLUDED.priority_cleanliness,
@@ -89,12 +92,12 @@ def reconcile_projections():
                 cursor.execute('''
                     INSERT INTO ai.user_profiles (
                       user_id, email, full_name, role, budget_min_vnd, budget_max_vnd,
-                      preferred_district, lifestyle_archetype, priority_cleanliness,
+                      preferred_city, preferred_district, lifestyle_archetype, priority_cleanliness,
                       priority_social_environment, accept_smoking_roommates, accept_pets,
                       source_updated_at
                     )
                     SELECT u."id", u."email", u."fullName", u."role"::text,
-                           p."budgetMinVnd", p."budgetMaxVnd", p."preferredDistrict",
+                           p."budgetMinVnd", p."budgetMaxVnd", p."preferredCity", p."preferredDistrict",
                            p."lifestyleArchetype", p."priorityCleanliness",
                            p."prioritySocialEnvironment", p."acceptSmokingRoommates", p."acceptPets",
                            GREATEST(u."updatedAt", p."updatedAt")
@@ -106,6 +109,7 @@ def reconcile_projections():
                       role = EXCLUDED.role,
                       budget_min_vnd = EXCLUDED.budget_min_vnd,
                       budget_max_vnd = EXCLUDED.budget_max_vnd,
+                      preferred_city = EXCLUDED.preferred_city,
                       preferred_district = EXCLUDED.preferred_district,
                       lifestyle_archetype = EXCLUDED.lifestyle_archetype,
                       priority_cleanliness = EXCLUDED.priority_cleanliness,
@@ -120,6 +124,7 @@ def reconcile_projections():
                       ai.user_profiles.role,
                       ai.user_profiles.budget_min_vnd,
                       ai.user_profiles.budget_max_vnd,
+                      ai.user_profiles.preferred_city,
                       ai.user_profiles.preferred_district,
                       ai.user_profiles.lifestyle_archetype,
                       ai.user_profiles.priority_cleanliness,
@@ -133,6 +138,7 @@ def reconcile_projections():
                       EXCLUDED.role,
                       EXCLUDED.budget_min_vnd,
                       EXCLUDED.budget_max_vnd,
+                      EXCLUDED.preferred_city,
                       EXCLUDED.preferred_district,
                       EXCLUDED.lifestyle_archetype,
                       EXCLUDED.priority_cleanliness,

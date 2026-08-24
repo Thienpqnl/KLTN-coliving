@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS ai.user_profiles (
   role text,
   budget_min_vnd bigint,
   budget_max_vnd bigint,
+  preferred_city text,
   preferred_district text,
   lifestyle_archetype text,
   priority_cleanliness integer,
