@@ -68,6 +68,47 @@ async function upsertRoomSnapshot(prisma, roomId, profile) {
   });
 }
 
+async function deleteRoomSnapshot(prisma, roomId) {
+  const result = await prisma.rentalRoomSnapshot.deleteMany({ where: { roomId } });
+  return { deleted: result.count };
+}
+
+async function findExistingRoomIds(roomIds) {
+  const baseUrl = propertyServiceUrl();
+  if (!baseUrl) {
+    throw new Error("PROPERTY_SERVICE_URL is not configured for Rental Service");
+  }
+  const payload = await requestJson(`${baseUrl}/v1/internal/rooms/existing-ids`, {
+    method: "POST",
+    headers: internalHeaders(true),
+    body: JSON.stringify({ ids: roomIds }),
+  });
+  return new Set(Array.isArray(payload?.ids) ? payload.ids.map(String) : []);
+}
+
+async function pruneMissingRoomSnapshots(
+  prisma,
+  ownerId,
+  loadExistingRoomIds = findExistingRoomIds,
+) {
+  const snapshots = await prisma.rentalRoomSnapshot.findMany({
+    where: ownerId ? { ownerId } : {},
+    select: { roomId: true },
+  });
+  if (snapshots.length === 0) return { deleted: 0 };
+
+  const existingIds = await loadExistingRoomIds(snapshots.map((room) => room.roomId));
+  const missingIds = snapshots
+    .map((room) => room.roomId)
+    .filter((roomId) => !existingIds.has(roomId));
+  if (missingIds.length === 0) return { deleted: 0 };
+
+  const result = await prisma.rentalRoomSnapshot.deleteMany({
+    where: { roomId: { in: missingIds } },
+  });
+  return { deleted: result.count };
+}
+
 async function refreshRoomSnapshot(prisma, roomId) {
   const baseUrl = propertyServiceUrl();
   if (!baseUrl) {
@@ -98,7 +139,10 @@ async function prepareRoomSnapshot(prisma, roomId) {
 }
 
 module.exports = {
+  deleteRoomSnapshot,
+  findExistingRoomIds,
   prepareRoomSnapshot,
+  pruneMissingRoomSnapshots,
   refreshRoomSnapshot,
   snapshotData,
   upsertRoomSnapshot,

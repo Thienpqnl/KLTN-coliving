@@ -93,7 +93,7 @@ export function generateRoommateExplanation(
 ): RoommateExplanation {
   const score = compatibility.compatibility_score;
   const percent = Math.round(score * 100);
-  const { level, emoji, color } = getCompatibilityLevel(score);
+  const { level, emoji } = getCompatibilityLevel(score);
   const normalizedReasons = normalizeReasons(compatibility.compatibility_reasons);
 
   // Generate key reasons (first 2 or 3)

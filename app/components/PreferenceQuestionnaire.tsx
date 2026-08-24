@@ -12,6 +12,29 @@ type FormNotice = {
   message: string;
 };
 
+const CITY_LABELS: Record<string, string> = {
+  HO_CHI_MINH: "TP. Hồ Chí Minh",
+  HA_NOI: "Hà Nội",
+  DA_NANG: "Đà Nẵng",
+};
+
+const DA_NANG_AREA_CODES = new Set([
+  "HAI_CHAU", "THACH_THANG", "THANH_BINH", "SON_TRA", "AN_HAI",
+  "NGU_HANH_SON", "HOA_XUAN", "CAM_LE", "HOA_THO", "LIEN_CHIEU",
+  "HOA_KHANH", "THANH_KHE", "AN_KHE", "HOA_VANG", "HOA_BAC",
+  "HOA_LIEN", "HOA_NINH", "HOANG_SA",
+]);
+
+function inferLegacyCity(preferredDistrict?: string | null) {
+  const district = String(preferredDistrict || "").trim().toUpperCase();
+  if (DA_NANG_AREA_CODES.has(district)) return "DA_NANG";
+  if (["HA_NOI", "HANOI", "HN"].includes(district)) return "HA_NOI";
+  if (["HO_CHI_MINH", "HCM", "HCMC", "TPHCM", "SAI_GON"].includes(district)) {
+    return "HO_CHI_MINH";
+  }
+  return "";
+}
+
 export default function PreferenceQuestionnaire() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -22,6 +45,7 @@ export default function PreferenceQuestionnaire() {
   const [form, setForm] = useState({
     budgetMinVnd: "",
     budgetMaxVnd: "",
+    preferredCity: "",
     preferredDistrict: "",
     lifestyleArchetype: "",
     priorityCleanliness: 3,
@@ -45,10 +69,12 @@ export default function PreferenceQuestionnaire() {
         if (response.ok) {
           const data = await response.json();
           if (data) {
+            const preferredCity = data.preferredCity || inferLegacyCity(data.preferredDistrict);
             // Populate form với dữ liệu đã lưu
             setForm({
               budgetMinVnd: data.budgetMinVnd ? data.budgetMinVnd.toString() : "",
               budgetMaxVnd: data.budgetMaxVnd ? data.budgetMaxVnd.toString() : "",
+              preferredCity,
               preferredDistrict: data.preferredDistrict || "",
               lifestyleArchetype: data.lifestyleArchetype || "",
               priorityCleanliness: data.priorityCleanliness || 3,
@@ -56,6 +82,7 @@ export default function PreferenceQuestionnaire() {
               acceptSmokingRoommates: data.acceptSmokingRoommates || false,
               acceptPets: data.acceptPets || false,
             });
+            setSelectedCity(preferredCity);
             console.log("Loaded preferences:", data);
           }
         }
@@ -139,6 +166,7 @@ export default function PreferenceQuestionnaire() {
       const data = {
         budgetMinVnd: form.budgetMinVnd ? Number.parseInt(form.budgetMinVnd, 10) : null,
         budgetMaxVnd: form.budgetMaxVnd ? Number.parseInt(form.budgetMaxVnd, 10) : null,
+        preferredCity: form.preferredCity || null,
         preferredDistrict: form.preferredDistrict || null,
         lifestyleArchetype: form.lifestyleArchetype || null,
         priorityCleanliness: form.priorityCleanliness,
@@ -370,7 +398,11 @@ export default function PreferenceQuestionnaire() {
                           type="button"
                           onClick={() => {
                             setSelectedCity(city.value);
-                            setForm({ ...form, preferredDistrict: "" });
+                            setForm((current) => ({
+                              ...current,
+                              preferredCity: city.value,
+                              preferredDistrict: "",
+                            }));
                           }}
                           className={`p-6 rounded-xl border-2 transition text-center ${
                             selectedCity === city.value
@@ -394,7 +426,7 @@ export default function PreferenceQuestionnaire() {
   className="w-full px-6 py-4 text-lg border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-100 focus:outline-none transition bg-white"
   disabled={!selectedCity}
 >
-  <option value="">{selectedCity ? "-- Chọn quận/huyện --" : "-- Vui lòng chọn thành phố trước --"}</option>
+  <option value="">{selectedCity ? "Toàn thành phố" : "-- Vui lòng chọn thành phố trước --"}</option>
 
   {/* TP.HCM */}
   {selectedCity === "HO_CHI_MINH" && (
@@ -789,7 +821,8 @@ export default function PreferenceQuestionnaire() {
                     <h3 className="font-bold text-slate-900 mb-4">Tóm tắt sở thích của bạn:</h3>
                     <div className="space-y-2 text-sm">
                       <p><span className="font-semibold">Ngân sách:</span> {form.budgetMinVnd && form.budgetMaxVnd ? `${parseInt(form.budgetMinVnd).toLocaleString('vi-VN')} - ${parseInt(form.budgetMaxVnd).toLocaleString('vi-VN')} VND` : "Chưa chọn"}</p>
-                      <p><span className="font-semibold">Khu vực:</span> {form.preferredDistrict || "Không ưu tiên"}</p>
+                      <p><span className="font-semibold">Thành phố:</span> {CITY_LABELS[form.preferredCity] || "Không ưu tiên"}</p>
+                      <p><span className="font-semibold">Khu vực chi tiết:</span> {form.preferredDistrict || "Toàn thành phố"}</p>
                       <p><span className="font-semibold">Lối sống:</span> {form.lifestyleArchetype || "Chưa chọn"}</p>
                       <p><span className="font-semibold">Độ sạch sẽ:</span> {form.priorityCleanliness}/5</p>
                       <p><span className="font-semibold">Môi trường:</span> {form.prioritySocialEnvironment}/5</p>

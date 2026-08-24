@@ -388,7 +388,8 @@ async function createAdmin(prisma, input = {}, expectedSecret) {
       status: "ACTIVE",
     },
   });
-  const { password: _password, ...userWithoutPassword } = adminUser;
+  const userWithoutPassword = { ...adminUser };
+  delete userWithoutPassword.password;
 
   return {
     status: 201,

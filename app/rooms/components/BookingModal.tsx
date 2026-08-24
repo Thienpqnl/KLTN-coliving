@@ -41,7 +41,7 @@ export default function BookingModal({ isOpen, onClose, resources, roomId, onSuc
         setDuration(maxMinutes.toString());
       }
     }
-  }, [selectedResourceId]);
+  }, [duration, selectedResource]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

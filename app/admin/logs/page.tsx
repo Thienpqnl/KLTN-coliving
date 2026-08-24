@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { FileText, AlertCircle } from "lucide-react"
 
@@ -52,7 +52,7 @@ export default function AuditLogs() {
   const [actionFilter, setActionFilter] = useState("")
   const [targetTypeFilter, setTargetTypeFilter] = useState("")
 
-  const fetchLogs = async (page = 1) => {
+  const fetchLogs = useCallback(async (page = 1) => {
     try {
       setLoading(true)
       const params = new URLSearchParams({
@@ -77,19 +77,13 @@ export default function AuditLogs() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [actionFilter, targetTypeFilter, token])
 
   useEffect(() => {
     if (token) {
       fetchLogs(1)
     }
-  }, [token])
-
-  useEffect(() => {
-    if (token && pagination.page > 0) {
-      fetchLogs(1)
-    }
-  }, [actionFilter, targetTypeFilter])
+  }, [token, fetchLogs])
 
   const getActionBadgeColor = (action: string) => {
     if (action.includes("lock")) return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"

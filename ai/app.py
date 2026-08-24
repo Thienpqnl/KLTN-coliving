@@ -248,6 +248,23 @@ def recommend_v1(userId: str, top_k: int = 10):
         return failure(str(error), data=[])
 
 
+@app.post("/v1/recommend-room/{userId}")
+async def recommend_v1_with_preferences(userId: str, request: Request, top_k: int = 10):
+    try:
+        body = await request.json()
+        preference = body.get("preference", body) if isinstance(body, dict) else None
+        return success(dataframe_records(
+            recommend_rooms(
+                userId=userId,
+                top_k=top_k,
+                preference_override=preference,
+            )
+        ))
+    except Exception as error:
+        print(f"[AI] v1 recommendation override failed for user {userId}: {error}")
+        return failure(str(error), data=[])
+
+
 @app.get("/match-roommates/{userId}/{roomId}")
 def roommate_matching(userId: str, roomId: str):
     try:
@@ -281,6 +298,29 @@ def get_compatibility_detail_v1(userId: str, roomId: str):
         status_code = 404 if len(result) <= 2 else 200
         return failure(result.get("error"), status_code=status_code, data=result)
     return success(result)
+
+
+@app.post("/v1/compatibility-detail/{userId}/{roomId}")
+async def get_compatibility_detail_v1_with_preferences(
+    userId: str,
+    roomId: str,
+    request: Request,
+):
+    try:
+        body = await request.json()
+        preference = body.get("preference", body) if isinstance(body, dict) else None
+        result = get_detailed_compatibility(
+            userId,
+            roomId,
+            preference_override=preference,
+        )
+        if "error" in result:
+            status_code = 404 if len(result) <= 2 else 200
+            return failure(result.get("error"), status_code=status_code, data=result)
+        return success(result)
+    except Exception as error:
+        print(f"[AI] v1 compatibility override failed for user {userId}, room {roomId}: {error}")
+        return failure(str(error), data={})
 
 
 @app.get("/landlord/evaluate-applicant/{userId}/{roomId}")

@@ -14,6 +14,7 @@ interface RoommatesSectionProps {
 export function RoommatesSection({ roomId }: RoommatesSectionProps) {
   // 1. Lấy thông tin user hiện tại từ Context
   const { user, isLoading: authLoading } = useAuth(); 
+  const userId = user?.id;
   
   const [explainedMatches, setExplainedMatches] = useState<{ match: RoommateMatch; explanation: RoommateExplanation }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,18 +26,18 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
       return;
     }
 
-    if (!user?.id || !roomId) {
-      console.warn(" [RoommatesSection] Chưa đăng nhập hoặc thiếu RoomId. User:", user, "RoomId:", roomId);
+    if (!userId || !roomId) {
+      console.warn(" [RoommatesSection] Chưa đăng nhập hoặc thiếu RoomId. UserId:", userId, "RoomId:", roomId);
       setLoading(false); // Stop loading nếu không đủ điều kiện
       return;
     }
 
     const fetchMatches = async () => {
-      console.log("[Fetch] Bắt đầu gọi API matching cho User:", user.id, "và Room:", roomId);
+      console.log("[Fetch] Bắt đầu gọi API matching cho User:", userId, "và Room:", roomId);
       setLoading(true);
       try {
         // 3. Gọi service với userId thật
-        const data = await roommateService.getMatches(user.id, roomId);
+        const data = await roommateService.getMatches(userId, roomId);
         console.log(" [Fetch] Nhận được dữ liệu từ Service:", data);
         
         if (!data || data.length === 0) {
@@ -63,7 +64,7 @@ export function RoommatesSection({ roomId }: RoommatesSectionProps) {
     };
 
     fetchMatches();
-  }, [user?.id, roomId, authLoading]); // Dependency array: chạy lại khi user hoặc roomId hoặc authLoading thay đổi
+  }, [userId, roomId, authLoading]); // Dependency array: chạy lại khi user hoặc roomId hoặc authLoading thay đổi
 
   // --- PHẦN RENDER GIAO DIỆN ---
 

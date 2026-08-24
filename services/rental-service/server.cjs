@@ -32,7 +32,9 @@ const {
 } = require("./bookings.cjs");
 const { getRoomsAvailability } = require("./capacity.cjs");
 const {
+  deleteRoomSnapshot,
   prepareRoomSnapshot,
+  pruneMissingRoomSnapshots,
   upsertRoomSnapshot,
 } = require("./room-snapshots.cjs");
 const {
@@ -324,9 +326,27 @@ app.get("/v1/host/occupancy", async (request, response) => {
   }
 });
 
+app.delete("/v1/internal/room-snapshots/:roomId", async (request, response) => {
+  try {
+    return response.json(await deleteRoomSnapshot(prisma, request.params.roomId));
+  } catch (error) {
+    console.error("[rental-service] room snapshot deletion failed", error);
+    return response.status(500).json({ message: "Cannot delete room snapshot" });
+  }
+});
+
 app.get("/v1/host/occupancy/overview", async (request, response) => {
   try {
-    return sendResult(response, await hostOccupancyOverview(prisma, requestIdentity(request)));
+    const identity = requestIdentity(request);
+    if (identity.userId && (identity.role === "HOST" || identity.role === "ADMIN")) {
+      await pruneMissingRoomSnapshots(
+        prisma,
+        identity.role === "ADMIN" ? undefined : identity.userId,
+      ).catch((error) => {
+        console.warn("[rental-service] stale room snapshot cleanup skipped", error.message);
+      });
+    }
+    return sendResult(response, await hostOccupancyOverview(prisma, identity));
   } catch (error) {
     console.error("[rental-service] GET /v1/host/occupancy/overview failed", error);
     return response.status(500).json({ message: "Cannot load host occupancy overview" });
@@ -448,7 +468,7 @@ app.put("/v1/contracts/:id", async (request, response) => {
 
 app.delete("/v1/contracts/:id", async (request, response) => {
   try {
-    return sendResult(response, await deleteContract(prisma, requestIdentity(request), request.params.id, request.body || {}));
+    return sendResult(response, await deleteContract(prisma, requestIdentity(request), request.params.id));
   } catch (error) {
     console.error("[rental-service] DELETE /v1/contracts/:id failed", error);
     return response.status(500).json({ message: "Cannot delete contract" });

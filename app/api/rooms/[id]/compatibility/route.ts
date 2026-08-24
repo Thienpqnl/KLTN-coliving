@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   gatewayServiceBase,
+  getServiceUrl,
   internalServiceHeaders,
+  requestServiceJson,
 } from "@/lib/microservices/service-client";
 import { getAuthUser } from "@/lib/auth";
+import {
+  serviceIdentityHeaders,
+  serviceUnavailableResponse,
+} from "@/lib/microservices/bff-service";
 
 type AIEnvelope<T> = {
   success?: boolean;
@@ -27,6 +33,26 @@ export async function GET(
       return NextResponse.json({ error: "Room ID is required" }, { status: 400 });
     }
 
+    const preferenceServiceUrl = getServiceUrl("PREFERENCE");
+    if (!preferenceServiceUrl) {
+      return serviceUnavailableResponse(
+        "Preference Service",
+        "PREFERENCE_SERVICE_URL is not configured",
+      );
+    }
+    const preference = await requestServiceJson<Record<string, unknown>>(
+      "preference-service",
+      preferenceServiceUrl,
+      "/v1/preferences",
+      {
+        headers: serviceIdentityHeaders({
+          userId: payload.userId,
+          role: payload.role,
+        }),
+        timeoutMs: Number(process.env.MICROSERVICE_TIMEOUT_MS || 3_000),
+      },
+    );
+
     const aiServiceUrl = gatewayServiceBase(
       "ai-service",
       process.env.AI_SERVICE_URL || "http://localhost:8000",
@@ -34,8 +60,10 @@ export async function GET(
     const response = await fetch(
       `${aiServiceUrl}/v1/compatibility-detail/${payload.userId}/${roomId}`,
       {
-        method: "GET",
+        method: "POST",
         headers: internalServiceHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ preference }),
+        cache: "no-store",
       },
     );
 

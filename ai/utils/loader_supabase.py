@@ -34,7 +34,7 @@ SERVICE_QUERIES = {
         FROM "identity"."User"
     ''',
     "preferences": '''
-        SELECT "userId", "budgetMinVnd", "budgetMaxVnd", "preferredDistrict",
+        SELECT "userId", "budgetMinVnd", "budgetMaxVnd", "preferredCity", "preferredDistrict",
                "lifestyleArchetype", "priorityCleanliness", "prioritySocialEnvironment",
                "acceptSmokingRoommates", "acceptPets"
         FROM "preference"."user_preferences"
@@ -63,7 +63,8 @@ PROJECTION_QUERIES = {
     ''',
     "preferences": '''
         SELECT user_id AS "userId", budget_min_vnd AS "budgetMinVnd",
-               budget_max_vnd AS "budgetMaxVnd", preferred_district AS "preferredDistrict",
+               budget_max_vnd AS "budgetMaxVnd", preferred_city AS "preferredCity",
+               preferred_district AS "preferredDistrict",
                lifestyle_archetype AS "lifestyleArchetype",
                priority_cleanliness AS "priorityCleanliness",
                priority_social_environment AS "prioritySocialEnvironment",
@@ -174,6 +175,7 @@ def load_users_from_supabase() -> pd.DataFrame:
                 userId,
                 budgetMinVnd,
                 budgetMaxVnd,
+                preferredCity,
                 preferredDistrict,
                 lifestyleArchetype,
                 priorityCleanliness,
@@ -188,7 +190,7 @@ def load_users_from_supabase() -> pd.DataFrame:
         if users_df.empty:
             return pd.DataFrame(columns=[
                 "userId", "email", "fullName", "role", "budget_min_vnd", "budget_max_vnd",
-                "preferred_location_district_id", "lifestyle_archetype", "priority_cleanliness",
+                "preferred_city", "preferred_location_district_id", "lifestyle_archetype", "priority_cleanliness",
                 "priority_social_environment", "accept_smoking_roommates", "accept_pets",
             ])
 
@@ -205,6 +207,7 @@ def load_users_from_supabase() -> pd.DataFrame:
         # Fillna các trường dữ liệu
         users_df["budgetMinVnd"] = users_df["budgetMinVnd"].fillna(3000000)
         users_df["budgetMaxVnd"] = users_df["budgetMaxVnd"].fillna(15000000)
+        users_df["preferredCity"] = users_df["preferredCity"].fillna("")
         users_df["preferredDistrict"] = users_df["preferredDistrict"].fillna("all")
         users_df["lifestyleArchetype"] = users_df["lifestyleArchetype"].fillna("Young Professional")
         users_df["priorityCleanliness"] = users_df["priorityCleanliness"].fillna(3)
@@ -216,6 +219,7 @@ def load_users_from_supabase() -> pd.DataFrame:
         users_df = users_df.rename(columns={
             "budgetMinVnd": "budget_min_vnd",
             "budgetMaxVnd": "budget_max_vnd",
+            "preferredCity": "preferred_city",
             "preferredDistrict": "preferred_location_district_id",
             "lifestyleArchetype": "lifestyle_archetype",
             "priorityCleanliness": "priority_cleanliness",
@@ -368,18 +372,26 @@ occupancy_df = pd.DataFrame()
 interact_df = pd.DataFrame()
 model = None
 cache_lock = threading.RLock()
+cache_version = 1 if not users_df.empty or not rooms_df.empty or not interact_df.empty else 0
 
-try:
-    users_df, rooms_df, occupancy_df, interact_df, model = load_all_data()
-except Exception as e:
-    print(f"❌ CRITICAL ERROR DURING DATA INITIALIZATION: {e}")
-    import traceback
-    traceback.print_exc()
-    users_df = pd.DataFrame()
-    rooms_df = pd.DataFrame()
-    occupancy_df = pd.DataFrame()
-    interact_df = pd.DataFrame()
-    model = None
+
+def get_cache_version() -> int:
+    """Return the current in-memory projection version for derived-cache invalidation."""
+    with cache_lock:
+        return cache_version
+
+if os.getenv("AI_SKIP_INITIAL_LOAD", "false").lower() not in {"1", "true", "yes"}:
+    try:
+        users_df, rooms_df, occupancy_df, interact_df, model = load_all_data()
+    except Exception as e:
+        print(f"❌ CRITICAL ERROR DURING DATA INITIALIZATION: {e}")
+        import traceback
+        traceback.print_exc()
+        users_df = pd.DataFrame()
+        rooms_df = pd.DataFrame()
+        occupancy_df = pd.DataFrame()
+        interact_df = pd.DataFrame()
+        model = None
 
 def _replace_dataframe(target: pd.DataFrame, source: pd.DataFrame):
     target.drop(target.index, inplace=True)
@@ -390,6 +402,7 @@ def _replace_dataframe(target: pd.DataFrame, source: pd.DataFrame):
     target.reset_index(drop=True, inplace=True)
 
 def refresh_projection_cache():
+    global cache_version
     if not use_ai_projections():
         return
     new_users = load_users_from_supabase()
@@ -401,13 +414,14 @@ def refresh_projection_cache():
         _replace_dataframe(rooms_df, new_rooms)
         _replace_dataframe(occupancy_df, new_occupancy)
         _replace_dataframe(interact_df, new_interactions)
+        cache_version += 1
 
 __all__ = [
     'users_df', 'rooms_df', 'occupancy_df', 'interact_df', 'model',
     'get_supabase_client', 'load_users_from_supabase', 'load_rooms_from_supabase',
     'load_occupancy_from_supabase', 'load_interactions_from_supabase', 'load_model',
     'load_all_data', 'load_service_rows', 'use_service_schemas', 'use_ai_projections',
-    'refresh_projection_cache', 'cache_lock'
+    'refresh_projection_cache', 'cache_lock', 'get_cache_version'
 ]
 if 'rooms_df' in locals() or 'rooms_df' in globals():
     if not rooms_df.empty:
